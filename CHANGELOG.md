@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.7.8](https://github.com/STARTcloud/armor_private/compare/v0.7.7...v0.7.8) (2025-09-23)
+## [1.0.0](https://github.com/STARTcloud/armor_private/compare/v0.7.7...v1.0.0) (2025-09-23)
 
 
 ### Bug Fixes
