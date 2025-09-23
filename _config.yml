@@ -1,9 +1,9 @@
 # Basic Jekyll settings
 title: Armor Documentation
-description: Documentation for Armor - Armor Reliably Manages Online Resources
+description: Documentation for Armor - ARMOR Reliably Manages Online Resources
 baseurl: '' # Custom domain serves from root
-url: 'http://armor.startcloud.com' # Custom domain
-repository: STARTcloud/armor # for github-metadata
+url: 'https://startcloud.github.io/armor_private' # GitHub Pages URL
+repository: STARTcloud/armor_private # for github-metadata
 
 permalink: pretty
 
@@ -71,13 +71,11 @@ search_enabled: true # Enable the built-in search
 # Aux links for header
 aux_links:
   'View on GitHub':
-    - 'https://github.com/STARTcloud/armor'
-  'Armor API':
-    - 'https://armor.startcloud.com'
+    - 'https://github.com/STARTcloud/armor_private'
 aux_links_new_tab: true
 
 # Footer content
-footer_content: 'Copyright &copy; 2025 Armor Project. Distributed under the GPL-3.0 license.'
+footer_content: 'Copyright &copy; 2025 STARTcloud. Distributed under the MIT license.'
 
 # Back to top link
 back_to_top: true
@@ -90,7 +88,7 @@ last_edit_time_format: '%b %e %Y at %I:%M %p' # uses ruby's time format: https:/
 # Footer "Edit this page on GitHub" link text
 gh_edit_link: true # show or hide edit this page link
 gh_edit_link_text: 'Edit this page on GitHub'
-gh_edit_repository: 'https://github.com/STARTcloud/armor' # the github URL for your repo
+gh_edit_repository: 'https://github.com/STARTcloud/armor_private' # the github URL for your repo
 gh_edit_branch: 'main' # the branch that your docs is served from
 gh_edit_source: docs # the source that your files originate from
 gh_edit_view_mode: 'tree' # "tree" or "edit" if you want the user to jump into the editor immediately
