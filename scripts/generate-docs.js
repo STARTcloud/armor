@@ -430,7 +430,7 @@ permalink: /docs/api/reference/
 /**
  * Generate static API documentation files
  */
-const generateDocs = () => {
+const generateDocs = async () => {
   console.log('🔧 Generating API documentation...');
 
   // Ensure docs/api directory exists
