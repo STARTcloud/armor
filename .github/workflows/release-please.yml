@@ -13,7 +13,29 @@ permissions:
   actions: write
 
 jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
   release-please:
+    needs: lint-and-test
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
@@ -22,6 +44,9 @@ jobs:
       minor: ${{ steps.release.outputs.minor }}
       patch: ${{ steps.release.outputs.patch }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
       - name: Release Please
         uses: googleapis/release-please-action@v4
         id: release
@@ -42,13 +67,7 @@ jobs:
           cache: 'npm'
           
       - name: Install Node.js dependencies
-        run: npm ci
-          
-      - name: Install web dependencies
-        run: cd web && npm ci
-          
-      - name: Build frontend
-        run: npm run build
+        run: npm ci --omit=dev
         
       - name: Set Debian package variables
         run: |
@@ -58,13 +77,13 @@ jobs:
         
       - name: Create Debian package structure
         run: |
-          mkdir -p "${PACKAGE_NAME}_${VERSION}_${ARCH}"/{opt/armor/web,etc/armor,etc/systemd/system,var/lib/armor,var/log/armor,usr/share/man/man8,usr/share/man/man5,DEBIAN}
+          mkdir -p "${PACKAGE_NAME}_${VERSION}_${ARCH}"/{opt/armor,etc/armor,etc/systemd/system,var/lib/armor,var/log/armor,usr/share/man/man8,usr/share/man/man5,DEBIAN}
         
       - name: Copy application files to Debian package
         run: |
-          cp -r controllers models routes middleware config utils scripts index.js package.json "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
+          cp -r models routes middleware config utils services scripts app.js package.json "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
           cp -r node_modules "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
-          cp -r web/dist "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/dist"
+          cp -r web/static "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/"
         
       - name: Copy configuration files to Debian package
         run: |
