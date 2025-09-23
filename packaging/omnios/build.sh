@@ -96,6 +96,7 @@ install_app() {
     logmsg "Installing Armor application files"
     logcmd cp $SRCDIR/app.js .
     logcmd cp $SRCDIR/package.json .
+    logcmd cp $SRCDIR/LICENSE.md .
     
     # Copy application directories (Armor's actual structure)
     for dir in models routes middleware config utils services scripts; do

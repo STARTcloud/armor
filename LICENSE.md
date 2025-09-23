@@ -1,6 +1,6 @@
 # License
 
-Zoneweaver API is distributed under the GNU General Public License v3.0.
+Armor is distributed under the GNU General Public License v3.0.
 
 ## License Summary
 
