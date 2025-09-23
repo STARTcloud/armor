@@ -8,7 +8,6 @@ import fs from 'fs';
  */
 
 const rootPackagePath = './package.json';
-const webPackagePath = './web/package.json';
 const swaggerConfigPath = './config/swagger.js';
 const productionConfigPath = './packaging/config/production-config.yaml';
 const releasePleaseManifestPath = './.release-please-manifest.json';
@@ -17,11 +16,6 @@ try {
   // Read root package.json (single source of truth)
   const rootPackage = JSON.parse(fs.readFileSync(rootPackagePath, 'utf8'));
   const rootVersion = rootPackage.version;
-
-  // 1. Update web package.json
-  const webPackage = JSON.parse(fs.readFileSync(webPackagePath, 'utf8'));
-  webPackage.version = rootVersion;
-  fs.writeFileSync(webPackagePath, `${JSON.stringify(webPackage, null, 2)}\n`);
 
   // 2. Update swagger config
   let swaggerConfig = fs.readFileSync(swaggerConfigPath, 'utf8');
