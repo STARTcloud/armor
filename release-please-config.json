@@ -12,7 +12,7 @@
           "path": "web/package.json",
           "jsonpath": "$.version"
         },
-        "index.js",
+        "app.js",
         "config/swagger.js",
         "packaging/config/production-config.yaml",
         "packaging/omnios/man/armor.yaml.5"

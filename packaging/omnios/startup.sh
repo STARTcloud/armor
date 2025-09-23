@@ -41,8 +41,8 @@ if ! command -v node >/dev/null 2>&1; then
 fi
 
 # Check if main application file exists
-if [ ! -f "/opt/armor/index.js" ]; then
-    echo "Error: Armor application not found at /opt/armor/index.js" >&2
+if [ ! -f "/opt/armor/app.js" ]; then
+    echo "Error: Armor application not found at /opt/armor/app.js" >&2
     exit 1
 fi
 
@@ -70,7 +70,7 @@ echo "Environment: $NODE_ENV"
 
 # Start the Node.js application in the background
 # Output goes to log file so we can see SSL generation messages
-nohup node index.js </dev/null >>/var/log/armor/armor.log 2>&1 &
+nohup node app.js </dev/null >>/var/log/armor/armor.log 2>&1 &
 NODE_PID=$!
 
 # Save the PID

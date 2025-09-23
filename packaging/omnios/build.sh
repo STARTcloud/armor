@@ -46,7 +46,7 @@ mkdir -p "$DESTDIR"
 #### Build Structure
 # /opt/armor/
 #   # Node.js application files
-#   index.js
+#   app.js
 #   package.json
 #   controllers/
 #   models/

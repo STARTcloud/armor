@@ -17,7 +17,7 @@ echo "Stopping Armor..."
 if [ ! -f "$PIDFILE" ]; then
     echo "PID file $PIDFILE not found. Armor may not be running."
     # Check for any running armor processes
-    PIDS=$(pgrep -f "node.*index.js" 2>/dev/null || true)
+    PIDS=$(pgrep -f "node.*app.js" 2>/dev/null || true)
     if [ -n "$PIDS" ]; then
         echo "Found Armor processes: $PIDS"
         echo "Attempting to stop them..."

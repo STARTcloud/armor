@@ -59,7 +59,7 @@ exclude:
   - scripts/
   - SETUP.md
   - CHANGELOG.md
-  - index.js
+  - app.js
 
 # Theme settings
 theme: just-the-docs

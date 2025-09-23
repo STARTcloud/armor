@@ -138,7 +138,7 @@ The IPS package will create:
 
 ```
 /opt/armor/                    # Application files
-├── index.js                        # Main Node.js application  
+├── app.js                        # Main Node.js application  
 ├── package.json                    # Package metadata
 ├── controllers/                    # API controllers
 ├── models/                         # Data models
@@ -213,7 +213,7 @@ tail -f /var/svc/log/system-virtualization-armor:default.log
 /opt/armor/startup.sh
 
 # Test Node.js directly
-su - armor -c "cd /opt/armor && NODE_ENV=production CONFIG_PATH=/etc/armor/config.yaml node index.js"
+su - armor -c "cd /opt/armor && NODE_ENV=production CONFIG_PATH=/etc/armor/config.yaml node app.js"
 ```
 
 ### Network Issues

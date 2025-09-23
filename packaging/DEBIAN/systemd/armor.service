@@ -9,7 +9,7 @@ User=armor
 Group=armor
 Environment=NODE_ENV=production
 WorkingDirectory=/opt/armor
-ExecStart=/usr/bin/node index.js
+ExecStart=/usr/bin/node app.js
 Restart=on-failure
 RestartSec=10
 
