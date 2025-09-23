@@ -237,11 +237,17 @@ curl -k -X POST -H "Authorization: Bearer YOUR_API_KEY" \
   -F "file=@./local-file.txt" \
   https://your-domain.com/uploads/documents/
 
-# Create folder
+# Create folder (clean dedicated endpoint)
 curl -k -X POST -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"folderName":"new-folder"}' \
-  https://your-domain.com/uploads/?action=create-folder
+  https://your-domain.com/uploads/folders
+
+# Rename file or folder
+curl -k -X PUT -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"newName":"new-filename.txt"}' \
+  https://your-domain.com/uploads/oldname.txt?action=rename
 
 # Delete file or folder
 curl -k -X DELETE -H "Authorization: Bearer YOUR_API_KEY" \
@@ -250,11 +256,11 @@ curl -k -X DELETE -H "Authorization: Bearer YOUR_API_KEY" \
 
 #### Search Operations
 ```bash
-# Search for files by name or checksum
+# Search for files by name or checksum (clean dedicated endpoint)
 curl -k -X POST -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"query":"document"}' \
-  https://your-domain.com/uploads/?action=search
+  https://your-domain.com/uploads/search
 ```
 
 #### Authentication
@@ -296,6 +302,3 @@ The interactive API documentation includes:
 - Authentication is required only for file uploads
 - API endpoints require appropriate permissions based on operation type
 - Path in URL determines target directory for file operations
-
-
-wget --no-check-certificate  "https://admin:admin123@local.home.m4kr.net/test/test.txt"

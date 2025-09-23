@@ -671,8 +671,10 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get('*', authenticateDownloads, async (req, res) => {
-  const requestPath = decodeURIComponent(req.path);
+router.get('*splat', authenticateDownloads, async (req, res) => {
+  const requestPath = Array.isArray(req.params.splat)
+    ? req.params.splat.join('/')
+    : req.params.splat || '';
 
   try {
     const fullPath = getSecurePath(requestPath);
@@ -709,7 +711,7 @@ router.get('*', authenticateDownloads, async (req, res) => {
   }
 });
 
-router.put('*', authenticateUploads, async (req, res, next) => {
+router.put('*splat', authenticateUploads, async (req, res, next) => {
   if (req.query.action !== 'rename') {
     return next();
   }
@@ -725,7 +727,9 @@ router.put('*', authenticateUploads, async (req, res, next) => {
     }
 
     const sanitizedNewName = newName.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const requestPath = decodeURIComponent(req.path);
+    const requestPath = Array.isArray(req.params.splat)
+      ? req.params.splat.join('/')
+      : req.params.splat || '';
     const oldFullPath = getSecurePath(requestPath);
     const parentDir = oldFullPath.substring(
       0,
@@ -876,7 +880,7 @@ router.put('*', authenticateUploads, async (req, res, next) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('*/search', authenticateDownloads, async (req, res) => {
+router.post('*splat/search', authenticateDownloads, async (req, res) => {
   try {
     const { query: searchQuery } = req.body;
 
@@ -1009,7 +1013,7 @@ router.post('*/search', authenticateDownloads, async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('*/folders', authenticateUploads, async (req, res) => {
+router.post('*splat/folders', authenticateUploads, async (req, res) => {
   try {
     const { folderName } = req.body;
 
@@ -1072,7 +1076,7 @@ router.post('*/folders', authenticateUploads, async (req, res) => {
 });
 
 // Keep legacy support for backwards compatibility
-router.post('*', (req, res, next) => {
+router.post('*splat', (req, res, next) => {
   if (req.query.auth === '1') {
     return authenticateUploads(req, res, () => {
       res.status(200).send('Authenticated');
@@ -1171,7 +1175,7 @@ router.post('*', (req, res, next) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('*', authenticateUploads, async (req, res, next) => {
+router.post('*splat', authenticateUploads, async (req, res, next) => {
   if (req.query.action !== 'create-folder') {
     return next();
   }
@@ -1292,7 +1296,7 @@ router.post('*', authenticateUploads, async (req, res, next) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('*', authenticateUploads, upload.single('file'), async (req, res) => {
+router.post('*splat', authenticateUploads, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       logAccess(req, 'UPLOAD_FAILED', 'no file provided');
@@ -1394,8 +1398,10 @@ router.post('*', authenticateUploads, upload.single('file'), async (req, res) =>
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.delete('*', authenticateDelete, async (req, res) => {
-  const requestPath = decodeURIComponent(req.path);
+router.delete('*splat', authenticateDelete, async (req, res) => {
+  const requestPath = Array.isArray(req.params.splat)
+    ? req.params.splat.join('/')
+    : req.params.splat || '';
 
   try {
     const fullPath = getSecurePath(requestPath);
