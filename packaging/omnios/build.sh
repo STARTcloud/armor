@@ -55,7 +55,6 @@ mkdir -p "$DESTDIR"
 #   config/
 #   utils/
 #   scripts/
-#   web/dist/
 #   node_modules/
 #   startup.sh
 #   shutdown.sh
@@ -81,12 +80,6 @@ build_app() {
     
     # Install dependencies
     MAKE=gmake logcmd npm ci
-    pushd web >/dev/null
-    MAKE=gmake logcmd npm ci
-    popd >/dev/null
-    
-    # Build frontend
-    logcmd npm run build
     
     # Install production dependencies only
     MAKE=gmake logcmd npm ci --omit=dev
@@ -101,22 +94,19 @@ install_app() {
 
     # Copy application files
     logmsg "Installing Armor application files"
-    logcmd cp $SRCDIR/index.js .
+    logcmd cp $SRCDIR/app.js .
     logcmd cp $SRCDIR/package.json .
-    logcmd cp $SRCDIR/LICENSE.md .
     
-    # Copy application directories
-    for dir in controllers models routes middleware config utils scripts; do
+    # Copy application directories (Armor's actual structure)
+    for dir in models routes middleware config utils services scripts; do
         if [ -d "$SRCDIR/$dir" ]; then
             logcmd cp -r $SRCDIR/$dir .
         fi
     done
     
-    # Copy built frontend
-    if [ -d "$SRCDIR/web/dist" ]; then
-        logcmd mkdir -p web
-        logcmd cp -r $SRCDIR/web/dist web/
-    fi
+    # Copy static web assets
+    logcmd mkdir -p web
+    logcmd cp -r $SRCDIR/web/static web/
     
     # Copy node_modules (production only)
     if [ -d "$SRCDIR/node_modules" ]; then
