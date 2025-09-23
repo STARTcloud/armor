@@ -32,8 +32,8 @@ Download the latest version of Armor.
 
 - **[Installation Guide](guides/installation/)** - Install using packages or from source
 - **[Getting Started](guides/getting-started/)** - Initial setup and configuration
-- **[Authentication Setup](guides/authentication/)** - Configure users and organizations
-- **[Backend Integration](guides/backend-integration/)** - Connect to Armor
+- **[Authentication Setup](guides/authentication/)** - Configure users and API keys
+- **[Configuration Reference](configuration/)** - Complete config options
 
 ---
 

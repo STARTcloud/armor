@@ -23,449 +23,348 @@ This guide covers different methods for installing and deploying Armor in variou
 
 ### Minimum Requirements
 
-- **Operating System**: OmniOS, Linux, or other Unix-like system
-- **Node.js**: Version 18 or higher
+- **Operating System**: Linux (DEBIAN/Ubuntu) or OmniOS
+- **Node.js**: Version 22 or higher
 - **Memory**: 512MB RAM minimum, 1GB recommended
-- **Storage**: 1GB available disk space
-- **Network**: Internet access for package downloads
+- **Storage**: 2GB available disk space (for files, database, logs)
+- **Network**: HTTPS port 443 access
 
 ### Recommended Production Environment
 
 - **CPU**: 2+ cores
-- **Memory**: 2GB+ RAM
-- **Storage**: 5GB+ available space (for logs and database)
-- **Network**: Dedicated network interface
-- **SSL**: Valid SSL certificates for HTTPS
+- **Memory**: 4GB+ RAM
+- **Storage**: 100GB+ available space (depending on file storage needs)
+- **Network**: Dedicated network interface, proper SSL certificates
+- **Security**: Firewall configuration, regular backups
 
 ## Installation Methods
 
-### Option 1: Package Installation (Recommended)
+### Option 1: DEBIAN Package (Recommended)
 
-For OmniOS systems, use the official package:
+For Ubuntu, Debian, and compatible systems:
 
 ```bash
-# Update package repository
-pkg refresh
+# Download latest package
+wget https://github.com/STARTcloud/armor_private/releases/latest/download/armor_*_amd64.deb
+
+# Install package
+sudo gdebi -n armor_*.deb
+
+# Start service
+sudo systemctl enable --now armor
+
+# Check status
+sudo systemctl status armor
+```
+
+Package installation includes:
+- Armor application files at `/opt/armor/`
+- Configuration at `/etc/armor/config.yaml`
+- Systemd service with security restrictions
+- Automatic user creation (`armor` system user)
+- SSL certificate auto-generation
+
+### Option 2: OmniOS Package
+
+For OmniOS systems:
+
+```bash
+# Add STARTcloud repository (if not already added)
+pkg set-publisher -g https://packages.startcloud.com/r151054 STARTcloud
 
 # Install Armor package
 pkg install armor
 
-# Enable and start service
+# Enable service
 svcadm enable armor
 
-# Check service status
+# Check status
 svcs armor
 ```
 
-Package installation includes:
-- Armor application files
-- Configuration templates
+Package includes:
+- Application at `/opt/armor/`
 - SMF service manifest
+- Configuration at `/etc/armor/config.yaml`
 - Automatic dependency handling
 
-### Option 2: From Source
+### Option 3: From Source
 
 For development or custom deployments:
 
 ```bash
 # Clone repository
 git clone https://github.com/STARTcloud/armor_private.git
-cd armor
+cd armor_private
 
-# Install backend dependencies
-npm install
-
-# Install frontend dependencies  
-cd web
-npm install
-cd ..
-
-# Build frontend
-npm run build
+# Install dependencies
+npm ci
 
 # Configure application
-cp packaging/config/production-config.yaml config/config.yaml
-# Edit config.yaml as needed
+cp packaging/config/production-config.yaml config.yaml
+# Edit config.yaml with your settings
 
 # Start application
 npm start
 ```
 
-### Option 3: Development Setup
+## Initial Configuration
 
-For development and testing:
+### Configuration File
 
-```bash
-# Clone repository
-git clone https://github.com/STARTcloud/armor_private.git
-cd armor
-
-# Install all dependencies
-npm install
-cd web && npm install && cd ..
-
-# Start in development mode (with auto-reload)
-npm run dev
-```
-
-Development mode features:
-- Auto-restart on file changes
-- Detailed error logging
-- Hot reload for frontend changes
-
-## Configuration
-
-### Configuration File Location
-
-**Package Installation:**
-```bash
-/etc/armor/config.yaml
-```
-
-**Source Installation:**
-```bash
-./config/config.yaml
-```
-
-### Basic Configuration
+Edit `/etc/armor/config.yaml` (package) or `config.yaml` (source):
 
 ```yaml
-# Basic server settings
+# Server configuration
 server:
-  hostname: localhost
-  port: 3443
-  ssl:
-    enabled: true
-    generate_ssl: true  # Auto-generate for testing
-    key: /etc/armor/ssl/key.pem
-    cert: /etc/armor/ssl/cert.pem
+  domain: localhost
+  port: 443
+  enable_api_docs: true
 
-# Application settings
-app:
-  name: Armor
-  version: 0.0.15
-  frontend_url: https://localhost:3443
+# Authentication
+authentication:
+  jwt_secret: "your-jwt-secret-key-change-this"
+  local:
+    users:
+      - username: admin
+        password: admin123
+        role: admin
+        id: 1
 
-# Database location
+# SSL Configuration  
+ssl:
+  key_file: "/etc/armor/ssl/key.pem"
+  cert_file: "/etc/armor/ssl/cert.pem"
+  generate_ssl: true
+
+# Database
 database:
-  path: /var/lib/armor/database/armor.db
+  storage: "/var/lib/armor/database/armor.db"
 
-# Security settings
-security:
-  jwt_secret: "CHANGE-THIS-TO-A-SECURE-RANDOM-STRING"
-  bcrypt_rounds: 10
-  sessionTimeout: 24
-  allow_new_organizations: true  # Disable after setup
+# File serving
+served_directory: "/var/lib/armor/files"
 ```
 
-### SSL Certificate Setup
+### Directory Setup
 
-#### Auto-Generated Certificates (Development)
+For source installations, create required directories:
 
-For testing and development:
-```yaml
-server:
-  ssl:
-    enabled: true
-    generate_ssl: true  # Armor generates self-signed cert
-```
-
-#### Production Certificates
-
-For production deployments:
-```yaml
-server:
-  ssl:
-    enabled: true
-    generate_ssl: false
-    key: /etc/ssl/private/armor.key
-    cert: /etc/ssl/certs/armor.crt
-```
-
-Generate certificates:
 ```bash
-# Create certificate directory
-mkdir -p /etc/ssl/armor
+# Create application user
+sudo useradd -r -s /bin/false armor
 
-# Generate private key
-openssl genrsa -out /etc/ssl/armor/armor.key 2048
-
-# Generate certificate signing request
-openssl req -new -key /etc/ssl/armor/armor.key \
-  -out /etc/ssl/armor/armor.csr
-
-# Get certificate from your CA or generate self-signed:
-openssl x509 -req -days 365 \
-  -in /etc/ssl/armor/armor.csr \
-  -signkey /etc/ssl/armor/armor.key \
-  -out /etc/ssl/armor/armor.crt
+# Create directories
+sudo mkdir -p /var/lib/armor/files
+sudo mkdir -p /var/lib/armor/database
+sudo mkdir -p /var/log/armor
+sudo mkdir -p /etc/armor/ssl
 
 # Set permissions
-chmod 600 /etc/ssl/armor/armor.key
-chmod 644 /etc/ssl/armor/armor.crt
+sudo chown -R armor:armor /var/lib/armor
+sudo chown -R armor:armor /var/log/armor
+sudo chown -R armor:armor /etc/armor
 ```
 
-## Service Management
+## SSL Certificate Setup
 
-### OmniOS (SMF)
+### Auto-Generated (Development)
+
+For testing:
+```yaml
+ssl:
+  generate_ssl: true  # Armor creates self-signed certificate
+```
+
+### Let's Encrypt (Production)
+
+For production with proper certificates:
 
 ```bash
-# Enable service
-svcadm enable armor
+# Install certbot
+sudo apt install certbot
 
-# Disable service  
-svcadm disable armor
+# Get certificate
+sudo certbot certonly --standalone -d armor.yourdomain.com
 
-# Restart service
-svcadm restart armor
-
-# Check service status
-svcs -xv armor
-
-# View service logs
-svcs -L armor
-tail -f /var/svc/log/application-armor:default.log
+# Configure Armor
+sudo nano /etc/armor/config.yaml
 ```
 
-### Linux (systemd)
+```yaml
+ssl:
+  generate_ssl: false
+  key_file: "/etc/letsencrypt/live/armor.yourdomain.com/privkey.pem"
+  cert_file: "/etc/letsencrypt/live/armor.yourdomain.com/fullchain.pem"
+```
 
-Create service file `/etc/systemd/system/armor.service`:
+## Service Configuration
+
+### DEBIAN/Ubuntu (systemd)
+
+The package includes a secure systemd service:
 
 ```ini
 [Unit]
-Description=Armor Frontend
+Description=Armor - ARMOR Reliably Manages Online Resources
 After=network.target
 
 [Service]
 Type=simple
 User=armor
+Group=armor
 WorkingDirectory=/opt/armor
-ExecStart=/usr/bin/node index.js
+ExecStart=/usr/bin/node app.js
 Restart=always
 RestartSec=10
-Environment=NODE_ENV=production
+
+# Security restrictions
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/armor /var/log/armor /etc/armor
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-Service management:
-```bash
-# Enable and start service
-systemctl enable --now armor
+### OmniOS (SMF)
 
-# Check status
-systemctl status armor
+SMF manifest provides robust service management:
 
-# View logs
-journalctl -u armor -f
-```
-
-## Directory Structure
-
-### Package Installation
-
-```
-/opt/armor/              # Application files
-/etc/armor/              # Configuration
-/var/lib/armor/          # Database and data
-/var/log/armor/          # Log files
-/var/run/armor/          # Runtime files
-```
-
-### Source Installation
-
-```
-./                            # Application root
-./config/                     # Configuration files
-./web/dist/                   # Built frontend files
-./logs/                       # Log files (if configured)
-./database/                   # Database files
-```
-
-## Database Setup
-
-Armor uses SQLite for user/organization data:
-
-### Automatic Setup
-
-Database is created automatically on first run with:
-- User tables
-- Organization tables
-- Server configuration tables
-- Session management tables
-
-### Manual Database Initialization
-
-If needed, initialize database manually:
-```bash
-# Navigate to application directory
-cd /opt/armor
-
-# Initialize database
-node -e "
-const Database = require('./models/Database.js');
-Database.init().then(() => console.log('Database initialized'));
-"
-```
-
-## Firewall Configuration
-
-### OmniOS (ipfilter)
-
-```bash
-# Edit /etc/ipf/ipf.conf
-echo "pass in quick proto tcp from any to any port = 3443" >> /etc/ipf/ipf.conf
-
-# Reload firewall rules
-ipf -Fa -f /etc/ipf/ipf.conf
-```
-
-### Linux (iptables)
-
-```bash
-# Allow HTTPS traffic
-iptables -A INPUT -p tcp --dport 3443 -j ACCEPT
-
-# Save rules (varies by distribution)
-iptables-save > /etc/iptables/rules.v4
-```
-
-### Linux (firewalld)
-
-```bash
-# Open port for Armor
-firewall-cmd --permanent --add-port=3443/tcp
-firewall-cmd --reload
-```
-
-## Reverse Proxy Setup
-
-### Nginx
-
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name armor.example.com;
-    
-    ssl_certificate /etc/ssl/certs/armor.crt;
-    ssl_certificate_key /etc/ssl/private/armor.key;
-    
-    location / {
-        proxy_pass https://127.0.0.1:3443;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
-
-### Apache
-
-```apache
-<VirtualHost *:443>
-    ServerName armor.example.com
-    
-    SSLEngine on
-    SSLCertificateFile /etc/ssl/certs/armor.crt
-    SSLCertificateKeyFile /etc/ssl/private/armor.key
-    
-    ProxyPreserveHost On
-    ProxyRequests Off
-    ProxyPass / https://127.0.0.1:3443/
-    ProxyPassReverse / https://127.0.0.1:3443/
-</VirtualHost>
+```xml
+<?xml version="1.0"?>
+<!DOCTYPE service_bundle SYSTEM "/usr/share/lib/xml/dtd/service_bundle.dtd.1">
+<service_bundle type='manifest' name='armor'>
+  <service name='application/armor' type='service' version='1'>
+    <method_context working_directory='/opt/armor'>
+      <method_credential user='armor' group='armor'/>
+    </method_context>
+    <exec_method type='method' name='start' exec='/opt/armor/startup.sh' timeout_seconds='60'/>
+    <exec_method type='method' name='stop' exec='/opt/armor/shutdown.sh' timeout_seconds='30'/>
+  </service>
+</service_bundle>
 ```
 
 ## Post-Installation
 
 ### First Access
 
-1. **Navigate** to `https://your-server:3443`
-2. **Create Organization** (if enabled)
-3. **Register Admin User**
-4. **Configure Settings**
-5. **Add Armor API Servers**
+1. **Open browser**: Navigate to `https://your-server` (or `https://localhost` for local)
+2. **Login**: Use configured admin credentials
+3. **Upload test file**: Verify file operations work
+4. **Check API**: Visit `/api-docs` for Swagger UI
+5. **Create API keys**: Generate keys for automation
 
-### Security Hardening
+### Production Hardening
 
-1. **Disable Organization Creation**:
+1. **Change Default Passwords**:
    ```yaml
-   security:
-     allow_new_organizations: false
+   authentication:
+     local:
+       users:
+         - username: admin
+           password: "strong-random-password"  # Change default!
    ```
 
-2. **Strong JWT Secret**:
+2. **Configure Rate Limiting**:
+   ```yaml
+   rate_limiting:
+     window_minutes: 15
+     max_requests: 60
+     message: "Rate limit exceeded"
+   ```
+
+3. **Secure File Directory**:
    ```bash
-   # Generate secure random string
-   openssl rand -hex 32
+   sudo chmod 750 /var/lib/armor/files
+   sudo chown armor:armor /var/lib/armor/files
    ```
 
-3. **Regular Updates**:
-   ```bash
-   # Package installation
-   pkg update armor
-   
-   # Source installation  
-   git pull origin main
-   npm install
-   npm run build
-   ```
+## Backup and Recovery
 
-## Troubleshooting
-
-### Installation Issues
-
-**Package Not Found**
+### Configuration Backup
 ```bash
-# Update package repository
-pkg refresh
-pkg search armor
+# Backup configuration
+sudo cp /etc/armor/config.yaml /etc/armor/config.yaml.backup
+
+# Backup database
+sudo cp /var/lib/armor/database/armor.db /var/lib/armor/database/armor.db.backup
 ```
 
-**Node.js Version Issues**
+### Restore Process
 ```bash
-# Check Node.js version
-node --version
+# Stop service
+sudo systemctl stop armor
 
-# Update Node.js if needed
-pkg install nodejs-18
+# Restore configuration
+sudo cp /etc/armor/config.yaml.backup /etc/armor/config.yaml
+
+# Restore database  
+sudo cp /var/lib/armor/database/armor.db.backup /var/lib/armor/database/armor.db
+
+# Start service
+sudo systemctl start armor
 ```
 
-**Permission Denied**
+## Monitoring
+
+### Health Checks
+
 ```bash
-# Fix file permissions
-chown -R armor:armor /opt/armor
-chmod +x /opt/armor/index.js
+# Service status
+sudo systemctl status armor
+
+# File operations
+curl -k https://localhost/
+
+# API health
+curl -k https://localhost/auth/methods
+
+# Database check
+sudo -u armor sqlite3 /var/lib/armor/database/armor.db ".tables"
 ```
 
-### Service Issues
+### Log Monitoring
 
-**Service Won't Start**
 ```bash
-# Check service status and logs
-svcs -xv armor
-tail -f /var/svc/log/application-armor:default.log
-```
+# Service logs
+sudo journalctl -u armor -f
 
-**Port Already in Use**
-```bash
-# Find process using port 3443
-lsof -i :3443
-netstat -tulpn | grep 3443
-```
+# File access logs (built into Armor)
+sudo tail -f /var/log/armor/access.log
 
-**SSL Certificate Errors**
-```bash
-# Verify certificate files exist and have correct permissions
-ls -la /etc/armor/ssl/
+# Error logs
+sudo tail -f /var/log/armor/error.log
 ```
 
 ---
 
-Next: [Authentication](authentication/) - Set up user management
+## Troubleshooting
+
+### Common Installation Issues
+
+**Package Installation Failed**
+- Check Node.js version: `node --version` (must be 22+)
+- Verify architecture: `dpkg --print-architecture` (should be amd64)
+- Check dependencies: `apt list --installed | grep nodejs`
+
+**Service Won't Start**
+```bash
+# Check detailed status
+sudo systemctl status armor -l
+
+# Check configuration
+sudo armor --check-config
+
+# Verify file permissions
+sudo ls -la /opt/armor/
+```
+
+**Port Access Issues**
+- Check if port 443 is available: `sudo ss -tulpn | grep :443`
+- Verify user has permission for privileged port
+- Check firewall: `sudo ufw status`
+
+---
+
+Next: [Authentication](authentication/) - Configure user management and API keys

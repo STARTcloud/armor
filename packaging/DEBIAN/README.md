@@ -13,18 +13,13 @@ sudo apt install nodejs npm dpkg-dev gdebi-core
 
 ### 1. Prepare Application
 ```bash
-
 # Clean any existing build artifacts
 
-# Check Check and Sync Frontend and Backend Versions
+# Sync versions across all config files
 npm run sync-versions
 
 # Install dependencies
 npm ci
-cd web && npm ci && cd ..
-
-# Build frontend (this automatically syncs versions)
-npm run build
 
 # Install production dependencies only
 npm ci --omit=dev
@@ -43,10 +38,10 @@ mkdir -p "${PACKAGE_NAME}_${VERSION}_${ARCH}"/{opt/armor,etc/armor,etc/systemd/s
 
 ### 3. Copy Application Files
 ```bash
-# Application files to /opt/armor (IMPORTANT: include utils and scripts!)
-cp -r controllers models routes middleware config utils scripts index.js package.json "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
+# Application files to /opt/armor (Armor's backend-only structure)
+cp -r models routes middleware config utils services scripts app.js package.json "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
 cp -r node_modules "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
-cp -r web/dist "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/dist"
+cp -r web/static "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/"
 
 # Configuration files
 cp packaging/config/production-config.yaml "${PACKAGE_NAME}_${VERSION}_${ARCH}/etc/armor/config.yaml"
@@ -108,18 +103,15 @@ sudo systemctl status armor
 **Must include these directories in the copy command or the package will fail:**
 - `utils/` - Contains config loading utilities
 - `scripts/` - Contains version synchronization tools
-- `web/dist/` - Must build frontend first with `npm run build`
+- `web/static/` - Contains CSS, JS, and image assets
 
 ### ✅ Single Source of Truth Versioning
 **Root `package.json` is the ONLY place to change version numbers.**
 
 The `npm run sync-versions` script automatically synchronizes the version to:
-- ✅ `web/package.json` - Frontend package version
 - ✅ `config/swagger.js` - API documentation version  
-- ✅ `config.yaml` - Application config version
 - ✅ `packaging/config/production-config.yaml` - Production config version
 - ✅ `.release-please-manifest.json` - Release automation tracking
-- ✅ Vite build process - Injects version into frontend via `__APP_VERSION__`
 
 **To change version:** Only edit the `version` field in root `package.json`, then run `npm run sync-versions`
 
@@ -162,18 +154,17 @@ gh workflow run release-please.yml
    - ❌ Missing `utils` in copy command
    - ✅ Fix: Add `utils` to the cp command
 
-2. **Cannot stat 'web/dist'**
-   - ❌ Frontend not built
-   - ✅ Fix: Run `npm run build` before packaging
+2. **Cannot stat 'web/static'**
+   - ❌ Static assets missing
+   - ✅ Fix: Ensure `web/static/` directory exists
 
-3. **Version shows as 1.0.0 in frontend**
+3. **Version mismatch in API documentation**
    - ❌ Version sync issue
-   - ✅ Fix: Run `npm run sync-versions` or rebuild
+   - ✅ Fix: Run `npm run sync-versions`
 
-4. **Files served from wrong location (web/assets instead of web/dist/assets)**
-   - ❌ Directory structure flattened during packaging
-   - ✅ Fix: Use `cp -r web/dist "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/dist"` (not `/web/`)
-   - 🔍 Verify: Check that `/opt/armor/web/dist/assets/` exists after installation
+4. **Static files not serving**
+   - ❌ Directory structure incorrect
+   - ✅ Fix: Verify `/opt/armor/web/static/` exists after installation
 
 ### Service Issues
 ```bash

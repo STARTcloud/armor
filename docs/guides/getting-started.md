@@ -9,7 +9,7 @@ permalink: /docs/guides/getting-started/
 # Getting Started
 {: .no_toc }
 
-This guide will walk you through setting up Armor for the first time, from initial installation to configuring your first Armor API connection.
+This guide will walk you through setting up Armor for the first time, from installation to using the comprehensive file management features.
 
 ## Table of contents
 {: .no_toc .text-delta }
@@ -23,187 +23,248 @@ This guide will walk you through setting up Armor for the first time, from initi
 
 Before starting, ensure you have:
 
-- **Node.js 18+** - Required for running the frontend server
-- **Network Access** - Frontend needs to communicate with backend servers
-- **SSL Certificates** (Recommended) - For secure HTTPS connections
+- **Node.js 22+** - Required for running Armor server
+- **SQLite3** - For file metadata storage
+- **OpenSSL** - For SSL certificate generation
+- **Network Access** - For HTTPS file serving
 
 ## Quick Start
 
 ### 1. Installation
 
-#### Option A: From Package (Recommended)
+#### Option A: DEBIAN Package (Recommended)
 ```bash
-# Install Armor package
-pkg install armor
+# Download and install package
+wget https://github.com/STARTcloud/armor_private/releases/latest/download/armor_*_amd64.deb
+sudo gdebi -n armor_*.deb
 
-# Enable service
-svcadm enable armor
+# Start service
+sudo systemctl enable --now armor
+
+# Check status
+sudo systemctl status armor
 ```
 
 #### Option B: From Source
 ```bash
 # Clone repository
 git clone https://github.com/STARTcloud/armor_private.git
-cd armor
+cd armor_private
 
 # Install dependencies
-npm install
-cd web && npm install && cd ..
+npm ci
 
-# Build frontend
-npm run build
+# Configure
+cp config.yaml.example config.yaml
+# Edit config.yaml with your settings
 
-# Start service
+# Start server
 npm start
 ```
 
 ### 2. Initial Configuration
 
-Edit the configuration file at `/etc/armor/config.yaml`:
+Edit the configuration file at `/etc/armor/config.yaml` (or `config.yaml` for source install):
 
 ```yaml
+# Server configuration
 server:
-  hostname: localhost
-  port: 3443
-  ssl:
-    enabled: true
-    generate_ssl: true
-    key: /etc/armor/ssl/key.pem
-    cert: /etc/armor/ssl/cert.pem
+  domain: localhost
+  port: 443
+  enable_api_docs: true
+  show_root_index: false
 
-security:
-  allow_new_organizations: true
-  jwt_secret: "your-secure-random-secret-here"
+# Authentication
+authentication:
+  jwt_secret: "your-jwt-secret-key-change-this"
+  jwt_expiration: "24h"
+  local:
+    users:
+      - username: admin
+        password: admin123
+        role: admin
+        id: 1
+      - username: user
+        password: user123
+        role: user
+        id: 2
 
-database:
-  path: /var/lib/armor/database/armor.db
+# SSL Configuration
+ssl:
+  key_file: "/etc/armor/ssl/key.pem"
+  cert_file: "/etc/armor/ssl/cert.pem"
+  generate_ssl: true
+
+# File serving
+served_directory: "/var/lib/armor/files"
 ```
 
 ### 3. First Access
 
-1. **Open your browser** and navigate to `https://your-server:3443`
-2. **Create Organization**: If `allow_new_organizations` is enabled, you'll see registration
-3. **Register Admin User**: Create your first admin account
-4. **Login**: Use your new credentials to access the dashboard
+1. **Open your browser** and navigate to `https://your-server` (or `https://localhost` for local)
+2. **Login**: Use admin/admin123 (or your configured credentials)
+3. **Browse Files**: Navigate through your file directories
+4. **Upload Files**: Drag and drop files or use the upload button
+5. **Try API**: Visit `/api-docs` for interactive Swagger UI
 
-### 4. Add Armor API
+## Core Features Overview
 
-After logging in:
+### 🔐 **Authentication Methods**
 
-1. Navigate to **Settings** → **Servers**
-2. Click **Add Server**
-3. Configure your Armor API:
-   - **Hostname**: Your Armor API Server address
-   - **Port**: Usually 5001 (HTTPS) or 5000 (HTTP)  
-   - **Protocol**: HTTPS recommended
-   - **API Key**: Your Armor API API key
+#### Web Interface Login
+- Navigate to your Armor server
+- Click "Login" button
+- Enter username/password from config
 
-## Configuration Options
+#### HTTP Basic Auth (CLI Tools)
+```bash
+# wget style (works with file downloads)
+wget --no-check-certificate "https://admin:admin123@your-server/file.txt"
 
-### Security Settings
-
-```yaml
-security:
-  jwt_secret: "change-this-to-a-secure-random-string"
-  bcrypt_rounds: 10
-  sessionTimeout: 24  # Hours
-  allow_new_organizations: true  # Allow new org creation
+# curl style
+curl -k -u admin:admin123 https://your-server/file.txt
 ```
 
-### Email Configuration
-
-```yaml
-mail:
-  smtp_connect:
-    host: smtp.example.com
-    port: 587
-    secure: false
-  smtp_auth:
-    user: "your-email@example.com"
-    password: "your-email-password"
-  smtp_settings:
-    from: "Armor <noreply@example.com>"
+#### API Key Authentication
+```bash
+# Generate API key via web interface (/api-keys)
+curl -k -H "Authorization: Bearer YOUR_API_KEY" \
+  https://your-server/api/api-keys
 ```
 
-### SSL/TLS Setup
+### 📁 **File Operations**
 
-For production, use proper SSL certificates:
+#### Upload Files
+- **Web**: Drag-and-drop to upload area
+- **API**: `POST /{path}` with multipart/form-data
 
+#### Search Files
+- **Web**: Use search box (searches names and checksums)
+- **API**: `POST /{path}/search` with `{"query":"searchterm"}`
+
+#### Create Folders
+- **Web**: Click folder+ button
+- **API**: `POST /{path}/folders` with `{"folderName":"name"}`
+
+#### Rename Items
+- **Web**: Click pencil icon next to file/folder
+- **API**: `PUT /{path}?action=rename` with `{"newName":"name"}`
+
+### 🎨 **Swagger UI Features**
+
+Access comprehensive API documentation at `/api-docs`:
+
+- **Dark theme**: Professional appearance
+- **API key integration**: Fill auth from existing keys
+- **Temporary keys**: Generate testing keys on-demand
+- **Dynamic server**: Auto-detects your server URL
+- **Interactive testing**: Try all endpoints directly
+
+## User Roles & Permissions
+
+### Regular Users (role: user)
+- **Download files**: Full read access to all files
+- **Create API keys**: Download-only keys for automation
+- **Browse directories**: Navigate file structure
+
+### Administrators (role: admin)  
+- **Full file access**: Upload, download, delete, rename
+- **Folder management**: Create and manage directories
+- **API key management**: Create keys with any permissions
+- **System access**: All file operations
+
+## Advanced Configuration
+
+### Rate Limiting
 ```yaml
-server:
-  ssl:
-    enabled: true
-    generate_ssl: false  # Use existing certificates
-    key: /path/to/private.key
-    cert: /path/to/certificate.crt
+rate_limiting:
+  window_minutes: 10
+  max_requests: 100
+  message: "Too many requests, please try again later."
 ```
 
-## User Management
+### OIDC Authentication (Google, etc.)
+```yaml
+authentication:
+  oidc_providers:
+    google:
+      enabled: true
+      client_id: "your-google-client-id"
+      client_secret: "your-google-client-secret"
+      display_name: "Sign in with Google"
+```
 
-### Creating Users
+### Swagger UI Customization
+```yaml
+swagger:
+  allow_full_key_retrieval: true
+  allow_temp_key_generation: true
+  temp_key_expiration_hours: 1
+```
 
-As an admin, you can:
+## Real-Time Features
 
-1. **Invite Users**: Send invitation codes via email
-2. **Direct Registration**: Share invitation codes manually
-3. **Organization Management**: Control user access per organization
+### Server-Sent Events (SSE)
+Armor provides real-time updates:
+- **File uploads**: See new files appear instantly
+- **Checksum updates**: Watch checksums calculate in real-time
+- **File operations**: Renames, deletes sync across all users
+- **Multi-user collaboration**: All connected users see changes
 
-### Role Hierarchy
-
-- **Super Admin**: Global access, can manage all organizations
-- **Admin**: Organization-specific admin rights
-- **User**: Standard user with limited permissions
-
-## Armor API Integration
-
-### Backend Requirements
-
-Your Armor API must be:
-- **Accessible**: Network connectivity from frontend
-- **Configured**: Proper API key authentication
-- **Running**: Service active and responding
-
-### Testing Connection
-
-Use the built-in connection test:
-1. Go to **Settings** → **Servers**
-2. Click **Test Connection** on your server
-3. Verify successful API communication
+### Enhanced File Interface
+- **Click file icons**: Copy links to clipboard
+- **Long-press file icons**: Force download (bypasses browser preview)
+- **Rename functionality**: In-place editing with real-time updates
+- **Animated feedback**: Visual confirmations for all actions
 
 ## Troubleshooting
 
 ### Common Issues
 
-**Cannot Access Web Interface**
-- Check port 3443 is open
-- Verify SSL certificate validity
-- Check service status: `svcs armor`
+**Service Won't Start**
+```bash
+# Check logs
+sudo journalctl -u armor -f
 
-**Backend Connection Failed**
-- Test network connectivity: `curl https://backend:5001/api/`
-- Verify API key is correct
-- Check Armor API service status
+# Verify config
+sudo armor --check-config
 
-**User Registration Issues**
-- Ensure `allow_new_organizations: true` in config
-- Check email configuration for invitations
-- Verify database permissions
+# Check permissions
+sudo chown -R armor:armor /var/lib/armor
+```
 
-### Log Locations
+**Cannot Upload Files**
+- Verify you're logged in as admin user
+- Check directory permissions: `sudo chown armor:armor /var/lib/armor/files`
+- Ensure disk space available
 
-- **Frontend Service**: `/var/log/armor/armor.log`
-- **System Logs**: `svcs -xv armor`
-- **Browser Console**: F12 Developer Tools
+**SSL Certificate Issues**
+```bash
+# Regenerate certificates
+sudo rm -rf /etc/armor/ssl/*
+sudo systemctl restart armor
+```
+
+**API Key Problems**
+- Only admin users can create upload/delete API keys
+- Regular users can only create download-only keys
+- Check permissions in Swagger UI
+
+### Performance Optimization
+
+For large file collections:
+- **Enable file watching**: Real-time checksum calculation
+- **Database optimization**: Regular SQLite maintenance
+- **Rate limiting**: Adjust based on usage patterns
 
 ## Next Steps
 
-Once your basic setup is working:
+Once Armor is running:
 
-1. **[Configure Authentication](authentication/)** - Set up proper user management
-2. **[User Guide](../user-guide/)** - Learn the web interface
-3. **[Backend Integration](backend-integration/)** - Advanced Armor API configuration
-4. **[Installation Guide](installation/)** - Production deployment options
+1. **[Explore the API](../api/)** - Interactive Swagger documentation
+2. **[Configure Authentication](authentication/)** - Set up OIDC or additional users
+3. **[Installation Guide](installation/)** - Production deployment best practices
 
 ---
 
-Need help? Check our [Support Documentation](../support/) or visit the [GitHub repository](https://github.com/STARTcloud/armor_private).
+Need help? Check our [Support Documentation](../support/) or [open an issue](https://github.com/STARTcloud/armor_private/issues).

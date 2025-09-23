@@ -9,7 +9,7 @@ permalink: /docs/api/
 # API Reference
 {: .no_toc }
 
-The Armor Frontend API provides comprehensive RESTful endpoints for user management, organization control, and server configuration. This API handles authentication, authorization, and configuration management for the Armor web interface.
+The Armor REST API provides comprehensive endpoints for file management, authentication, and system operations. This API supports multiple authentication methods and offers complete file operations with real-time collaboration features.
 
 ## Table of contents
 {: .no_toc .text-delta }
@@ -19,106 +19,285 @@ The Armor Frontend API provides comprehensive RESTful endpoints for user managem
 
 ---
 
-## Authentication
+## Interactive Documentation
 
-All API endpoints require authentication using JWT tokens in the Bearer token format:
+**Access the complete interactive Swagger UI at `/api-docs` on your Armor server**
 
-```http
-Authorization: Bearer <jwt_token>
+The Swagger UI provides:
+- **Dark theme integration**: Professional appearance matching Armor's interface
+- **API key management**: Fill authentication directly from your existing keys
+- **Temporary key generation**: Create testing keys on-demand
+- **Dynamic server detection**: Auto-detects your server with custom override option
+- **Live testing**: Try all endpoints directly from the documentation
+
+### Direct Links
+
+- **[Live Swagger UI](/api-docs)** - Interactive API documentation with testing
+- **[OpenAPI Specification](openapi.json)** - Raw OpenAPI 3.0 spec for tools and integrations
+
+## Authentication Methods
+
+Armor supports three authentication methods for maximum compatibility:
+
+### 1. API Keys (Recommended for Automation)
+```bash
+# Bearer token authentication
+curl -k -H "Authorization: Bearer YOUR_API_KEY" \
+  https://your-server/api/api-keys
 ```
 
-See the [Authentication Guide](../guides/authentication/) for detailed setup instructions.
-
-## Base URL
-
-The API is served from your Armor server:
-
-- **HTTPS (Recommended)**: `https://your-server:3443`
-- **HTTP**: `http://your-server:3443`
-
-## OpenAPI Specification
-
-The Armor Frontend API is fully documented using OpenAPI 3.0 specification.
-
-### Interactive Documentation
-
-- **[Live API Reference](swagger-ui.html)** - Complete interactive API documentation with examples and testing capabilities
-- **[Download OpenAPI Spec](openapi.json)** - Raw OpenAPI specification for tools and integrations
-
-### API Categories
-
-The Armor Frontend API is organized into the following categories:
-
-#### Authentication & Authorization
-- User registration and login
-- JWT token management
-- Session management
-- Password reset and recovery
-
-#### User Management
-- User profile management
-- User preferences and settings
-- Account administration
-- Role-based access control
-
-#### Organization Management  
-- Organization creation and configuration
-- Multi-tenant organization support
-- User-organization relationships
-- Invitation management
-
-#### Server Configuration
-- Armor API server management
-- Connection configuration and testing
-- Server health monitoring
-- API endpoint management
-
-#### Settings & Configuration
-- Application settings management
-- Email configuration
-- Security settings
-- System preferences
-
----
-
-## Rate Limiting
-
-The API currently does not implement rate limiting, but this may be added in future versions for production deployments.
-
-## Error Handling
-
-The API uses standard HTTP status codes and returns JSON error responses:
-
-```json
-{
-  "success": false,
-  "message": "Error description"
-}
+### 2. JWT Sessions (Web Interface)
+```bash
+# Login to get JWT token
+curl -k -X POST -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}' \
+  https://your-server/auth/login/basic
 ```
 
-Common status codes:
-- `200` - Success
-- `201` - Created
-- `400` - Bad Request
-- `401` - Unauthorized (Invalid or expired JWT token)
-- `403` - Forbidden (Insufficient permissions)
-- `404` - Not Found
-- `500` - Internal Server Error
+### 3. HTTP Basic Auth (CLI Tools)
+```bash
+# wget style (wget compatible)
+wget --no-check-certificate "https://admin:admin123@your-server/file.txt"
 
-## Response Format
+# curl style
+curl -k -u admin:admin123 https://your-server/file.txt
+```
 
-Successful responses follow this format:
+## API Categories
 
+### 🔑 API Key Management
+- `GET /api/api-keys` - List your API keys
+- `POST /api/api-keys` - Create new API key
+- `PUT /api/api-keys/{id}` - Update API key
+- `DELETE /api/api-keys/{id}` - Delete API key
+
+### 📁 File Operations
+- `GET /{path}` - Download file or list directory
+- `POST /{path}` - Upload file (multipart/form-data)
+- `POST /{path}/folders` - Create folder
+- `PUT /{path}?action=rename` - Rename file or folder
+- `DELETE /{path}` - Delete file or directory
+
+### 🔍 Search Operations
+- `POST /{path}/search` - Search files by name or checksum
+
+### 🔐 Authentication
+- `GET /auth/methods` - Get available authentication methods
+- `POST /auth/login/basic` - Basic username/password login
+- `POST /auth/logout` - Logout and clear token
+
+## API Examples
+
+### File Operations
+
+#### List Directory Contents
+```bash
+# Get JSON directory listing
+curl -k -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json" \
+  https://your-server/uploads/
+```
+
+#### Upload File
+```bash
+# Upload file to specific directory
+curl -k -X POST -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "file=@./local-file.txt" \
+  https://your-server/uploads/documents/
+```
+
+#### Search Files
+```bash
+# Search for files by name or checksum
+curl -k -X POST -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"document"}' \
+  https://your-server/uploads/search
+```
+
+#### Create Folder
+```bash
+# Create new folder
+curl -k -X POST -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"folderName":"new-folder"}' \
+  https://your-server/uploads/folders
+```
+
+#### Rename File
+```bash
+# Rename file or folder
+curl -k -X PUT -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"newName":"new-filename.txt"}' \
+  https://your-server/uploads/oldname.txt?action=rename
+```
+
+### API Key Management
+
+#### Create API Key
+```bash
+# Create API key with specific permissions
+curl -k -X POST -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "CI Pipeline",
+    "permissions": ["downloads", "uploads"],
+    "expires_at": "2025-12-31T23:59:59.000Z"
+  }' \
+  https://your-server/api/api-keys
+```
+
+#### List API Keys
+```bash
+# Get all your API keys
+curl -k -H "Authorization: Bearer YOUR_API_KEY" \
+  https://your-server/api/api-keys
+```
+
+### Authentication
+
+#### Basic Login
+```bash
+# Authenticate with username/password
+curl -k -X POST -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}' \
+  https://your-server/auth/login/basic
+```
+
+#### Get Auth Methods
+```bash
+# Check available authentication methods
+curl -k https://your-server/auth/methods
+```
+
+## API Key Permissions
+
+API keys can have the following permissions:
+
+- **downloads** - Access to download files and list directories
+- **uploads** - Access to upload files and create folders  
+- **delete** - Access to delete files and directories
+
+**Note**: Users can only create API keys with permissions they have. Regular users can only create download-only keys.
+
+## Real-Time Features
+
+### Server-Sent Events (SSE)
+Armor provides real-time updates via Server-Sent Events:
+
+```javascript
+// Connect to real-time updates
+const eventSource = new EventSource('/events');
+
+eventSource.addEventListener('checksum-update', function(event) {
+  const data = JSON.parse(event.data);
+  console.log('File checksum updated:', data.filePath, data.checksum);
+});
+
+eventSource.addEventListener('file-deleted', function(event) {
+  const data = JSON.parse(event.data);
+  console.log('File deleted:', data.filePath);
+});
+```
+
+Events include:
+- `checksum-update` - File checksum calculation completed
+- `file-deleted` - File or directory deleted
+- `folder-created` - New folder created
+- `file-renamed` - File or folder renamed
+
+## Response Formats
+
+### Success Response
 ```json
 {
   "success": true,
   "message": "Operation completed successfully",
   "data": {
-    // Response data here
+    // Response data varies by endpoint
   }
 }
 ```
 
-## Related APIs
+### Error Response
+```json
+{
+  "success": false,
+  "message": "Error description",
+  "details": "Additional error information"
+}
+```
 
-- **[Armor](https://armor-api.startcloud.com/)** - Armor Reliably Manages Online Resources
+### Directory Listing Response
+```json
+{
+  "success": true,
+  "path": "/uploads/",
+  "files": [
+    {
+      "name": "document.pdf",
+      "path": "/uploads/document.pdf", 
+      "size": 1024000,
+      "mtime": "2025-09-22T23:42:51.207Z",
+      "checksum": "1c8bdacfd9077738...",
+      "isDirectory": false
+    }
+  ],
+  "total": 5
+}
+```
+
+## Error Handling
+
+Armor uses standard HTTP status codes:
+
+- `200` - Success
+- `201` - Created
+- `301` - Redirect (directory trailing slash)
+- `400` - Bad Request (invalid parameters)
+- `401` - Unauthorized (authentication required)
+- `403` - Forbidden (insufficient permissions)
+- `404` - Not Found (file/directory doesn't exist)
+- `500` - Internal Server Error
+
+## Rate Limiting
+
+API requests are subject to configurable rate limiting:
+- Default: 100 requests per 10-minute window
+- Headers include rate limit information:
+  - `RateLimit-Limit` - Request limit
+  - `RateLimit-Remaining` - Remaining requests
+  - `RateLimit-Reset` - Reset time
+
+## Best Practices
+
+### Security
+- Use HTTPS for all API calls (`-k` flag with curl for self-signed certs)
+- Store API keys securely (environment variables, not hardcoded)
+- Use least-privilege permissions (only grant necessary API key permissions)
+- Rotate API keys regularly
+
+### Performance
+- Use `Accept: application/json` header for directory listings
+- Implement proper error handling for network timeouts
+- Monitor rate limit headers to avoid throttling
+- Use appropriate request timeouts
+
+### File Operations
+- Verify file uploads with checksum validation
+- Handle large file uploads with progress tracking
+- Use appropriate Content-Type headers
+- Implement retry logic for network failures
+
+---
+
+## Related Documentation
+
+- **[Getting Started Guide](../guides/getting-started/)** - Setup and basic usage
+- **[Authentication Guide](../guides/authentication/)** - Detailed auth configuration
+- **[Configuration Reference](../configuration/)** - Complete config options
+
+---
+
+Need help? Check our [Support Documentation](../support/) or [open an issue](https://github.com/STARTcloud/armor_private/issues).

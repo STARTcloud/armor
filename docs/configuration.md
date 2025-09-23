@@ -8,7 +8,7 @@ permalink: /docs/configuration/
 # Configuration Reference
 {: .no_toc }
 
-Complete reference for configuring the Armor using the configuration file.
+Complete reference for configuring Armor using the configuration file.
 
 ## Table of contents
 {: .no_toc .text-delta }
@@ -22,248 +22,244 @@ Complete reference for configuring the Armor using the configuration file.
 
 The main configuration file is located at:
 - **Package Installation**: `/etc/armor/config.yaml`  
-- **Development**: `config/config.yaml`
+- **Development**: `config.yaml` or `dev.config.yaml`
+
+### Configuration Priority
+
+Armor loads configuration in this order:
+1. `dev.config.yaml` (development override - highest priority)
+2. `config.yaml` (production configuration)
+3. `auth.yaml` (legacy fallback - lowest priority)
 
 ## Configuration Format
 
 The configuration uses YAML format with the following structure:
 
 ```yaml
-app:
-  name: "Armor"
-  version: "1.0.0"
-  description: "Armor Reliably Manages Online Resources"
+# Application metadata
+version: 1.0.0
 
+# Server configuration
 server:
-  port: 3443
-  host: "0.0.0.0"
+  domain: localhost
+  port: 443
+  enable_api_docs: true
+  show_root_index: false
 
+# Authentication configuration
+authentication:
+  jwt_secret: "your-jwt-secret-key-change-this"
+  jwt_expiration: "24h"
+  local:
+    users:
+      - username: admin
+        password: admin123
+        role: admin
+        id: 1
+      - username: user
+        password: user123
+        role: user
+        id: 2
+    allowed_directories: ["/"]
+    static_directories: []
+
+# SSL configuration
 ssl:
-  enabled: true
-  key_path: "/etc/armor/ssl/server.key"
-  cert_path: "/etc/armor/ssl/server.crt"
-  force_ssl: true
+  key_file: "/etc/armor/ssl/key.pem"
+  cert_file: "/etc/armor/ssl/cert.pem"
+  generate_ssl: true
 
-mail:
-  smtp_host: "localhost"
-  smtp_port: 587
-  smtp_secure: false
-  smtp_auth_user: ""
-  smtp_auth_pass: ""
-  from_email: "noreply@armor.local"
-  from_name: "Armor"
-
-security:
-  jwt_secret: "auto-generated-secret"
-  jwt_expiry: "24h"
-  session_timeout: 3600
-  bcrypt_rounds: 12
-
+# Database configuration
 database:
   dialect: "sqlite"
-  storage: "/var/lib/armor/database/armor.db"
+  storage: "./file-metadata.db"
   logging: false
 
-frontend:
-  theme: "default"
-  logo_url: "/web/public/images/logo.png"
-  favicon_url: "/web/public/favicon.ico"
-  company_name: "Your Company"
+# Swagger UI configuration
+swagger:
+  allow_full_key_retrieval: false
+  allow_temp_key_generation: true
+  temp_key_expiration_hours: 1
 
-cors:
-  origin: "*"
-  credentials: true
-
-backend_servers:
-  default_timeout: 30000
-  retry_attempts: 3
-  ssl_verify: true
-
-environment: "production"
-
-logging:
-  level: "info"
-  file: "/var/log/armor/armor.log"
-  max_size: "10MB"
-  max_files: 5
-
-limits:
-  max_organizations: 50
-  max_users_per_org: 100
-  max_backend_servers: 10
-
-gravatar:
-  enabled: true
-  default_avatar: "identicon"
-  rating: "g"
+# Rate limiting configuration
+rate_limiting:
+  window_minutes: 10
+  max_requests: 100
+  message: "Too many requests from this IP, please try again later."
+  skip_successful_requests: false
+  skip_failed_requests: false
 ```
 
 ## Configuration Sections
 
-### App Configuration
-
-Basic application metadata and identification.
-
-```yaml
-app:
-  name: "Armor"
-  version: "1.0.0" 
-  description: "Armor Reliably Manages Online Resources"
-```
-
 ### Server Configuration
 
-Controls the web server behavior and network binding.
+Controls the web server behavior and features.
 
 ```yaml
 server:
-  port: 3443              # HTTPS port
-  host: "0.0.0.0"         # Bind address
-  trust_proxy: false      # Trust proxy headers
+  domain: localhost                    # Server domain/hostname
+  port: 443                           # HTTPS port (requires privileged access)
+  enable_api_docs: true               # Enable Swagger UI at /api-docs
+  show_root_index: false              # Show file listing at root (/) 
+  landing_title: "Armor"              # Landing page title
+  landing_subtitle: "ARMOR Reliably Manages Online Resources"
+  landing_description: "This is a secured download site"
+  landing_icon_class: "bi bi-shield-check"
+  landing_primary_color: "#198754"
+  login_title: "Armor"                # Login page title
+  login_primary_color: "#198754"      # Login page accent color
+```
+
+### Authentication Configuration
+
+User authentication and authorization settings.
+
+```yaml
+authentication:
+  jwt_secret: "your-jwt-secret-key-change-this"
+  jwt_expiration: "24h"
+  local:
+    users:
+      - username: admin               # Local user account
+        password: admin123            # Plain text password (secured at startup)
+        role: admin                   # Role: 'admin' or 'user'
+        id: 1                        # Unique user ID
+    allowed_directories: ["/"]        # Directories accessible via web
+    static_directories: []           # Directories serving static content
+```
+
+#### OIDC Provider Configuration
+
+For Google, Microsoft, or other OIDC authentication:
+
+```yaml
+authentication:
+  oidc_providers:
+    google:
+      enabled: true
+      client_id: "your-google-client-id"
+      client_secret: "your-google-client-secret"
+      display_name: "Sign in with Google"
+      issuer: "https://accounts.google.com"
+      scope: "openid email profile"
 ```
 
 ### SSL Configuration
 
-Configures HTTPS/TLS encryption (highly recommended for production).
+HTTPS/TLS encryption settings.
 
 ```yaml
 ssl:
-  enabled: true
-  key_path: "/etc/armor/ssl/server.key"
-  cert_path: "/etc/armor/ssl/server.crt"
-  ca_path: "/etc/armor/ssl/ca.crt"    # Optional
-  force_ssl: true                          # Redirect HTTP to HTTPS
-  protocols: ["TLSv1.2", "TLSv1.3"]      # Supported protocols
+  key_file: "/etc/armor/ssl/key.pem"
+  cert_file: "/etc/armor/ssl/cert.pem"
+  generate_ssl: true                  # Auto-generate self-signed certificates
+  ssl_passphrase: ""                  # Optional key passphrase
 ```
 
-### Mail Configuration
-
-Email settings for notifications and user management.
-
+For production, use proper certificates:
 ```yaml
-mail:
-  smtp_host: "smtp.example.com"
-  smtp_port: 587
-  smtp_secure: true                        # Use TLS
-  smtp_auth_user: "armor@example.com"
-  smtp_auth_pass: "password"
-  from_email: "noreply@armor.example.com"
-  from_name: "Armor System"
-```
-
-### Security Configuration
-
-Authentication and security-related settings.
-
-```yaml
-security:
-  jwt_secret: "your-secret-key-here"       # JWT signing secret
-  jwt_expiry: "24h"                        # Token expiration
-  session_timeout: 3600                    # Session timeout (seconds)
-  bcrypt_rounds: 12                        # Password hashing rounds
-  password_min_length: 8                   # Minimum password length
-  require_email_verification: true         # Require email verification
+ssl:
+  generate_ssl: false
+  key_file: "/etc/letsencrypt/live/domain.com/privkey.pem"
+  cert_file: "/etc/letsencrypt/live/domain.com/fullchain.pem"
 ```
 
 ### Database Configuration
 
-Database connection and behavior settings.
+File metadata storage settings.
 
 ```yaml
 database:
-  dialect: "sqlite"
+  dialect: "sqlite"                   # Database type (sqlite only)
   storage: "/var/lib/armor/database/armor.db"
-  logging: false                           # Enable SQL query logging
+  logging: false                      # Enable SQL query logging
   pool:
-    max: 5                                 # Max connections
-    min: 0                                 # Min connections
-    idle: 10000                            # Idle timeout
+    max: 5                           # Maximum connections
+    min: 0                           # Minimum connections
+    idle: 10000                      # Idle timeout (ms)
 ```
 
-### Frontend Configuration
+### Swagger UI Configuration
 
-Web interface customization and branding.
+API documentation interface settings.
 
 ```yaml
-frontend:
-  theme: "default"
-  logo_url: "/web/public/images/logo.png"
-  favicon_url: "/web/public/favicon.ico"
-  company_name: "Your Company"
-  company_url: "https://example.com"
-  footer_text: "© 2025 Your Company"
+swagger:
+  allow_full_key_retrieval: false    # Allow retrieving full API keys in browser
+  allow_temp_key_generation: true    # Allow generating temporary testing keys
+  temp_key_expiration_hours: 1       # Temporary key lifetime
 ```
 
-### CORS Configuration
+**Security Note**: Only enable `allow_full_key_retrieval` in trusted environments.
 
-Cross-Origin Resource Sharing settings.
+### Rate Limiting Configuration
+
+Protection against abuse and excessive requests.
 
 ```yaml
-cors:
-  origin: ["https://example.com", "https://app.example.com"]
-  credentials: true
-  methods: ["GET", "POST", "PUT", "DELETE"]
-  allowed_headers: ["Content-Type", "Authorization"]
+rate_limiting:
+  window_minutes: 10                  # Time window for rate limiting
+  max_requests: 100                   # Maximum requests per window
+  message: "Too many requests from this IP, please try again later."
+  skip_successful_requests: false     # Don't count successful requests
+  skip_failed_requests: false         # Don't count failed requests
 ```
 
-### Backend Servers Configuration
+## User Roles and Permissions
 
-Settings for connecting to Armor instances.
+### Admin Role (role: admin)
+- **File operations**: Upload, download, delete, rename
+- **Folder management**: Create and manage directories
+- **API key creation**: Generate keys with any permissions (downloads, uploads, delete)
+- **Full access**: All file operations and management features
+
+### User Role (role: user)
+- **File access**: Download files only
+- **Browse directories**: Navigate file structure
+- **API key creation**: Generate download-only keys
+- **Limited access**: Cannot upload, delete, or modify files
+
+## Environment-Specific Configuration
+
+### Development Configuration
+
+Create `dev.config.yaml` to override production settings:
 
 ```yaml
-backend_servers:
-  default_timeout: 30000                   # Connection timeout (ms)
-  retry_attempts: 3                        # Retry failed requests
-  ssl_verify: true                         # Verify SSL certificates
-  connection_pool_size: 10                 # Connection pool size
+# Override specific settings for development
+server:
+  port: 8443
+  enable_api_docs: true
+
+database:
+  logging: true
+
+rate_limiting:
+  max_requests: 1000  # More lenient for development
 ```
 
-### Environment Settings
+### Production Configuration
 
-Runtime environment configuration.
-
-```yaml
-environment: "production"                  # Environment mode
-debug: false                              # Enable debug mode
-```
-
-### Logging Configuration
-
-Application logging settings.
+Secure settings for production deployment:
 
 ```yaml
-logging:
-  level: "info"                           # Log level
-  file: "/var/log/armor/armor.log"
-  console: false                          # Log to console
-  max_size: "10MB"                        # Max log file size
-  max_files: 5                            # Max log files to keep
-  date_pattern: "YYYY-MM-DD"              # Log rotation pattern
-```
+server:
+  port: 443
+  enable_api_docs: false  # Disable for security
 
-### Resource Limits
+authentication:
+  jwt_secret: "long-secure-random-secret"
+  jwt_expiration: "8h"    # Shorter sessions
 
-System resource and usage limits.
+ssl:
+  generate_ssl: false
+  key_file: "/etc/letsencrypt/live/domain.com/privkey.pem"
+  cert_file: "/etc/letsencrypt/live/domain.com/fullchain.pem"
 
-```yaml
-limits:
-  max_organizations: 50                   # Max organizations
-  max_users_per_org: 100                  # Max users per organization
-  max_backend_servers: 10                 # Max backend server connections
-  max_concurrent_requests: 1000           # Max concurrent requests
-  rate_limit_requests: 100                # Requests per minute per IP
-```
-
-### Gravatar Configuration
-
-User avatar integration with Gravatar service.
-
-```yaml
-gravatar:
-  enabled: true                           # Enable Gravatar integration
-  default_avatar: "identicon"             # Default avatar type
-  rating: "g"                             # Content rating
-  size: 80                                # Default avatar size
+rate_limiting:
+  window_minutes: 15
+  max_requests: 60
 ```
 
 ## Environment Variables
@@ -272,77 +268,87 @@ Configuration values can be overridden using environment variables:
 
 ```bash
 # Server configuration
-export ARMOR_SERVER_PORT=3443
-export ARMOR_SERVER_HOST=0.0.0.0
+export ARMOR_SERVER_PORT=443
+export ARMOR_SERVER_DOMAIN=armor.example.com
 
-# SSL configuration
-export ARMOR_SSL_KEY_PATH=/path/to/key.pem
-export ARMOR_SSL_CERT_PATH=/path/to/cert.pem
+# SSL configuration  
+export ARMOR_SSL_KEY_FILE=/path/to/key.pem
+export ARMOR_SSL_CERT_FILE=/path/to/cert.pem
 
 # Database configuration
 export ARMOR_DATABASE_STORAGE=/custom/path/database.db
 
 # Security configuration
-export ARMOR_SECURITY_JWT_SECRET=your-secret-key
+export ARMOR_JWT_SECRET=your-secret-key
 ```
 
 Environment variables use the format: `ARMOR_SECTION_OPTION`
 
 ## Production Recommendations
 
-For production deployments:
+### 1. Secure Authentication
+```yaml
+authentication:
+  jwt_secret: "$(openssl rand -hex 32)"  # Generate secure secret
+  jwt_expiration: "8h"                   # Reasonable session length
+```
 
-1. **Enable HTTPS**:
-   ```yaml
-   ssl:
-     enabled: true
-     force_ssl: true
-     key_path: /etc/ssl/private/armor.key
-     cert_path: /etc/ssl/certs/armor.crt
-   ```
+### 2. Proper SSL Certificates
+```yaml
+ssl:
+  generate_ssl: false
+  key_file: "/etc/letsencrypt/live/your-domain.com/privkey.pem"
+  cert_file: "/etc/letsencrypt/live/your-domain.com/fullchain.pem"
+```
 
-2. **Secure JWT Secret**:
-   ```yaml
-   security:
-     jwt_secret: "long-random-secure-secret-key"
-     jwt_expiry: "1h"
-     session_timeout: 1800
-   ```
+### 3. Rate Limiting
+```yaml
+rate_limiting:
+  window_minutes: 15
+  max_requests: 60                      # Adjust based on usage
+  skip_successful_requests: false       # Count all requests for security
+```
 
-3. **Configure SMTP**:
-   ```yaml
-   mail:
-     smtp_host: "your-smtp-server.com"
-     smtp_port: 587
-     smtp_secure: true
-     smtp_auth_user: "armor@yourdomain.com"
-   ```
-
-4. **Set Resource Limits**:
-   ```yaml
-   limits:
-     max_organizations: 10
-     max_users_per_org: 50
-     rate_limit_requests: 60
-   ```
+### 4. Database Security
+```yaml
+database:
+  storage: "/var/lib/armor/database/armor.db"
+  logging: false                        # Disable SQL logging in production
+```
 
 ## Configuration Validation
 
-The application validates configuration on startup and will log warnings for:
-- Missing SSL certificates (when HTTPS is enabled)
-- Invalid SMTP settings
-- Missing JWT secret
-- Invalid database storage directory
-- Unreachable backend servers
+Armor validates configuration on startup and will:
+- Generate SSL certificates if needed
+- Create database directories
+- Validate user accounts
+- Check file permissions
+- Log configuration warnings
 
-## Configuration Backup
+## Troubleshooting
 
-Create backups of your configuration:
+### Common Configuration Issues
 
-```bash
-# Create backup
-cp /etc/armor/config.yaml /etc/armor/config.yaml.backup
+**Service Won't Start**
+- Check config file syntax: `armor --check-config`
+- Verify file permissions: `sudo chown armor:armor /etc/armor/config.yaml`
+- Check logs: `sudo journalctl -u armor -f`
 
-# Restore from backup
-cp /etc/armor/config.yaml.backup /etc/armor/config.yaml
-svcadm restart armor
+**SSL Certificate Errors**
+- Verify certificate files exist and are readable
+- Check certificate validity: `openssl x509 -in cert.pem -text -noout`
+- Regenerate if needed: `sudo rm /etc/armor/ssl/* && sudo systemctl restart armor`
+
+**Authentication Problems**
+- Verify JWT secret is set
+- Check user account configuration
+- Test with basic auth: `curl -k -u admin:admin123 https://localhost/`
+
+**Database Issues**
+- Check SQLite file permissions: `sudo chown armor:armor /var/lib/armor/database/`
+- Verify disk space available
+- Test database: `sqlite3 /var/lib/armor/database/armor.db .tables`
+
+---
+
+For more help, see [Support Documentation](../support/) or [open an issue](https://github.com/STARTcloud/armor_private/issues).

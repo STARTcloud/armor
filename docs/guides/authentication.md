@@ -9,7 +9,7 @@ permalink: /docs/guides/authentication/
 # Authentication
 {: .no_toc }
 
-This guide covers setting up user authentication, managing organizations, and configuring security settings in Armor.
+This guide covers Armor's comprehensive authentication system, including local users, OIDC integration, and API key management.
 
 ## Table of contents
 {: .no_toc .text-delta }
@@ -19,218 +19,355 @@ This guide covers setting up user authentication, managing organizations, and co
 
 ---
 
-## JWT Authentication
+## Authentication Overview
 
-Armor uses JSON Web Tokens (JWT) for authentication. All API requests must include a valid JWT token in the Authorization header.
+Armor provides three authentication methods for maximum compatibility:
 
-### Token Format
+1. **Local User Authentication** - Username/password accounts
+2. **OIDC Authentication** - Google, Microsoft, etc.
+3. **API Key Authentication** - Bearer tokens for automation
 
-```http
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
+## Local User Authentication
 
-### Token Lifecycle
+### User Configuration
 
-- **Expiration**: Tokens expire after 24 hours by default (configurable)
-- **Refresh**: Users must log in again after token expiration
-- **Storage**: Frontend stores tokens in secure HTTP-only cookies
-
-## User Registration
-
-### New Organization Registration
-
-If `allow_new_organizations` is enabled in config:
-
-1. Navigate to the registration page
-2. Fill out organization and admin user details:
-   - Organization name
-   - Admin username
-   - Admin email
-   - Password (minimum 8 characters)
-3. Submit registration to create both organization and admin user
-
-### Invitation-Based Registration
-
-For existing organizations:
-
-1. Admin creates invitation via Settings → Users → Invite User
-2. Invitation code is sent via email (if configured) or shared manually
-3. New user visits registration page with invitation code
-4. User fills out personal details and creates account
-
-## User Management
-
-### Role Hierarchy
-**Admin**
-- Organization-specific administration
-- Can invite users to their organization
-- Manage organization settings and users
-
-**User**
-- Standard access within organization
-- Can manage personal profile and preferences
-
-### Creating Users
-
-#### Via Email Invitation
-```yaml
-# Configure SMTP in config.yaml
-mail:
-  smtp_connect:
-    host: smtp.example.com
-    port: 587
-    secure: false
-  smtp_auth:
-    user: "noreply@company.com"
-    password: "smtp-password"
-  smtp_settings:
-    from: "Armor <noreply@company.com>"
-```
-
-1. Go to Settings → Users
-2. Click "Invite User"
-3. Enter email address and select role
-4. System sends invitation email automatically
-
-#### Manual Invitation
-1. Generate invitation code in Settings → Users
-2. Share invitation code with new user
-3. User registers using the code
-
-## Security Configuration
-
-### JWT Settings
+Edit your `config.yaml` to define local users:
 
 ```yaml
-security:
-  jwt_secret: "your-secure-random-secret-here"  # Change this!
-  bcrypt_rounds: 10                             # Password hashing strength
-  sessionTimeout: 24                            # Hours
-  allow_new_organizations: false                # Disable after initial setup
+authentication:
+  jwt_secret: "your-jwt-secret-key-change-this"
+  jwt_expiration: "24h"
+  local:
+    users:
+      - username: admin
+        password: admin123
+        role: admin
+        id: 1
+      - username: user
+        password: user123
+        role: user
+        id: 2
 ```
 
-### Password Requirements
+### User Roles
 
-Current password policy:
-- Minimum 8 characters
-- No complexity requirements (configurable in future versions)
-- Passwords are hashed using bcrypt with configurable rounds
+#### Admin Role (role: admin)
+- **File operations**: Upload, download, delete, rename
+- **Folder management**: Create and manage directories
+- **API key creation**: Generate keys with any permissions
+- **System access**: All file operations and management features
 
-### Session Management
+#### User Role (role: user)
+- **File access**: Download files only
+- **Browse directories**: Navigate file structure
+- **API key creation**: Generate download-only keys
+- **Limited access**: Cannot upload, delete, or modify files
 
-- Sessions expire after configured timeout period
-- Users are automatically logged out on token expiration
-- No automatic refresh - users must re-authenticate
+### Web Login
 
-## Organization Management
+1. Navigate to your Armor server
+2. Click "Login" button
+3. Enter username and password
+4. Access granted based on user role
 
-### Creating Organizations
+### HTTP Basic Authentication
 
-**Super Admin Only:**
-1. Navigate to Settings → Organizations
-2. Click "Add Organization"
-3. Enter organization name and description
-4. Assign initial admin user
-
-### Organization Settings
-
-Each organization can configure:
-- **Name and Description**: Basic organization information
-- **User Management**: Control user access and roles
-- **Server Assignments**: Which Armor API servers this organization can access
-
-### Multi-Tenant Isolation
-
-- Users can only access their assigned organization's resources
-- Organizations cannot see each other's data
-- Server assignments are organization-specific
-
-## API Authentication
-
-### Login Endpoint
+For CLI tools and automation:
 
 ```bash
-curl -X POST https://your-server:3443/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "identifier": "admin@example.com",
-    "password": "your-password"
-  }'
+# wget style (recommended for file downloads)
+wget --no-check-certificate "https://admin:admin123@your-server/file.txt"
+
+# curl style
+curl -k -u admin:admin123 https://your-server/file.txt
+
+# API operations
+curl -k -u admin:admin123 \
+  -H "Accept: application/json" \
+  https://your-server/uploads/
 ```
 
-Response:
+## OIDC Authentication
+
+### Google Integration
+
+Configure Google OAuth for web authentication:
+
+```yaml
+authentication:
+  oidc_providers:
+    google:
+      enabled: true
+      client_id: "your-google-client-id.googleusercontent.com"
+      client_secret: "your-google-client-secret"
+      display_name: "Sign in with Google"
+      issuer: "https://accounts.google.com"
+      scope: "openid email profile"
+```
+
+### Setting Up Google OAuth
+
+1. **Google Cloud Console**:
+   - Create new project or select existing
+   - Enable Google+ API
+   - Create OAuth 2.0 credentials
+
+2. **Configure Redirect URI**:
+   ```
+   https://your-domain.com/auth/oidc/callback
+   ```
+
+3. **Add Credentials to Config**:
+   ```yaml
+   authentication:
+     oidc_providers:
+       google:
+         enabled: true
+         client_id: "your-app-id.googleusercontent.com"
+         client_secret: "your-client-secret"
+   ```
+
+### OIDC User Permissions
+
+OIDC users get permissions based on:
+- **Domain mapping**: Configure permissions by email domain
+- **Manual assignment**: Assign permissions via configuration
+- **Default permissions**: Usually full admin access
+
+```yaml
+authentication:
+  permission_strategy: "domain_based"
+  domain_mappings:
+    downloads: ["*"]                    # All domains get downloads
+    uploads: ["company.com"]            # Only company.com gets uploads
+    delete: ["company.com"]             # Only company.com gets delete
+```
+
+## API Key Authentication
+
+### Creating API Keys
+
+#### Via Web Interface
+1. Navigate to `/api-keys` 
+2. Click "Generate New API Key"
+3. Configure:
+   - **Name**: Descriptive name for the key
+   - **Permissions**: downloads, uploads, delete (based on your role)
+   - **Expiration**: 7 days to 1 year
+
+#### Via API
+```bash
+# Create API key
+curl -k -X POST -H "Authorization: Bearer YOUR_EXISTING_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "CI Pipeline",
+    "permissions": ["downloads", "uploads"],
+    "expires_at": "2025-12-31T23:59:59.000Z"
+  }' \
+  https://your-server/api/api-keys
+```
+
+### API Key Permissions
+
+Choose appropriate permissions for your use case:
+
+#### Downloads Only (Safe for CI/CD)
 ```json
 {
-  "success": true,
-  "message": "Login successful",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": 1,
-    "username": "admin",
-    "email": "admin@example.com",
-    "role": "admin",
-    "organizationName": "My Organization"
-  }
+  "permissions": ["downloads"]
 }
 ```
 
-### Using API Tokens
-
-```bash
-curl -X GET https://your-server:3443/api/user/profile \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+#### Upload Access (Admin Only)
+```json
+{
+  "permissions": ["downloads", "uploads"]
+}
 ```
 
-## Troubleshooting
+#### Full Access (Admin Only)
+```json
+{
+  "permissions": ["downloads", "uploads", "delete"]
+}
+```
 
-### Login Issues
+### Using API Keys
 
-**Invalid Credentials**
-- Verify username/email and password
-- Check if account exists and is active
+```bash
+# File operations
+curl -k -H "Authorization: Bearer YOUR_API_KEY" \
+  https://your-server/uploads/file.txt
 
-**Token Expired**
-- Login again to get fresh token
-- Check sessionTimeout setting
+# Directory listing
+curl -k -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Accept: application/json" \
+  https://your-server/uploads/
 
-**Server Error**
-- Check JWT secret is configured
-- Verify database connectivity
-- Check server logs for details
+# Upload file
+curl -k -X POST -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "file=@./local-file.txt" \
+  https://your-server/uploads/
+```
 
-### Registration Problems
+## Swagger UI Authentication
 
-**Organization Creation Disabled**
-- Set `allow_new_organizations: true` in config
-- Restart Armor service
+### Existing API Keys
+If you have API keys, the Swagger UI will show them in the authorization modal:
+1. Click "Authorize" in Swagger UI
+2. See your existing API keys listed
+3. Click "Fill Auth Field" to use an existing key
 
-**Email Invitation Failed**
-- Check SMTP configuration
-- Verify email credentials
-- Test SMTP connection
+### Temporary Keys
+For testing in Swagger UI:
+1. Click "Authorize" in Swagger UI
+2. Click "Generate Temp Key" 
+3. Temporary key automatically fills the auth field
+4. Key expires after configured time (default 1 hour)
 
-**Invalid Invitation Code**
-- Check code hasn't expired
-- Verify code was copied correctly
-- Generate new invitation if needed
+## JWT Token Management
+
+### Token Structure
+```json
+{
+  "aud": "file-server-users",
+  "iss": "file-server", 
+  "userId": 1,
+  "email": "user@example.com",
+  "permissions": ["downloads", "uploads", "delete"],
+  "role": "admin",
+  "exp": 1640995200,
+  "iat": 1640908800
+}
+```
+
+### Token Validation
+Armor validates:
+- **Signature**: Uses configured JWT secret
+- **Expiration**: Tokens expire after configured time
+- **Issuer/Audience**: Validates token source
+- **Permissions**: Checks required permissions for operations
 
 ## Security Best Practices
 
 ### Production Deployment
 
-1. **Strong JWT Secret**: Use a secure random string (32+ characters)
-2. **HTTPS Only**: Never run authentication over HTTP in production
-3. **Regular Password Updates**: Encourage users to update passwords
-4. **Monitor Access**: Review user access logs regularly
-5. **Disable New Organizations**: Set `allow_new_organizations: false` after setup
+1. **Strong JWT Secret**: 
+   ```bash
+   # Generate secure secret
+   openssl rand -hex 32
+   ```
+
+2. **Secure Passwords**:
+   ```yaml
+   authentication:
+     local:
+       users:
+         - username: admin
+           password: "$(openssl rand -base64 32)"  # Strong random password
+   ```
+
+3. **Limited API Key Permissions**:
+   - Only grant necessary permissions
+   - Set reasonable expiration dates
+   - Rotate keys regularly
+
+4. **HTTPS Only**:
+   ```yaml
+   ssl:
+     generate_ssl: false
+     key_file: "/etc/letsencrypt/live/domain.com/privkey.pem"
+     cert_file: "/etc/letsencrypt/live/domain.com/fullchain.pem"
+   ```
 
 ### Network Security
 
-- Use firewall to restrict port 3443 access
-- Consider VPN access for administrative functions
-- Enable fail2ban for brute force protection
-- Regular security updates and monitoring
+- **Firewall**: Restrict access to port 443
+- **VPN**: Consider VPN access for admin operations
+- **Monitoring**: Log and monitor authentication attempts
+- **Rate Limiting**: Configure appropriate limits
+
+## Troubleshooting
+
+### Authentication Issues
+
+**Login Failed**
+```bash
+# Test basic auth
+curl -k -u admin:admin123 https://your-server/
+
+# Check user config
+sudo cat /etc/armor/config.yaml | grep -A 10 users:
+
+# Check logs
+sudo journalctl -u armor -f
+```
+
+**JWT Token Issues**
+- Verify JWT secret is configured
+- Check token hasn't expired
+- Ensure proper Authorization header format
+
+**API Key Problems**
+- Verify key hasn't expired
+- Check permissions match required operation
+- Test key: `curl -k -H "Authorization: Bearer KEY" https://server/api/api-keys`
+
+### OIDC Issues
+
+**Google Login Failed**
+- Verify client ID and secret
+- Check redirect URI matches exactly
+- Ensure Google+ API is enabled
+- Test OIDC discovery: `curl https://accounts.google.com/.well-known/openid_configuration`
+
+**Permission Denied After OIDC Login**
+- Check domain_mappings configuration
+- Verify user's email domain
+- Check permission_strategy setting
+
+### Common Fixes
+
+**Reset User Password**
+```yaml
+# Edit config.yaml
+authentication:
+  local:
+    users:
+      - username: admin
+        password: newpassword123  # Update password
+        role: admin
+        id: 1
+```
+
+**Generate New JWT Secret**
+```bash
+# Generate secure secret
+openssl rand -hex 32
+
+# Update config
+sudo nano /etc/armor/config.yaml
+sudo systemctl restart armor
+```
+
+**Regenerate SSL Certificates**
+```bash
+# Remove existing certificates
+sudo rm -rf /etc/armor/ssl/*
+
+# Restart service to regenerate
+sudo systemctl restart armor
+```
 
 ---
 
-Next: [Backend Integration](backend-integration/) - Connect to Armor API Servers
+## Related Documentation
+
+- **[Configuration Reference](../../configuration/)** - Complete authentication config options
+- **[API Reference](../../api/)** - Authentication endpoints and examples
+- **[Installation Guide](installation/)** - Production deployment setup
+
+---
+
+Need help? Check our [Support Documentation](../../support/) or [open an issue](https://github.com/STARTcloud/armor_private/issues).

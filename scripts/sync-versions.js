@@ -3,8 +3,8 @@
 import fs from 'fs';
 
 /**
- * Synchronize version between root package.json, web/package.json, and web/.env
- * This ensures both frontend and backend always have the same version
+ * Synchronize version between root package.json and configuration files
+ * This ensures all configs and documentation have the same version
  */
 
 const rootPackagePath = './package.json';
@@ -44,11 +44,9 @@ try {
 
   console.log(`✅ Synchronized versions to ${rootVersion}`);
   console.log(`   - Root: ${rootVersion}`);
-  console.log(`   - Web:  ${rootVersion}`);
   console.log(`   - Swagger: ${rootVersion}`);
   console.log(`   - Production Config: ${rootVersion}`);
   console.log(`   - Release Please Manifest: ${rootVersion}`);
-  console.log(`   - Vite: Using define to inject version at build time`);
 } catch (error) {
   console.error('❌ Error synchronizing versions:', error.message);
   throw new Error(`Version synchronization failed: ${error.message}`);
