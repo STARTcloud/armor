@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         package-type: [production, development]
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -34,7 +34,7 @@ jobs:
             echo "VERSION=$(node -p "require('./package.json').version")-dev" >> $GITHUB_ENV
           fi
           echo "ARCH=amd64" >> $GITHUB_ENV
-          
+
           if [ "${{ matrix.package-type }}" = "production" ]; then
             echo "PACKAGE_NAME=armor" >> $GITHUB_ENV
             echo "DESCRIPTION=armor" >> $GITHUB_ENV
@@ -56,7 +56,7 @@ jobs:
           fi
 
       - name: Install production dependencies only
-        if: matrix.package-type == 'production'  
+        if: matrix.package-type == 'production'
         run: |
           if [ -f package-lock.json ]; then
             npm ci --omit=dev
@@ -73,16 +73,16 @@ jobs:
           # Core application files (Armor backend-only structure)
           cp -r models routes middleware config utils services scripts app.js package.json "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
           cp -r node_modules "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
-          
+
           # Static web assets (no build process needed)
           cp -r web/static "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/"
-          
+
           # Configuration files
           cp packaging/config/production-config.yaml "${PACKAGE_NAME}_${VERSION}_${ARCH}/etc/armor/config.yaml"
-          
+
           # Systemd service
           cp packaging/DEBIAN/systemd/armor.service "${PACKAGE_NAME}_${VERSION}_${ARCH}/etc/systemd/system/"
-          
+
           # DEBIAN control files
           cp packaging/DEBIAN/{postinst,prerm,postrm} "${PACKAGE_NAME}_${VERSION}_${ARCH}/DEBIAN/"
 
@@ -114,7 +114,7 @@ jobs:
           # Set directory and file permissions (following tutorials)
           find "${PACKAGE_NAME}_${VERSION}_${ARCH}" -type d -exec chmod 755 {} \;
           find "${PACKAGE_NAME}_${VERSION}_${ARCH}" -type f -exec chmod 644 {} \;
-          
+
           # Make DEBIAN scripts executable
           chmod 755 "${PACKAGE_NAME}_${VERSION}_${ARCH}/DEBIAN"/{postinst,prerm,postrm}
 
@@ -133,13 +133,13 @@ jobs:
         if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
-          files: "*.deb"
+          files: '*.deb'
           generate_release_notes: true
 
       - name: Upload artifacts (for non-tag builds)
         if: github.ref_type != 'tag'
         uses: actions/upload-artifact@v4
         with:
-          name: "debian-packages-${{ matrix.package-type }}"
-          path: "*.deb"
+          name: 'debian-packages-${{ matrix.package-type }}'
+          path: '*.deb'
           retention-days: 7
