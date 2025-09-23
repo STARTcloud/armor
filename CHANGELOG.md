@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.4](https://github.com/STARTcloud/armor_private/compare/v1.0.3...v1.0.4) (2025-09-23)
+
+
+### Bug Fixes
+
+* documentation ([7dc4451](https://github.com/STARTcloud/armor_private/commit/7dc4451fe5c6c3046d21f07c1984217881167f49))
+* documentation ([b641468](https://github.com/STARTcloud/armor_private/commit/b64146808051dde6f4a383e68b2615b7af1e783d))
+* documentation ([2c22c38](https://github.com/STARTcloud/armor_private/commit/2c22c38592d51e6e32aacf6b04e89252dcbe9aa1))
+* documentation ([cc1c022](https://github.com/STARTcloud/armor_private/commit/cc1c022b8654bebec06c4747a4c1be028aa97b06))
+
 ## [1.0.3](https://github.com/STARTcloud/armor_private/compare/v1.0.2...v1.0.3) (2025-09-23)
 
 
