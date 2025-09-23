@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/STARTcloud/armor_private/compare/v1.0.1...v1.0.2) (2025-09-23)
+
+
+### Bug Fixes
+
+* lint task ([5596510](https://github.com/STARTcloud/armor_private/commit/55965106740c2cdcbc4ad5416e8a73349db92b8f))
+
 ## [1.0.1](https://github.com/STARTcloud/armor_private/compare/v1.0.0...v1.0.1) (2025-09-23)
 
 
