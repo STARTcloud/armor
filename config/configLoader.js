@@ -15,12 +15,19 @@ class ConfigLoader {
   async load() {
     if (!this.config) {
       try {
-        // Prefer dev.config.yaml over config.yaml
-        const configFiles = [
+        // Check environment variable first (set by systemd)
+        const configFiles = [];
+        
+        if (process.env.CONFIG_PATH) {
+          configFiles.push(process.env.CONFIG_PATH);
+        }
+        
+        // Then check local files in priority order
+        configFiles.push(
           join(__dirname, '../dev.config.yaml'),
           join(__dirname, '../config.yaml'),
-          join(__dirname, '../auth.yaml'), // Legacy fallback
-        ];
+          join(__dirname, '../auth.yaml') // Legacy fallback
+        );
 
         let configContent = null;
         let loadedFile = null;
