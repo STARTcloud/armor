@@ -1,0 +1,75 @@
+server:
+  domain: "local.home.Mydomain.net"
+  port: 443
+  show_root_index: false
+  enable_api_docs: true
+  login_title: "Armor"
+  login_subtitle: "ARMOR Reliably Manages Online Resources"
+  login_icon_class: "bi bi-cloud-download"
+  # login_icon_url: "https://your-domain.com/logo.png"
+  login_primary_color: "#198754"
+  oidc_button_style: "btn-outline-success"
+  
+  # Landing page customization (all optional)
+  landing_title: "STARTcloud Armor"
+  landing_subtitle: "ARMOR Reliably Manages Online Resources"
+  landing_description: "This is a secured download site"
+  landing_icon_class: "bi bi-shield-check"
+  # landing_icon_url: "https://your-domain.com/logo.png"
+  landing_primary_color: "#198754"
+  support_email: "support@startcloud.com"
+
+swagger:
+  allow_full_key_retrieval: false
+  allow_temp_key_generation: true
+  temp_key_expiration_hours: 1
+
+ssl:
+  cert: /etc/letsencrypt/live/armor.mydomain.com/fullchain.pem
+  key: /etc/letsencrypt/live/armor.mydomain.com/privkey.pem
+
+database:
+  dialect: "sqlite"
+  storage: "./file-metadata.db"
+  logging: false
+
+authentication:
+  jwt_secret: "boxvault-secret-example-secret-key-225-3243-dfsa-233"
+  jwt_expiration: "24h"
+  
+  local:
+    users:
+      - username: admin
+        password: admin123
+        role: admin
+        id: 2
+    allowed_directories:
+      - /
+    static_directories:
+      - /
+
+  oidc_providers:
+    google:
+      enabled: true
+      display_name: "Sign in with Google"
+      issuer: "https://accounts.google.com"
+      client_id: "XXXXXXXXXXXXXXXXXX-XXXXXXXXXXXXXXXXXXXXXXXX.apps.googleusercontent.com"
+      client_secret: "XXXXXXXXX-XXXXXXXXXXXXXXXXX_XXXXXXXXXXXXXX"
+      scope: "openid profile email"
+
+
+  permission_strategy: "domain_based"
+  domain_mappings:
+    downloads: ["*"]
+    uploads: ["*@Mydomain.net", "*@TheirDomain.cloud"]
+    delete: ["*@Mydomain.net", "*@TheirDomain.cloud"]
+  
+  claims_mappings:
+    downloads:
+      - claim: "groups"
+        values: ["file-readers", "all-users"]
+    uploads:
+      - claim: "groups"
+        values: ["file-admins"]
+      - claim: "role"
+        values: ["admin"]

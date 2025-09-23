@@ -1,0 +1,15 @@
+#!/bin/bash
+set -e
+
+# Stop and disable service before removal
+if systemctl is-active --quiet armor; then
+    echo "Stopping Armor service..."
+    systemctl stop armor
+fi
+
+if systemctl is-enabled --quiet armor; then
+    echo "Disabling Armor service..."
+    systemctl disable armor
+fi
+
+#DEBHELPER#

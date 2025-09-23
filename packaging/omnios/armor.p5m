@@ -1,0 +1,105 @@
+#
+# This file and its contents are supplied under the terms of the
+# Common Development and Distribution License ("CDDL"), version 1.0.
+# You may only use this file in accordance with the terms of version
+# 1.0 of the CDDL.
+#
+# A full copy of the text of the CDDL should have accompanied this
+# source.  A copy of the CDDL is also available via the Internet at
+# http://www.illumos.org/license/CDDL.
+#
+
+set name=pkg.fmri value=application/management/armor@@VERSION@
+set name=pkg.summary value="Armor"
+set name=pkg.description value="Web-based management interface for secure files via API."
+set name=info.classification value=org.opensolaris.category.2008:System/Virtualization
+set name=info.upstream value="Armor Project"
+set name=info.upstream-url value="https://github.com/STARTcloud/armor"
+
+# Dependencies
+depend fmri=ooce/runtime/node-22 type=require
+depend fmri=database/sqlite-3 type=require
+
+# Create armor user and group
+user username=armor uid=305 group=armor gcos-field="Armor Service User" \
+    home-dir=/var/lib/armor login-shell=/usr/bin/pfksh
+group groupname=armor gid=305
+
+# License
+license opt/armor/LICENSE.md license="GPL-3.0" must-accept=false
+
+# Drop system directories that already exist (avoid conflicts with system packages)
+<transform dir path=^opt$ -> drop>
+<transform dir path=^etc$ -> drop>
+<transform dir path=^var$ -> drop>
+<transform dir path=^lib$ -> drop>
+<transform dir path=lib/svc$ -> drop>
+<transform dir path=lib/svc/manifest$ -> drop>
+<transform dir path=lib/svc/manifest/system$ -> drop>
+<transform dir path=var/lib$ -> drop>
+<transform dir path=var/log$ -> drop>
+
+# Transform rules to set ownership and permissions for auto-generated files
+
+<transform dir path=opt/armor$ -> set owner armor>
+<transform dir path=opt/armor$ -> set group armor>
+<transform dir path=opt/armor$ -> set mode 0755>
+
+<transform dir path=opt/armor/.* -> set owner armor>
+<transform dir path=opt/armor/.* -> set group armor>
+<transform dir path=opt/armor/.* -> set mode 0755>
+
+<transform file path=opt/armor/.* -> set owner armor>
+<transform file path=opt/armor/.* -> set group armor>
+<transform file path=opt/armor/.* -> set mode 0644>
+
+# SMF method scripts need to be executable by root
+<transform file path=opt/armor/startup.sh -> set owner root>
+<transform file path=opt/armor/startup.sh -> set group sys>
+<transform file path=opt/armor/startup.sh -> set mode 0755>
+
+<transform file path=opt/armor/shutdown.sh -> set owner root>
+<transform file path=opt/armor/shutdown.sh -> set group sys>
+<transform file path=opt/armor/shutdown.sh -> set mode 0755>
+
+<transform file path=opt/armor/post-install.sh -> set owner root>
+<transform file path=opt/armor/post-install.sh -> set group sys>
+<transform file path=opt/armor/post-install.sh -> set mode 0755>
+
+# Make scripts and node binaries executable
+<transform file path=opt/armor/scripts/.* -> set mode 0755>
+<transform file path=opt/armor/node_modules/.*/bin/.* -> set mode 0755>
+
+# Configuration directory and files (config file preserved via preserve=true)
+<transform dir path=etc/armor$ -> set owner armor>
+<transform dir path=etc/armor$ -> set group armor>
+<transform dir path=etc/armor$ -> set mode 0755>
+
+<transform file path=etc/armor/config.yaml -> set owner armor>
+<transform file path=etc/armor/config.yaml -> set group armor>
+<transform file path=etc/armor/config.yaml -> set mode 0644>
+<transform file path=etc/armor/config.yaml -> set preserve true>
+
+# SSL and database directories (empty) - keeps persistent data in place on uninstall
+<transform dir path=etc/armor/ssl -> set owner armor>
+<transform dir path=etc/armor/ssl -> set group armor>
+<transform dir path=etc/armor/ssl -> set mode 0700>
+
+<transform dir path=var/lib/armor$ -> set owner armor>
+<transform dir path=var/lib/armor$ -> set group armor>
+<transform dir path=var/lib/armor$ -> set mode 0755>
+
+<transform dir path=var/lib/armor/database -> set owner armor>
+<transform dir path=var/lib/armor/database -> set group armor>
+<transform dir path=var/lib/armor/database -> set mode 0755>
+
+# Log directory (packaged content to avoid permission issues)
+<transform dir path=var/log/armor -> set owner armor>
+<transform dir path=var/log/armor -> set group armor>
+<transform dir path=var/log/armor -> set mode 0755>
+
+# SMF manifest
+<transform file path=lib/svc/manifest/system/armor.xml -> set owner root>
+<transform file path=lib/svc/manifest/system/armor.xml -> set group sys>
+<transform file path=lib/svc/manifest/system/armor.xml -> set mode 0644>
+<transform file path=lib/svc/manifest/system/armor.xml -> set restart_fmri svc:/system/manifest-import:default>

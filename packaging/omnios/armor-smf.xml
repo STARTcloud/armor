@@ -1,0 +1,67 @@
+<?xml version='1.0'?>
+<!DOCTYPE service_bundle SYSTEM '/usr/share/lib/xml/dtd/service_bundle.dtd.1'>
+<!--
+    SMF manifest for Armor
+-->
+<service_bundle type='manifest' name='armor'>
+  <service name='application/management/armor' type='service' version='1'>
+    <create_default_instance enabled='false'/>
+    <single_instance/>
+    
+    <!-- Dependencies -->
+    <dependency name='filesystems' grouping='require_all' restart_on='none' type='service'>
+      <service_fmri value='svc:/system/filesystem/local:default'/>
+    </dependency>
+    
+    <dependency name='network' grouping='require_all' restart_on='none' type='service'>
+      <service_fmri value='svc:/milestone/network:default'/>
+    </dependency>
+    
+    <!-- Start method -->
+    <exec_method name='start' type='method' exec='/opt/armor/startup.sh' timeout_seconds='60'>
+      <method_context working_directory='/opt/armor'>
+        <method_credential user='armor' group='armor' 
+            privileges='basic,net_privaddr,file_dac_read' />
+        <method_environment>
+          <envvar name='PATH' value='/opt/ooce/bin:/opt/ooce/node-22/bin:/usr/gnu/bin:/usr/bin:/usr/sbin:/sbin'/>
+          <envvar name='NODE_ENV' value='production'/>
+          <envvar name='CONFIG_PATH' value='/etc/armor/config.yaml'/>
+          <envvar name='HOME' value='/var/lib/armor'/>
+        </method_environment>
+      </method_context>
+    </exec_method>
+    
+    <!-- Stop method -->
+    <exec_method name='stop' type='method' exec='/opt/armor/shutdown.sh' timeout_seconds='30'>
+      <method_context working_directory='/opt/armor'>
+        <method_credential user='armor' group='armor' />
+        <method_environment>
+          <envvar name='PATH' value='/opt/ooce/bin:/opt/ooce/node-22/bin:/usr/bin:/usr/sbin:/sbin'/>
+        </method_environment>
+      </method_context>
+    </exec_method>
+    
+    <!-- Refresh method -->
+    <exec_method name='refresh' type='method' exec=':kill -HUP' timeout_seconds='30' />
+    
+    <!-- Stability -->
+    <stability value='Evolving' />
+    
+    <!-- Service description -->
+    <template>
+      <common_name>
+        <loctext xml:lang='C'>Armor</loctext>
+      </common_name>
+      <description>
+        <loctext xml:lang='C'>
+          Web-based management interface for Armor Reliably Manages Online Resources
+        </loctext>
+      </description>
+      <documentation>
+        <manpage title='armor' section='8' />
+        <doc_link name='Armor Project'
+                  uri='https://github.com/STARTcloud/armor' />
+      </documentation>
+    </template>
+  </service>
+</service_bundle>

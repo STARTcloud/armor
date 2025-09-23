@@ -1,0 +1,59 @@
+#!/bin/bash
+set -e
+
+# Create system user and group
+if ! getent passwd armor > /dev/null 2>&1; then
+    adduser --system --group --home /opt/armor \
+            --no-create-home --shell /usr/sbin/nologin \
+            --gecos "Armor system user" armor
+fi
+
+# Set ownership and permissions
+chown -R armor:armor /opt/armor
+chown -R armor:armor /var/lib/armor
+chown -R armor:armor /var/log/armor
+chown -R armor:armor /etc/armor
+
+
+# Generate JWT secret if it doesn't exist
+if [ ! -f /etc/armor/.jwt-secret ]; then
+    openssl rand -hex 32 > /etc/armor/.jwt-secret
+    chown armor:armor /etc/armor/.jwt-secret
+    chmod 600 /etc/armor/.jwt-secret
+    echo "Generated JWT secret in /etc/armor/.jwt-secret"
+fi
+
+# Update config file with actual JWT secret
+if [ -f /etc/armor/.jwt-secret ]; then
+    JWT_SECRET=$(cat /etc/armor/.jwt-secret)
+    sed -i "s/__JWT_SECRET_FROM_FILE__/${JWT_SECRET}/g" /etc/armor/config.yaml
+    echo "Updated config with JWT secret"
+fi
+
+# Initialize database directory
+mkdir -p /var/lib/armor/database
+chown armor:armor /var/lib/armor/database
+
+# Create SSL directory for certificate generation
+mkdir -p /etc/armor/ssl
+chown armor:armor /etc/armor/ssl
+chmod 700 /etc/armor/ssl
+
+# Reload systemd daemon
+systemctl daemon-reload
+
+echo ""
+echo "======================================================================"
+echo "Armor has been installed successfully!"
+echo ""
+echo "Next steps:"
+echo "1. Review configuration: /etc/armor/config.yaml"
+echo "2. Start the service: systemctl enable --now armor"
+echo "3. Check status: systemctl status armor"
+echo "4. View logs: journalctl -u armor -f"
+echo ""
+echo "Default access: https://localhost:3443 (with self-signed certificate)"
+echo "======================================================================"
+echo ""
+
+#DEBHELPER#

@@ -1,0 +1,170 @@
+name: Build Debian Packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build_packages:
+    name: Build Packages
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package-type: [production, development]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Calculate variables
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "VERSION=$(echo "${{ github.ref_name }}" | sed -e 's/^v//')" >> $GITHUB_ENV
+          else
+            echo "VERSION=$(node -p "require('./package.json').version")-dev" >> $GITHUB_ENV
+          fi
+          echo "ARCH=amd64" >> $GITHUB_ENV
+          
+          if [ "${{ matrix.package-type }}" = "production" ]; then
+            echo "PACKAGE_NAME=armor" >> $GITHUB_ENV
+            echo "DESCRIPTION=armor" >> $GITHUB_ENV
+            echo "DEPENDS=nodejs (>= 22.0.0), sqlite3, openssl" >> $GITHUB_ENV
+            echo "CONFLICTS=" >> $GITHUB_ENV
+          else
+            echo "PACKAGE_NAME=armor-dev" >> $GITHUB_ENV
+            echo "DESCRIPTION=armor (Development)" >> $GITHUB_ENV
+            echo "DEPENDS=nodejs (>= 22.0.0), sqlite3, openssl, npm" >> $GITHUB_ENV
+            echo "CONFLICTS=armor" >> $GITHUB_ENV
+          fi
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+          cd web
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+          cd ..
+
+      - name: Build frontend (production only)
+        if: matrix.package-type == 'production'
+        run: |
+          cd web && npm run build
+
+      - name: Install production dependencies
+        if: matrix.package-type == 'production'  
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --omit=dev
+          else
+            npm install --omit=dev
+          fi
+
+      - name: Create package structure
+        run: |
+          mkdir -p "${PACKAGE_NAME}_${VERSION}_${ARCH}"/{opt/armor,etc/armor,etc/systemd/system,var/lib/armor,var/log/armor,usr/share/man/man8,usr/share/man/man5,DEBIAN}
+
+      - name: Copy application files
+        run: |
+          # Core application files
+          cp -r controllers models routes middleware config index.js package.json "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
+          cp -r node_modules "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
+          
+          if [ "${{ matrix.package-type }}" = "production" ]; then
+            # Production: pre-built frontend
+            cp -r web/dist "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/"
+          else
+            # Development: source files  
+            cp -r web/src web/package.json web/vite.config.js "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/"
+            # Restore all dependencies for dev package
+            rm -rf "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/node_modules"
+            if [ -f package-lock.json ]; then
+              npm ci
+            else
+              npm install
+            fi
+            cp -r node_modules "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
+          fi
+          
+          # Configuration files
+          cp packaging/config/production-config.yaml "${PACKAGE_NAME}_${VERSION}_${ARCH}/etc/armor/config.yaml"
+          
+          # Systemd service
+          cp packaging/DEBIAN/systemd/armor.service "${PACKAGE_NAME}_${VERSION}_${ARCH}/etc/systemd/system/"
+          
+          # DEBIAN control files
+          cp packaging/DEBIAN/{postinst,prerm,postrm} "${PACKAGE_NAME}_${VERSION}_${ARCH}/DEBIAN/"
+
+      - name: Install man pages
+        run: |
+          # Copy and compress man pages following Debian Policy
+          gzip -9 -c packaging/DEBIAN/man/armor.8 > "${PACKAGE_NAME}_${VERSION}_${ARCH}/usr/share/man/man8/armor.8.gz"
+          gzip -9 -c packaging/DEBIAN/man/armor.yaml.5 > "${PACKAGE_NAME}_${VERSION}_${ARCH}/usr/share/man/man5/armor.yaml.5.gz"
+
+      - name: Create control file
+        run: |
+          cat > "${PACKAGE_NAME}_${VERSION}_${ARCH}/DEBIAN/control" << EOF
+          Package: ${PACKAGE_NAME}
+          Version: ${VERSION}
+          Section: misc
+          Priority: optional
+          Architecture: ${ARCH}
+          Maintainer: MarkProminic <MarkProminic@users.noreply.github.com>
+          Depends: ${DEPENDS}
+          $([ -n "${CONFLICTS}" ] && echo "Conflicts: ${CONFLICTS}")
+          Description: ${DESCRIPTION}
+           A secure Node.js file server that provides directory listings
+           complete with SHA256 checksums and authenticated file upload capabilities over HTTPS.
+          Homepage: https://github.com/STARTcloud/armor_private
+          EOF
+
+      - name: Set proper permissions
+        run: |
+          # Set directory and file permissions (following tutorials)
+          find "${PACKAGE_NAME}_${VERSION}_${ARCH}" -type d -exec chmod 755 {} \;
+          find "${PACKAGE_NAME}_${VERSION}_${ARCH}" -type f -exec chmod 644 {} \;
+          
+          # Make DEBIAN scripts executable
+          chmod 755 "${PACKAGE_NAME}_${VERSION}_${ARCH}/DEBIAN"/{postinst,prerm,postrm}
+
+      - name: Build DEB package
+        run: |
+          # Build .deb package (dpkg-deb from examples)
+          dpkg-deb --build "${PACKAGE_NAME}_${VERSION}_${ARCH}" "${PACKAGE_NAME}_${VERSION}_${ARCH}.deb"
+
+      - name: Test package info
+        run: |
+          # Show package information
+          dpkg-deb --info "${PACKAGE_NAME}_${VERSION}_${ARCH}.deb"
+          dpkg-deb --contents "${PACKAGE_NAME}_${VERSION}_${ARCH}.deb"
+
+      - name: Release packages
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*.deb"
+          generate_release_notes: true
+
+      - name: Upload artifacts (for non-tag builds)
+        if: github.ref_type != 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: "debian-packages-${{ matrix.package-type }}"
+          path: "*.deb"
+          retention-days: 7
