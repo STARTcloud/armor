@@ -9,7 +9,7 @@ permalink: /
 # Armor Documentation
 {: .fs-9 }
 
-React-based web frontend for Armor file management, Provides user management.
+Web frontend for Armor file management, Provides user management.
 {: .fs-6 .fw-300 }
 
 [Get started now](#getting-started){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }

@@ -54,20 +54,8 @@ jobs:
           else
             npm install
           fi
-          cd web
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install
-          fi
-          cd ..
 
-      - name: Build frontend (production only)
-        if: matrix.package-type == 'production'
-        run: |
-          cd web && npm run build
-
-      - name: Install production dependencies
+      - name: Install production dependencies only
         if: matrix.package-type == 'production'  
         run: |
           if [ -f package-lock.json ]; then
@@ -82,25 +70,12 @@ jobs:
 
       - name: Copy application files
         run: |
-          # Core application files
-          cp -r controllers models routes middleware config index.js package.json "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
+          # Core application files (Armor backend-only structure)
+          cp -r models routes middleware config utils services scripts app.js package.json "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
           cp -r node_modules "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
           
-          if [ "${{ matrix.package-type }}" = "production" ]; then
-            # Production: pre-built frontend
-            cp -r web/dist "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/"
-          else
-            # Development: source files  
-            cp -r web/src web/package.json web/vite.config.js "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/"
-            # Restore all dependencies for dev package
-            rm -rf "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/node_modules"
-            if [ -f package-lock.json ]; then
-              npm ci
-            else
-              npm install
-            fi
-            cp -r node_modules "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
-          fi
+          # Static web assets (no build process needed)
+          cp -r web/static "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/"
           
           # Configuration files
           cp packaging/config/production-config.yaml "${PACKAGE_NAME}_${VERSION}_${ARCH}/etc/armor/config.yaml"
