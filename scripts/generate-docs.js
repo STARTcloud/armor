@@ -473,4 +473,8 @@ const generateDocs = () => {
 
 
 // Run the documentation generation
-generateDocs().catch(console.error);
+try {
+  generateDocs();
+} catch (error) {
+  console.error(error);
+}
