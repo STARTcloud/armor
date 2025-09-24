@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.7](https://github.com/STARTcloud/armor_private/compare/v1.0.6...v1.0.7) (2025-09-24)
+
+
+### Bug Fixes
+
+* logging ([a2a3778](https://github.com/STARTcloud/armor_private/commit/a2a3778bd84b43b72c8ab9bf1ef1134083971171))
+* oidc token method ([2451e37](https://github.com/STARTcloud/armor_private/commit/2451e37086318b7704a8829541320732e9d78897))
+* oidc token method ([8a81ed9](https://github.com/STARTcloud/armor_private/commit/8a81ed9dc7f8dbe23815bed340d8992a7f219959))
+* oidc token method ([a940eff](https://github.com/STARTcloud/armor_private/commit/a940effdf0acac12d3cb80137fbbc3b535457fc0))
+
 ## [1.0.6](https://github.com/STARTcloud/armor_private/compare/v1.0.5...v1.0.6) (2025-09-24)
 
 
