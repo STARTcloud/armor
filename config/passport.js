@@ -7,6 +7,21 @@ import configLoader from './configLoader.js';
 import { getUserModel } from '../models/User.js';
 import logger from './logger.js';
 
+// Map authentication method names to openid-client functions
+const getClientAuth = (authMethod, clientSecret) => {
+  switch (authMethod) {
+    case 'client_secret_basic':
+      return client.ClientSecretBasic(clientSecret);
+    case 'client_secret_post':
+      return client.ClientSecretPost(clientSecret);
+    case 'none':
+      return client.None();
+    // Note: private_key_jwt and client_secret_jwt require additional configuration
+    default:
+      return client.ClientSecretBasic(clientSecret); // Default fallback
+  }
+};
+
 const matchDomain = (email, pattern) => {
   if (pattern === '*') {
     return true;
@@ -160,13 +175,16 @@ export const setupPassportStrategies = async () => {
       try {
         logger.info(`Setting up OIDC provider: ${providerName}`);
 
+        const authMethod = providerConfig.token_endpoint_auth_method || 'client_secret_basic';
+        const clientAuth = getClientAuth(authMethod, providerConfig.client_secret);
+        
+        logger.info(`Using auth method: ${authMethod} for provider: ${providerName}`);
+
         const oidcConfig = await client.discovery(
           new URL(providerConfig.issuer),
           providerConfig.client_id,
-          providerConfig.client_secret,
-          {
-            token_endpoint_auth_method: providerConfig.token_endpoint_auth_method || 'client_secret_basic',
-          }
+          providerConfig.client_secret, // shorthand for client_secret metadata
+          clientAuth
         );
 
         const strategyName = `oidc-${providerName}`;

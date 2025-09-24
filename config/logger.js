@@ -15,7 +15,7 @@ let loggingConfig = {
 const rotateLogFile = async (filePath, maxFiles) => {
   try {
     const archiveDir = join(dirname(filePath), 'archive');
-    
+
     // Create archive directory if it doesn't exist
     try {
       await fs.mkdir(archiveDir, { recursive: true });
@@ -25,12 +25,12 @@ const rotateLogFile = async (filePath, maxFiles) => {
     }
 
     const baseName = filePath.split('/').pop();
-    
+
     // Move existing numbered files
     for (let i = maxFiles - 1; i >= 1; i--) {
       const oldFile = join(archiveDir, `${baseName}.${i}`);
       const newFile = join(archiveDir, `${baseName}.${i + 1}`);
-      
+
       if (existsSync(oldFile)) {
         if (i === maxFiles - 1) {
           // Delete the oldest file
@@ -41,7 +41,7 @@ const rotateLogFile = async (filePath, maxFiles) => {
         }
       }
     }
-    
+
     // Move current file to .1
     if (existsSync(filePath)) {
       await fs.rename(filePath, join(archiveDir, `${baseName}.1`));
@@ -78,11 +78,11 @@ class RotatingFileTransport extends winston.transports.File {
 }
 
 // Initialize logger with default config (will be updated later)
-const createLoggerTransports = async (config) => {
+const createLoggerTransports = async config => {
   const transports = [
     new winston.transports.Console({
       format: winston.format.simple(),
-    })
+    }),
   ];
 
   try {
@@ -93,30 +93,36 @@ const createLoggerTransports = async (config) => {
     }
 
     // App log (general application logs)
-    transports.push(new RotatingFileTransport({
-      filename: join(logDir, 'app.log'),
-      format: winston.format.json(),
-      maxSize: config.max_file_size_mb,
-      maxFiles: config.max_files,
-    }));
+    transports.push(
+      new RotatingFileTransport({
+        filename: join(logDir, 'app.log'),
+        format: winston.format.json(),
+        maxSize: config.max_file_size_mb,
+        maxFiles: config.max_files,
+      })
+    );
 
     // Access log (HTTP requests)
-    transports.push(new RotatingFileTransport({
-      filename: join(logDir, 'access.log'),
-      format: winston.format.json(),
-      level: 'info',
-      maxSize: config.max_file_size_mb,
-      maxFiles: config.max_files,
-    }));
+    transports.push(
+      new RotatingFileTransport({
+        filename: join(logDir, 'access.log'),
+        format: winston.format.json(),
+        level: 'info',
+        maxSize: config.max_file_size_mb,
+        maxFiles: config.max_files,
+      })
+    );
 
     // Error log (errors only)
-    transports.push(new RotatingFileTransport({
-      filename: join(logDir, 'error.log'),
-      format: winston.format.json(),
-      level: 'error',
-      maxSize: config.max_file_size_mb,
-      maxFiles: config.max_files,
-    }));
+    transports.push(
+      new RotatingFileTransport({
+        filename: join(logDir, 'error.log'),
+        format: winston.format.json(),
+        level: 'error',
+        maxSize: config.max_file_size_mb,
+        maxFiles: config.max_files,
+      })
+    );
 
     console.log(`Logging configured: ${logDir} with rotation enabled`);
   } catch (error) {
@@ -133,21 +139,21 @@ const logger = winston.createLogger({
   transports: [
     new winston.transports.Console({
       format: winston.format.simple(),
-    })
+    }),
   ],
 });
 
 // Function to update logger configuration after config is loaded
-export const updateLoggerConfig = async (newConfig) => {
+export const updateLoggerConfig = async newConfig => {
   loggingConfig = { ...loggingConfig, ...newConfig };
-  
+
   // Clear existing transports except console
   logger.clear();
-  
+
   // Add new transports
   const newTransports = await createLoggerTransports(loggingConfig);
   newTransports.forEach(transport => logger.add(transport));
-  
+
   logger.info('Logger configuration updated', loggingConfig);
 };
 
