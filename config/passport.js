@@ -163,7 +163,10 @@ export const setupPassportStrategies = async () => {
         const oidcConfig = await client.discovery(
           new URL(providerConfig.issuer),
           providerConfig.client_id,
-          providerConfig.client_secret
+          providerConfig.client_secret,
+          {
+            token_endpoint_auth_method: providerConfig.token_endpoint_auth_method || 'client_secret_basic',
+          }
         );
 
         const strategyName = `oidc-${providerName}`;
