@@ -1,5 +1,6 @@
 import express from 'express';
 import helmet from 'helmet';
+import cors from 'cors';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
@@ -7,7 +8,7 @@ import configLoader from './config/configLoader.js';
 import { initializeDatabase } from './config/database.js';
 import { setupPassportStrategies } from './config/passport.js';
 import { SERVED_DIR } from './config/paths.js';
-import { morganMiddleware, logger, updateLoggerConfig } from './config/logger.js';
+import { morganMiddleware, logger } from './config/logger.js';
 import { rateLimiterMiddleware } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import FileWatcherService from './services/fileWatcher.js';
@@ -24,11 +25,7 @@ const app = express();
 const port = process.env.PORT || 443;
 
 const startServer = async () => {
-  await configLoader.load();
-
-  // Update logger configuration after config is loaded
-  const loggingConfig = configLoader.getLoggingConfig();
-  await updateLoggerConfig(loggingConfig);
+  configLoader.load();
 
   await initializeDatabase();
 
@@ -47,18 +44,33 @@ const startServer = async () => {
     next();
   });
 
+  // CORS configuration from YAML (like zoneweaver)
+  const corsConfig = configLoader.getCorsConfig();
+
+  let origin;
+  if (corsConfig.allow_origin === true) {
+    origin = corsConfig.whitelist;
+  } else if (corsConfig.allow_origin === false) {
+    origin = false;
+  } else if (corsConfig.allow_origin === 'specific') {
+    origin = corsConfig.whitelist;
+  } else {
+    origin = corsConfig.allow_origin; // fallback for other values
+  }
+
+  const corsOptions = {
+    origin,
+    preflightContinue: corsConfig.preflight_continue,
+    credentials: corsConfig.credentials,
+  };
+
+  app.use(cors(corsOptions));
+  app.options('*splat', cors(corsOptions));
+
+  // Use helmet without CSP to avoid blocking configured logo URLs
   app.use(
     helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-hashes'", 'https://cdn.jsdelivr.net'],
-          styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
-          fontSrc: ["'self'", 'https://cdn.jsdelivr.net'],
-          imgSrc: ["'self'", 'data:', 'https://startcloud.com'],
-          connectSrc: ["'self'"],
-        },
-      },
+      contentSecurityPolicy: false, // Disable CSP to allow configured logo URLs
     })
   );
   app.use((req, res, next) => {

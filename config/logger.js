@@ -26,7 +26,8 @@ const rotateLogFile = async (filePath, maxFiles) => {
 
     const baseName = filePath.split('/').pop();
 
-    // Move existing numbered files
+    // Move existing numbered files using Promise.all for performance
+    const movePromises = [];
     for (let i = maxFiles - 1; i >= 1; i--) {
       const oldFile = join(archiveDir, `${baseName}.${i}`);
       const newFile = join(archiveDir, `${baseName}.${i + 1}`);
@@ -34,13 +35,14 @@ const rotateLogFile = async (filePath, maxFiles) => {
       if (existsSync(oldFile)) {
         if (i === maxFiles - 1) {
           // Delete the oldest file
-          await fs.unlink(oldFile);
+          movePromises.push(fs.unlink(oldFile));
         } else {
           // Move file to next number
-          await fs.rename(oldFile, newFile);
+          movePromises.push(fs.rename(oldFile, newFile));
         }
       }
     }
+    await Promise.all(movePromises);
 
     // Move current file to .1
     if (existsSync(filePath)) {

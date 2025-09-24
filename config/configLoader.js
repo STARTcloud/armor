@@ -1,4 +1,4 @@
-import { promises as fs } from 'fs';
+import fs from 'fs';
 import { join, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 import yaml from 'js-yaml';
@@ -11,7 +11,7 @@ class ConfigLoader {
     this.config = null;
   }
 
-  async load() {
+  load() {
     if (!this.config) {
       try {
         // Check environment variable first (set by systemd)
@@ -31,21 +31,14 @@ class ConfigLoader {
         let configContent = null;
         let loadedFile = null;
 
-        const readPromises = configFiles.map(async configFile => {
+        for (const configFile of configFiles) {
           try {
-            const content = await fs.readFile(configFile, 'utf8');
-            return { content, file: configFile };
+            configContent = fs.readFileSync(configFile, 'utf8');
+            loadedFile = configFile;
+            break;
           } catch {
-            return null;
+            // Continue to next file
           }
-        });
-
-        const results = await Promise.all(readPromises);
-        const validResult = results.find(result => result !== null);
-
-        if (validResult) {
-          configContent = validResult.content;
-          loadedFile = validResult.file;
         }
 
         if (!configContent) {
@@ -169,6 +162,37 @@ class ConfigLoader {
         enable_rotation: true,
       }
     );
+  }
+
+  getCorsConfig() {
+    const serverConfig = this.getServerConfig();
+    return (
+      serverConfig.cors || {
+        whitelist: [],
+        allow_origin: true,
+        preflight_continue: true,
+        credentials: true,
+      }
+    );
+  }
+
+  getPackageInfo() {
+    try {
+      const packageContent = fs.readFileSync(join(__dirname, '../package.json'), 'utf8');
+      const packageData = JSON.parse(packageContent);
+      return {
+        name: packageData.name,
+        version: packageData.version,
+        description: packageData.description,
+      };
+    } catch (error) {
+      console.warn('Failed to read package.json, using defaults:', error.message);
+      return {
+        name: 'Armor',
+        version: '1.0.0',
+        description: 'ARMOR Reliably Manages Online Resources',
+      };
+    }
   }
 }
 

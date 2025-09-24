@@ -19,6 +19,17 @@ server:
   landing_primary_color: "#198754"
   support_email: "support@startcloud.com"
 
+  # CORS configuration (like zoneweaver)
+  cors:
+    whitelist:
+      - "https://localhost:3443"
+      - "https://localhost"
+      - "https://downloads.prominic.net"
+    allow_origin: true  # true=allow whitelist, false=deny all, "specific"=exact matching
+    preflight_continue: true
+    credentials: true
+
+
 swagger:
   allow_full_key_retrieval: false
   allow_temp_key_generation: true

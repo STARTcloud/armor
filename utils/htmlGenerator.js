@@ -10,6 +10,11 @@ export const getSecuredSiteMessage = (config = {}) => {
     iconUrl = null,
     supportEmail = 'support@prominic.net',
     primaryColor = '#198754',
+    packageInfo = {
+      name: 'Armor',
+      version: '1.0.0',
+      description: 'ARMOR Reliably Manages Online Resources',
+    },
   } = config;
 
   return `
@@ -65,6 +70,11 @@ export const getSecuredSiteMessage = (config = {}) => {
             </small>
         </div>
     </div>
+
+    <script>
+        // Log application name and version to browser console  
+        console.log('${packageInfo.name} v${packageInfo.version} - ${packageInfo.description}');
+    </script>
 </body>
 </html>
 `;
@@ -194,7 +204,12 @@ export const generateDirectoryListing = (
   relativePath,
   indexContent = '',
   userInfo = null,
-  serverConfig = {}
+  serverConfig = {},
+  packageInfo = {
+    name: 'Armor',
+    version: '1.0.0',
+    description: 'ARMOR Reliably Manages Online Resources',
+  }
 ) => {
   const sortBy = query.sort || 'name';
   const sortOrder = query.order || 'asc';
@@ -636,6 +651,9 @@ export const generateDirectoryListing = (
     </div>
 
     <script>
+        // Log application name and version to browser console
+        console.log('${packageInfo.name} v${packageInfo.version} - ${packageInfo.description}');
+
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(() => {
                 const indicator = document.getElementById('copyIndicator');

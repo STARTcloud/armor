@@ -5,7 +5,11 @@ export const generateLoginPage = (errorMessage = '', config = {}) => {
     iconClass = 'bi bi-cloud-download',
     iconUrl = null,
     primaryColor = '#0d6efd',
-    oidcButtonStyle = 'btn-outline-light',
+    packageInfo = {
+      name: 'Armor',
+      version: '1.0.0',
+      description: 'ARMOR Reliably Manages Online Resources',
+    },
   } = config;
 
   return `
@@ -59,10 +63,18 @@ export const generateLoginPage = (errorMessage = '', config = {}) => {
     <div class="login-container">
         <div class="login-card p-4">
             <div class="text-center mb-4">
-                <h2>
-                    ${iconUrl ? `<img src="${iconUrl}" alt="${title}" height="24" class="me-2">` : `<i class="${iconClass} me-2"></i>`}
-                    ${title}
-                </h2>
+                ${(() => {
+                  if (iconUrl && (!title || title === '')) {
+                    return `<h2><img src="${iconUrl}" alt="Logo"></h2>`;
+                  }
+                  if (title) {
+                    const iconHtml = iconUrl
+                      ? `<img src="${iconUrl}" alt="${title}" height="24" class="me-2">`
+                      : `<i class="${iconClass} me-2" style="color: ${primaryColor};"></i>`;
+                    return `<h2>${iconHtml}${title}</h2>`;
+                  }
+                  return `<h2><i class="${iconClass} me-2" style="color: ${primaryColor};"></i>Armor</h2>`;
+                })()}
                 <p class="text-muted mb-0">${subtitle}</p>
             </div>
 
@@ -110,6 +122,26 @@ export const generateLoginPage = (errorMessage = '', config = {}) => {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Log application name and version to browser console
+        console.log('${packageInfo.name} v${packageInfo.version} - ${packageInfo.description}');
+
+        // Function to lighten dark colors for better contrast
+        function lightenColor(color, amount = 0.3) {
+            // Convert hex to RGB
+            const hex = color.replace('#', '');
+            const r = parseInt(hex.substr(0, 2), 16);
+            const g = parseInt(hex.substr(2, 2), 16);
+            const b = parseInt(hex.substr(4, 2), 16);
+            
+            // Lighten each component
+            const newR = Math.min(255, Math.floor(r + (255 - r) * amount));
+            const newG = Math.min(255, Math.floor(g + (255 - g) * amount));
+            const newB = Math.min(255, Math.floor(b + (255 - b) * amount));
+            
+            // Convert back to hex
+            return '#' + ((1 << 24) + (newR << 16) + (newG << 8) + newB).toString(16).slice(1);
+        }
+
         // Load available auth methods and show OIDC options
         fetch('/auth/methods')
             .then(response => response.json())
@@ -122,11 +154,17 @@ export const generateLoginPage = (errorMessage = '', config = {}) => {
                         if (method.id.startsWith('oidc-') && method.enabled) {
                             hasOidc = true;
                             const provider = method.id.replace('oidc-', '');
+                            const baseColor = method.color || '#198754';
+                            const lightColor = lightenColor(baseColor);
                             
                             // Create button element dynamically
                             const buttonElement = document.createElement('a');
-                            buttonElement.href = '/auth/oidc/' + provider;
-                            buttonElement.className = 'btn ${oidcButtonStyle} btn-oidc';
+                            const returnParam = window.location.search.includes('?return=') ? '?' + window.location.search.substring(1) : '';
+                            buttonElement.href = '/auth/oidc/' + provider + returnParam;
+                            buttonElement.className = 'btn btn-oidc';
+                            buttonElement.style.backgroundColor = 'transparent';
+                            buttonElement.style.borderColor = baseColor;  // Exact color for border
+                            buttonElement.style.color = lightColor;       // Lightened color for text
                             buttonElement.innerHTML = '<i class="bi bi-shield-lock"></i> ' + method.name;
                             
                             oidcContainer.appendChild(buttonElement);

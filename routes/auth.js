@@ -1,10 +1,11 @@
 import express from 'express';
-import passport from 'passport';
 import jwt from 'jsonwebtoken';
+import * as client from 'openid-client';
 import configLoader from '../config/configLoader.js';
 import { isValidUser, getUserPermissions } from '../utils/auth.js';
 import { logAccess, logger } from '../config/logger.js';
 import { generateLoginPage } from '../utils/loginPage.js';
+import { buildAuthorizationUrl, handleOidcCallback } from '../config/passport.js';
 
 /**
  * @swagger
@@ -39,13 +40,25 @@ router.get('/login', (req, res) => {
 
   // Get login page configuration from config loader
   const serverConfig = configLoader.getServerConfig();
+  const packageInfo = configLoader.getPackageInfo();
+
+  // Determine title based on config
+  let pageTitle;
+  if (serverConfig.login_title !== undefined) {
+    pageTitle = serverConfig.login_title;
+  } else if (serverConfig.login_icon_url) {
+    pageTitle = '';
+  } else {
+    pageTitle = 'Armor';
+  }
+
   const loginConfig = {
-    title: serverConfig.login_title || 'Armor',
+    title: pageTitle,
     subtitle: serverConfig.login_subtitle || 'ARMOR Reliably Manages Online Resources',
     iconClass: serverConfig.login_icon_class || 'bi bi-cloud-download',
     iconUrl: serverConfig.login_icon_url || null,
     primaryColor: serverConfig.login_primary_color || '#198754', // Use Armor green
-    oidcButtonStyle: serverConfig.oidc_button_style || 'btn-outline-success', // Match primary color
+    packageInfo,
   };
 
   const html = generateLoginPage(errorMessage, loginConfig);
@@ -112,6 +125,7 @@ router.get('/auth/methods', (req, res) => {
         id: `oidc-${providerName}`,
         name: providerConfig.display_name || `Sign in with ${providerName}`,
         enabled: true,
+        color: providerConfig.color || '#198754',
       }));
 
     methods.push(...oidcMethods);
@@ -130,7 +144,7 @@ router.get('/auth/methods', (req, res) => {
   }
 });
 
-router.get('/auth/oidc/callback', (req, res, next) => {
+router.get('/auth/oidc/callback', async (req, res) => {
   logger.info('OIDC callback received', {
     sessionId: req.sessionID,
     hasSession: !!req.session,
@@ -138,91 +152,127 @@ router.get('/auth/oidc/callback', (req, res, next) => {
   });
 
   const provider = req.session?.oidcProvider;
+  const state = req.session?.oidcState;
+  const codeVerifier = req.session?.oidcCodeVerifier;
+  const returnUrl = req.session?.oidcReturnUrl || '/';
 
   logger.info('OIDC callback provider resolution', {
     provider,
-    sessionProvider: req.session?.oidcProvider,
+    hasState: !!state,
+    hasCodeVerifier: !!codeVerifier,
+    returnUrl,
   });
 
-  if (!provider) {
-    logger.error('No provider found in session during OIDC callback');
+  if (!provider || !state || !codeVerifier) {
+    logger.error('Missing OIDC session data during callback');
     return res.redirect('/login?error=oidc_failed');
   }
 
+  // Clean up session data
   if (req.session) {
     delete req.session.oidcProvider;
+    delete req.session.oidcState;
+    delete req.session.oidcCodeVerifier;
+    delete req.session.oidcReturnUrl;
   }
 
-  const strategyName = `oidc-${provider}`;
-  logger.info(`Using OIDC strategy: ${strategyName}`);
+  try {
+    logger.info(`Processing OIDC callback for provider: ${provider}`);
 
-  return passport.authenticate(strategyName, { session: false }, (err, user) => {
-    if (err) {
-      logger.error('OIDC callback authentication error', {
-        error: err.message,
-        provider,
-        strategyName,
-      });
-      logAccess(req, 'OIDC_CALLBACK_ERROR', err.message);
-      return res.redirect('/login?error=oidc_failed');
-    }
+    // Create current URL from request
+    const serverConfig = configLoader.getServerConfig();
+    // Don't include port 443 for HTTPS as it's the default
+    const baseUrl =
+      serverConfig.port === 443
+        ? `https://${serverConfig.domain}`
+        : `https://${serverConfig.domain}:${serverConfig.port}`;
+    const currentUrl = new URL(baseUrl + req.url);
 
-    if (!user) {
-      logger.error('OIDC callback: no user returned', { provider, strategyName });
-      logAccess(req, 'OIDC_CALLBACK_NOUSER', 'no user returned');
-      return res.redirect('/login?error=oidc_failed');
-    }
+    // Handle the callback using v6 API
+    const { user } = await handleOidcCallback(provider, currentUrl, state, codeVerifier);
 
-    try {
-      const authConfig = configLoader.getAuthenticationConfig();
-      const token = jwt.sign(
-        {
-          userId: user.id,
-          email: user.email,
-          name: user.name,
-          provider: user.provider,
-          permissions: user.permissions,
-        },
-        authConfig.jwt_secret,
-        {
-          expiresIn: authConfig.jwt_expiration,
-          issuer: 'file-server',
-          audience: 'file-server-users',
-        }
-      );
+    // Generate JWT token
+    const authConfig = configLoader.getAuthenticationConfig();
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        email: user.email,
+        name: user.name,
+        provider: user.provider,
+        permissions: user.permissions,
+      },
+      authConfig.jwt_secret,
+      {
+        expiresIn: authConfig.jwt_expiration,
+        issuer: 'file-server',
+        audience: 'file-server-users',
+      }
+    );
 
-      res.cookie('auth_token', token, {
-        httpOnly: true,
-        secure: true,
-        maxAge: 24 * 60 * 60 * 1000,
-      });
+    res.cookie('auth_token', token, {
+      httpOnly: true,
+      secure: true,
+      maxAge: 24 * 60 * 60 * 1000,
+    });
 
-      logger.info('OIDC authentication completed successfully', { email: user.email, provider });
-      logAccess(req, 'OIDC_SUCCESS', `user: ${user.email}`);
-      return res.redirect('/');
-    } catch (tokenError) {
-      logger.error('JWT token generation error', { error: tokenError.message, provider });
-      logAccess(req, 'JWT_ERROR', tokenError.message);
-      return res.redirect('/login?error=token_failed');
-    }
-  })(req, res, next);
+    logger.info('OIDC authentication completed successfully', { email: user.email, provider });
+    logAccess(req, 'OIDC_SUCCESS', `user: ${user.email}`);
+    return res.redirect(returnUrl);
+  } catch (error) {
+    logger.error('OIDC callback authentication error', {
+      error: error.message,
+      provider,
+    });
+    logAccess(req, 'OIDC_CALLBACK_ERROR', error.message);
+    return res.redirect('/login?error=oidc_failed');
+  }
 });
 
-router.get('/auth/oidc/:provider', (req, res, next) => {
+router.get('/auth/oidc/:provider', async (req, res) => {
   const { provider } = req.params;
-  const strategyName = `oidc-${provider}`;
 
-  if (req.session) {
-    req.session.oidcProvider = provider;
-    logger.info(`Stored provider in session: ${provider}`);
-  } else {
-    logger.error('No session available to store OIDC provider');
+  try {
+    logger.info(`Starting OIDC auth with provider: ${provider}`);
+    logAccess(req, 'OIDC_START', `provider: ${provider}`);
+
+    // Extract return URL from request query parameters
+    const returnUrl = req.query.return ? decodeURIComponent(req.query.return) : '/';
+
+    logger.info('OIDC return URL extraction', { queryReturn: req.query.return, returnUrl });
+
+    // Generate security parameters
+    const state = client.randomState();
+    const codeVerifier = client.randomPKCECodeVerifier();
+
+    // Store in session
+    if (req.session) {
+      req.session.oidcProvider = provider;
+      req.session.oidcState = state;
+      req.session.oidcCodeVerifier = codeVerifier;
+      req.session.oidcReturnUrl = returnUrl;
+      logger.info(`Stored OIDC session data for provider: ${provider}, returnUrl: ${returnUrl}`);
+    } else {
+      logger.error('No session available to store OIDC data');
+      return res.redirect('/login?error=oidc_failed');
+    }
+
+    // Generate authorization URL
+    const serverConfig = configLoader.getServerConfig();
+    // Don't include port 443 for HTTPS as it's the default
+    const redirectUri =
+      serverConfig.port === 443
+        ? `https://${serverConfig.domain}/auth/oidc/callback`
+        : `https://${serverConfig.domain}:${serverConfig.port}/auth/oidc/callback`;
+
+    const authUrl = await buildAuthorizationUrl(provider, redirectUri, state, codeVerifier);
+
+    logger.info(`Redirecting to authorization URL for provider: ${provider}`);
+    return res.redirect(authUrl.toString());
+  } catch (error) {
+    logger.error(`Failed to start OIDC auth for provider ${provider}:`, error.message);
+    logAccess(req, 'OIDC_START_ERROR', error.message);
+    return res.redirect('/login?error=oidc_failed');
   }
-
-  logger.info(`Starting OIDC auth with strategy: ${strategyName}`);
-  logAccess(req, 'OIDC_START', `provider: ${provider}`);
-
-  return passport.authenticate(strategyName)(req, res, next);
 });
 
 /**

@@ -1,26 +1,13 @@
 import passport from 'passport';
 import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
-import { Strategy as OidcStrategy } from 'openid-client/passport';
 import * as client from 'openid-client';
 import { URL } from 'url';
 import configLoader from './configLoader.js';
 import { getUserModel } from '../models/User.js';
 import logger from './logger.js';
 
-// Map authentication method names to openid-client functions
-const getClientAuth = (authMethod, clientSecret) => {
-  switch (authMethod) {
-    case 'client_secret_basic':
-      return client.ClientSecretBasic(clientSecret);
-    case 'client_secret_post':
-      return client.ClientSecretPost(clientSecret);
-    case 'none':
-      return client.None();
-    // Note: private_key_jwt and client_secret_jwt require additional configuration
-    default:
-      return client.ClientSecretBasic(clientSecret); // Default fallback
-  }
-};
+// Store OIDC configurations globally
+const oidcConfigurations = new Map();
 
 const matchDomain = (email, pattern) => {
   if (pattern === '*') {
@@ -64,7 +51,6 @@ export const resolveUserPermissions = (email, userinfo) => {
       permissions.push('uploads');
     }
 
-    // Check delete permissions
     const deleteDomains = domainMappings.delete || [];
     if (deleteDomains.some(pattern => matchDomain(email, pattern))) {
       permissions.push('delete');
@@ -123,10 +109,59 @@ export const handleOidcUser = async (provider, userinfo) => {
   return user;
 };
 
+// Get OIDC configuration for a provider
+export const getOidcConfiguration = providerName => oidcConfigurations.get(providerName);
+
+// Generate authorization URL for a provider
+export const buildAuthorizationUrl = async (providerName, redirectUri, state, codeVerifier) => {
+  const config = oidcConfigurations.get(providerName);
+  if (!config) {
+    throw new Error(`OIDC configuration not found for provider: ${providerName}`);
+  }
+
+  const authConfig = configLoader.getAuthenticationConfig();
+  const providerConfig = authConfig.oidc_providers[providerName];
+
+  const codeChallenge = await client.calculatePKCECodeChallenge(codeVerifier);
+
+  const authUrl = client.buildAuthorizationUrl(config, {
+    redirect_uri: redirectUri,
+    scope: providerConfig.scope || 'openid profile email',
+    state,
+    code_challenge: codeChallenge,
+    code_challenge_method: 'S256',
+  });
+
+  return authUrl;
+};
+
+// Handle OIDC callback
+export const handleOidcCallback = async (providerName, currentUrl, state, codeVerifier) => {
+  const config = oidcConfigurations.get(providerName);
+  if (!config) {
+    throw new Error(`OIDC configuration not found for provider: ${providerName}`);
+  }
+
+  try {
+    const tokens = await client.authorizationCodeGrant(config, currentUrl, {
+      expectedState: state,
+      pkceCodeVerifier: codeVerifier,
+    });
+
+    const userinfo = tokens.claims();
+    const user = await handleOidcUser(providerName, userinfo);
+
+    return { user, tokens };
+  } catch (error) {
+    logger.error(`OIDC callback error for ${providerName}:`, error);
+    throw error;
+  }
+};
+
 export const setupPassportStrategies = async () => {
   const authConfig = configLoader.getAuthenticationConfig();
-  const serverConfig = configLoader.getServerConfig();
 
+  // Setup JWT strategy
   passport.use(
     'jwt',
     new JwtStrategy(
@@ -160,6 +195,7 @@ export const setupPassportStrategies = async () => {
     )
   );
 
+  // Setup OIDC configurations
   const oidcProviders = authConfig.oidc_providers || {};
 
   const providerPromises = Object.entries(oidcProviders)
@@ -176,43 +212,101 @@ export const setupPassportStrategies = async () => {
         logger.info(`Setting up OIDC provider: ${providerName}`);
 
         const authMethod = providerConfig.token_endpoint_auth_method || 'client_secret_basic';
-        const clientAuth = getClientAuth(authMethod, providerConfig.client_secret);
-        
         logger.info(`Using auth method: ${authMethod} for provider: ${providerName}`);
 
-        const oidcConfig = await client.discovery(
-          new URL(providerConfig.issuer),
-          providerConfig.client_id,
-          providerConfig.client_secret, // shorthand for client_secret metadata
-          clientAuth
-        );
+        // Create custom fetch function for debugging and Basic auth fix
+        const customFetch = async (url, options = {}) => {
+          // Fix Basic auth URL encoding bug for token endpoint requests
+          if (url.toString().includes('/token') && authMethod === 'client_secret_basic') {
+            const credentials = `${providerConfig.client_id}:${providerConfig.client_secret}`;
+            const base64Credentials = Buffer.from(credentials, 'utf-8').toString('base64');
 
-        const strategyName = `oidc-${providerName}`;
-        const callbackUrl = `https://${serverConfig.domain}:${serverConfig.port}/auth/oidc/callback`;
+            logger.info('=== CUSTOM BASIC AUTH FIX ===', {
+              originalCredentials: credentials,
+              base64Encoded: base64Credentials,
+              authHeader: `Basic ${base64Credentials}`,
+            });
 
-        passport.use(
-          strategyName,
-          new OidcStrategy(
-            {
-              name: strategyName,
-              config: oidcConfig,
-              scope: providerConfig.scope || 'openid profile email',
-              callbackURL: callbackUrl,
-            },
-            async (tokens, verified) => {
+            options.headers = {
+              ...options.headers,
+              authorization: `Basic ${base64Credentials}`,
+            };
+          }
+
+          // Debug logging
+          logger.info('=== DEBUGGING OUTGOING HTTP REQUEST ===', {
+            url: url.toString(),
+            method: options.method || 'GET',
+            headers: options.headers || {},
+            hasBody: !!options.body,
+            bodyPreview: options.body ? options.body.toString().substring(0, 200) : null,
+          });
+
+          // Special attention to Authorization header
+          if (options.headers?.authorization || options.headers?.Authorization) {
+            const authHeader = options.headers.authorization || options.headers.Authorization;
+            logger.info('=== AUTHORIZATION HEADER DETAILS ===', {
+              authHeader,
+              isBasic: authHeader.startsWith('Basic '),
+              length: authHeader.length,
+            });
+
+            if (authHeader.startsWith('Basic ')) {
+              const base64Part = authHeader.substring(6);
               try {
-                const userinfo = tokens.claims();
-                logger.info(`OIDC authentication successful for provider: ${providerName}`);
-
-                const result = await handleOidcUser(providerName, userinfo);
-                return verified(null, result);
-              } catch (error) {
-                logger.error(`OIDC Strategy error for ${providerName}:`, error.message);
-                return verified(error, false);
+                const decoded = Buffer.from(base64Part, 'base64').toString('utf-8');
+                logger.info('=== DECODED BASIC AUTH ===', {
+                  base64: base64Part,
+                  decoded,
+                  expectedPattern: 'downloads:clientsecret',
+                });
+              } catch (decodeError) {
+                logger.error('=== BASIC AUTH DECODE ERROR ===', { error: decodeError.message });
               }
             }
-          )
+          }
+
+          // Call the actual fetch
+          const response = await fetch(url, options);
+
+          logger.info('=== HTTP RESPONSE ===', {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers.entries()),
+          });
+
+          return response;
+        };
+
+        // Create standard client authentication method
+        let clientAuth;
+        switch (authMethod) {
+          case 'client_secret_basic':
+            clientAuth = client.ClientSecretBasic(providerConfig.client_secret);
+            break;
+          case 'client_secret_post':
+            clientAuth = client.ClientSecretPost(providerConfig.client_secret);
+            break;
+          case 'none':
+            clientAuth = client.None();
+            break;
+          default:
+            clientAuth = client.ClientSecretBasic(providerConfig.client_secret);
+        }
+
+        // Discover issuer and create configuration with custom fetch
+        const config = await client.discovery(
+          new URL(providerConfig.issuer),
+          providerConfig.client_id,
+          providerConfig.client_secret,
+          clientAuth,
+          {
+            [client.customFetch]: customFetch,
+          }
         );
+
+        // Store configuration for later use
+        oidcConfigurations.set(providerName, config);
 
         logger.info(`OIDC provider configured: ${providerName}`);
         return { success: true, provider: providerName };
