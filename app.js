@@ -7,7 +7,7 @@ import configLoader from './config/configLoader.js';
 import { initializeDatabase } from './config/database.js';
 import { setupPassportStrategies } from './config/passport.js';
 import { SERVED_DIR } from './config/paths.js';
-import { morganMiddleware, logger } from './config/logger.js';
+import { morganMiddleware, logger, updateLoggerConfig } from './config/logger.js';
 import { rateLimiterMiddleware } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import FileWatcherService from './services/fileWatcher.js';
@@ -25,6 +25,10 @@ const port = process.env.PORT || 443;
 
 const startServer = async () => {
   await configLoader.load();
+
+  // Update logger configuration after config is loaded
+  const loggingConfig = configLoader.getLoggingConfig();
+  await updateLoggerConfig(loggingConfig);
 
   await initializeDatabase();
 

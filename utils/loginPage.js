@@ -126,7 +126,7 @@ export const generateLoginPage = (errorMessage = '', config = {}) => {
                             // Create button element dynamically
                             const buttonElement = document.createElement('a');
                             buttonElement.href = '/auth/oidc/' + provider;
-                            buttonElement.className = 'btn ' + '${oidcButtonStyle}' + ' btn-oidc';
+                            buttonElement.className = 'btn ${oidcButtonStyle} btn-oidc';
                             buttonElement.innerHTML = '<i class="bi bi-shield-lock"></i> ' + method.name;
                             
                             oidcContainer.appendChild(buttonElement);

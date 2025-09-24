@@ -18,7 +18,7 @@ RestartSec=10
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
-ReadWritePaths=/var/lib/armor /var/log/armor
+ReadWritePaths=/var/lib/armor /var/log/armor /local/www
 
 # Allow binding to privileged ports (< 1024)
 AmbientCapabilities=CAP_NET_BIND_SERVICE

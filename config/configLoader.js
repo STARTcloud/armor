@@ -2,7 +2,6 @@ import { promises as fs } from 'fs';
 import { join, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 import yaml from 'js-yaml';
-import logger from './logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -56,7 +55,7 @@ class ConfigLoader {
         }
 
         this.config = yaml.load(configContent);
-        logger.info(`Configuration loaded from: ${basename(loadedFile)}`);
+        console.log(`Configuration loaded from: ${basename(loadedFile)}`);
       } catch (error) {
         throw new Error(`Failed to load configuration: ${error.message}`);
       }
@@ -156,6 +155,18 @@ class ConfigLoader {
         batch_delay_ms: 2000,
         checksum_timeout_ms: 300000,
         enable_progress_logging: true,
+      }
+    );
+  }
+
+  getLoggingConfig() {
+    return (
+      this.getConfig().logging || {
+        log_directory: '/var/log/armor',
+        log_level: 'info',
+        max_file_size_mb: 10,
+        max_files: 5,
+        enable_rotation: true,
       }
     );
   }

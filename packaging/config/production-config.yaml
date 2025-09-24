@@ -33,6 +33,13 @@ database:
   storage: "./file-metadata.db"
   logging: false
 
+logging:
+  log_directory: "/var/log/armor"
+  log_level: "info"
+  max_file_size_mb: 10
+  max_files: 5
+  enable_rotation: true
+
 authentication:
   jwt_secret: "boxvault-secret-example-secret-key-225-3243-dfsa-233"
   jwt_expiration: "24h"
