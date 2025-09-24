@@ -31,7 +31,11 @@ const startServer = async () => {
   await setupPassportStrategies();
 
   const fileWatcher = new FileWatcherService(SERVED_DIR);
-  await fileWatcher.initialize();
+
+  // Initialize file watcher in background (non-blocking)
+  fileWatcher.initialize().catch(error => {
+    logger.error('File watcher initialization failed', { error: error.message });
+  });
 
   app.use((req, res, next) => {
     req.fileWatcher = fileWatcher;

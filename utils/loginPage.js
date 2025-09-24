@@ -78,16 +78,6 @@ export const generateLoginPage = (errorMessage = '', config = {}) => {
 
             <!-- OIDC Provider Buttons (loaded dynamically) -->
             <div id="oidc-providers" style="display:none;">
-                <div id="google-login" style="display:none;">
-                    <a href="/auth/oidc/google" class="btn ${oidcButtonStyle} btn-oidc">
-                        <i class="bi bi-google"></i> Sign in with Google
-                    </a>
-                </div>
-                <div id="microsoft-login" style="display:none;">
-                    <a href="/auth/oidc/microsoft" class="btn ${oidcButtonStyle} btn-oidc">
-                        <i class="bi bi-microsoft"></i> Sign in with Microsoft
-                    </a>
-                </div>
             </div>
 
             <!-- Divider between OIDC and Basic Auth -->
@@ -126,15 +116,20 @@ export const generateLoginPage = (errorMessage = '', config = {}) => {
             .then(data => {
                 if (data.success && data.methods) {
                     let hasOidc = false;
+                    const oidcContainer = document.getElementById('oidc-providers');
                     
                     data.methods.forEach(method => {
                         if (method.id.startsWith('oidc-') && method.enabled) {
                             hasOidc = true;
                             const provider = method.id.replace('oidc-', '');
-                            const element = document.getElementById(provider + '-login');
-                            if (element) {
-                                element.style.display = 'block';
-                            }
+                            
+                            // Create button element dynamically
+                            const buttonElement = document.createElement('a');
+                            buttonElement.href = '/auth/oidc/' + provider;
+                            buttonElement.className = 'btn ' + '${oidcButtonStyle}' + ' btn-oidc';
+                            buttonElement.innerHTML = '<i class="bi bi-shield-lock"></i> ' + method.name;
+                            
+                            oidcContainer.appendChild(buttonElement);
                         }
                     });
                     

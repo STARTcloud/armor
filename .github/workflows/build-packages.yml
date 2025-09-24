@@ -74,8 +74,9 @@ jobs:
           cp -r models routes middleware config utils services scripts app.js package.json "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
           cp -r node_modules "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
 
-          # Static web assets (no build process needed)
-          cp -r web/static "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/"
+          # Static web assets (preserve directory structure)
+          mkdir -p "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/"
+          cp -r web/static "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/static"
 
           # Configuration files
           cp packaging/config/production-config.yaml "${PACKAGE_NAME}_${VERSION}_${ARCH}/etc/armor/config.yaml"

@@ -17,11 +17,11 @@ class ConfigLoader {
       try {
         // Check environment variable first (set by systemd)
         const configFiles = [];
-        
+
         if (process.env.CONFIG_PATH) {
           configFiles.push(process.env.CONFIG_PATH);
         }
-        
+
         // Then check local files in priority order
         configFiles.push(
           join(__dirname, '../dev.config.yaml'),
@@ -144,6 +144,18 @@ class ConfigLoader {
         message: 'Too many requests from this IP, please try again later.',
         skip_successful_requests: false,
         skip_failed_requests: false,
+      }
+    );
+  }
+
+  getFileWatcherConfig() {
+    return (
+      this.getConfig().file_watcher || {
+        batch_size: 10,
+        max_concurrent_checksums: 5,
+        batch_delay_ms: 2000,
+        checksum_timeout_ms: 300000,
+        enable_progress_logging: true,
       }
     );
   }

@@ -18,6 +18,31 @@ export const initializeDatabase = async () => {
       timestamps: true,
       underscored: true,
     },
+    dialectOptions: {
+      pragma: {
+        journal_mode: 'WAL',
+        synchronous: 'NORMAL',
+        cache_size: -128 * 1024, // 128MB in negative KB
+        temp_store: 'MEMORY',
+        mmap_size: 512 * 1024 * 1024, // 512MB
+        busy_timeout: 30000,
+        wal_autocheckpoint: 1000,
+        foreign_keys: 'ON',
+      },
+    },
+    retry: {
+      match: [/SQLITE_BUSY/, /SQLITE_LOCKED/],
+      max: 5,
+      backoffBase: 100,
+      backoffExponent: 1.5,
+    },
+    pool: {
+      max: 10,
+      min: 2,
+      acquire: 60000,
+      idle: 30000,
+      evict: 5000,
+    },
   });
 
   try {
@@ -28,7 +53,7 @@ export const initializeDatabase = async () => {
     initializeUserModel(sequelize);
     initializeApiKeyModel(sequelize);
 
-    await sequelize.sync({ alter: true });
+    await sequelize.sync({ alter: false });
     logger.info('Database synchronized');
 
     return sequelize;

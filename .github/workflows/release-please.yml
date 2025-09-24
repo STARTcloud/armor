@@ -60,7 +60,8 @@ jobs:
         run: |
           cp -r models routes middleware config utils services scripts app.js package.json "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
           cp -r node_modules "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
-          cp -r web/static "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/"
+          mkdir -p "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/"
+          cp -r web/static "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/static"
 
       - name: Copy configuration files to Debian package
         run: |
