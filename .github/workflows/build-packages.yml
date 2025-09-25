@@ -71,7 +71,7 @@ jobs:
       - name: Copy application files
         run: |
           # Core application files (Armor backend-only structure)
-          cp -r models routes middleware config utils services scripts app.js package.json "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
+          cp -r models routes middleware config utils services scripts packaging app.js package.json "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
           cp -r node_modules "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
 
           # Static web assets (preserve directory structure)

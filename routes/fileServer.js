@@ -43,12 +43,16 @@ const createLandingConfig = () => {
 
 // Helper function to handle directory listing
 const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
+  const uploadCredentials = auth(req);
   const isAllowed = isAllowedDirectory(fullPath, SERVED_DIR);
   const isStatic = isStaticDirectory(fullPath, SERVED_DIR);
 
   if (!isAllowed) {
     logAccess(req, 'ACCESS_DENIED', 'directory not in allowed list');
-    return res.send(getSecuredSiteMessage(createLandingConfig()));
+    const landingConfig = createLandingConfig();
+    landingConfig.packageInfo = configLoader.getPackageInfo();
+    const userInfo = req.oidcUser || (uploadCredentials ? { username: uploadCredentials.name } : null);
+    return res.send(getSecuredSiteMessage(landingConfig, userInfo));
   }
 
   if (isStatic) {
@@ -88,10 +92,10 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
     logAccess(req, 'LANDING_PAGE', 'showing secured site message');
     const landingConfig = createLandingConfig();
     landingConfig.packageInfo = configLoader.getPackageInfo();
-    return res.send(getSecuredSiteMessage(landingConfig));
+    const userInfo = req.oidcUser || (uploadCredentials ? { username: uploadCredentials.name } : null);
+    return res.send(getSecuredSiteMessage(landingConfig, userInfo));
   }
 
-  const uploadCredentials = auth(req);
   const hasBasicUploadAccess = uploadCredentials && isValidUser(uploadCredentials, 'uploads');
   const hasOidcUploadAccess = req.oidcUser && req.oidcUser.permissions.includes('uploads');
   const hasUploadAccess = hasBasicUploadAccess || hasOidcUploadAccess;

@@ -1,7 +1,7 @@
 import { join } from 'path';
 import { formatBytes } from './fileUtils.js';
 
-export const getSecuredSiteMessage = (config = {}) => {
+export const getSecuredSiteMessage = (config = {}, userInfo = null) => {
   const {
     title = 'Prominic Armor',
     subtitle = 'ARMOR Reliably Manages Online Resources',
@@ -16,6 +16,9 @@ export const getSecuredSiteMessage = (config = {}) => {
       description: 'ARMOR Reliably Manages Online Resources',
     },
   } = config;
+
+  // Check if user is admin (has uploads permission)
+  const isAdmin = userInfo?.permissions?.includes('uploads');
 
   return `
 <!DOCTYPE html>
@@ -48,7 +51,12 @@ export const getSecuredSiteMessage = (config = {}) => {
 <body>
     <div class="landing-card">
         <div class="shield-icon">
-            ${iconUrl ? `<img src="${iconUrl}" alt="${title}" height="64">` : `<i class="${iconClass}"></i>`}
+            ${isAdmin ? 
+                `<a href="/?view=index" style="color: inherit; text-decoration: none;">
+                    ${iconUrl ? `<img src="${iconUrl}" alt="${title}" height="64">` : `<i class="${iconClass}"></i>`}
+                </a>` :
+                `${iconUrl ? `<img src="${iconUrl}" alt="${title}" height="64">` : `<i class="${iconClass}"></i>`}`
+            }
         </div>
         <h1 class="display-4 mb-4">${title}</h1>
         <p class="lead mb-3">${description}</p>

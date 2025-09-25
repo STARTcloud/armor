@@ -8,7 +8,7 @@ server:
   login_title: "Armor"
   login_subtitle: "ARMOR Reliably Manages Online Resources"
   login_icon_class: "bi bi-cloud-download"
-  # login_icon_url: "https://your-domain.com/logo.png"
+  login_icon_url: 
   login_primary_color: "#198754"
   oidc_button_style: "btn-outline-success"
   
@@ -17,20 +17,17 @@ server:
   landing_subtitle: "ARMOR Reliably Manages Online Resources"
   landing_description: "This is a secured download site"
   landing_icon_class: "bi bi-shield-check"
-  # landing_icon_url: "https://your-domain.com/logo.png"
+  landing_icon_url:
   landing_primary_color: "#198754"
   support_email: "support@startcloud.com"
 
   # CORS configuration (like zoneweaver)
   cors:
     whitelist:
-      - "https://localhost:3443"
-      - "https://localhost"
-      - "https://downloads.prominic.net"
+      - "https://armor.mydomain.com"
     allow_origin: true  # true=allow whitelist, false=deny all, "specific"=exact matching
     preflight_continue: true
     credentials: true
-
 
 swagger:
   allow_full_key_retrieval: false
@@ -43,7 +40,7 @@ ssl:
 
 database:
   dialect: "sqlite"
-  storage: "./file-metadata.db"
+  storage: "/var/lib/armor/file-metadata.db"
   logging: false
 
 logging:
@@ -59,41 +56,16 @@ authentication:
   
   local:
     users:
-      - username: admin
-        password: admin123
-        role: admin
-        id: 2
     allowed_directories:
-      - /
     static_directories:
-      - /
 
   oidc_providers:
-    google:
-      enabled: true
-      display_name: "Sign in with Google"
-      issuer: "https://accounts.google.com"
-      client_id: "XXXXXXXXXXXXXXXXXX-XXXXXXXXXXXXXXXXXXXXXXXX.apps.googleusercontent.com"
-      client_secret: "XXXXXXXXX-XXXXXXXXXXXXXXXXX_XXXXXXXXXXXXXX"
-      scope: "openid profile email"
-    
-    moonshine:
-      enabled: true
-      color: "#231B3B"
-      display_name: "Sign in with XXXXXX.XXXXX"
-      issuer: "https://XXXX.nomad-1.XXXXXX.XXXX/auth/protocol/oidc"
-      client_id: "xxxxxxxx-downloads"
-      client_secret: "XXXXXXXXXXXXXXXXXXXXXX"
-      scope: "openid profile email"
-      fallback_domain: "xxxxxxxxxx.xxxx"
-      token_endpoint_auth_method: "client_secret_basic"
-
 
   permission_strategy: "domain_based"
   domain_mappings:
-    downloads: ["*"]
-    uploads: ["*@Mydomain.net", "*@TheirDomain.cloud", "O=XxxxxxxxxxxxXXX", "*@xxxxxxxxxx.xxxx"]
-    delete: ["*@Mydomain.net", "*@TheirDomain.cloud", "O=XxxxxxxxxXXX", "*@xxxxxxxxxx.xxxx"]
+    downloads: ["*@Mydomain.net"]
+    uploads: ["*@Mydomain.net"]
+    delete: ["*@Mydomain.net"]
   
   claims_mappings:
     downloads:
