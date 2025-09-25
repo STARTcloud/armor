@@ -21,7 +21,14 @@ const checkApiKeyAuth = async (req, permission) => {
 
   try {
     const ApiKey = getApiKeyModel();
-    const apiKeys = await ApiKey.findAll({
+
+    const { hashApiKey } = await import('../utils/apiKeyUtils.js');
+    const hashedKey = await hashApiKey(apiKey);
+
+    const matchingKeys = await ApiKey.findAll({
+      where: {
+        key_hash: hashedKey,
+      },
       attributes: [
         'id',
         'key_hash',
@@ -34,14 +41,14 @@ const checkApiKeyAuth = async (req, permission) => {
       ],
     });
 
-    const validationPromises = apiKeys.map(async keyRecord => {
+    if (matchingKeys.length === 0) {
+      logger.info('API key not found - no matching hash');
+      return false;
+    }
+
+    for (const keyRecord of matchingKeys) {
       const isValid = await validateApiKey(apiKey, keyRecord.key_hash);
-      return { keyRecord, isValid };
-    });
 
-    const validationResults = await Promise.all(validationPromises);
-
-    for (const { keyRecord, isValid } of validationResults) {
       if (isValid) {
         // Check if key is expired
         if (isApiKeyExpired(keyRecord.expires_at)) {
@@ -95,7 +102,7 @@ const checkApiKeyAuth = async (req, permission) => {
       }
     }
 
-    logger.info('API key not found or invalid');
+    logger.info('API key validation failed');
     return false;
   } catch (error) {
     logger.error('API key validation error', { error: error.message });
