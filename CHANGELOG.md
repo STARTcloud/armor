@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.8](https://github.com/STARTcloud/armor_private/compare/v1.0.7...v1.0.8) (2025-09-25)
+
+
+### Bug Fixes
+
+* adding distinguished names for Domino users without emails ([e115383](https://github.com/STARTcloud/armor_private/commit/e11538377f17077b8b74be7936db5ddcea50d6c8))
+* adding distinguished names for Domino users without emails ([eb2d48a](https://github.com/STARTcloud/armor_private/commit/eb2d48ad5667ef94572df9c3636873a67fe7d9e1))
+* adding distinguished names for Domino users without emails ([3ec6295](https://github.com/STARTcloud/armor_private/commit/3ec62952c4fdee74685aee68514313134908701d))
+* documentation ([b9c16bf](https://github.com/STARTcloud/armor_private/commit/b9c16bf5506afd44588486ccd690e48fa23165b8))
+* documentation and use system certs ([37ac193](https://github.com/STARTcloud/armor_private/commit/37ac193853720ea74d6b565724ceb87761bdd39a))
+* linting ([8ce4fe2](https://github.com/STARTcloud/armor_private/commit/8ce4fe241a08eda013a16acaf608dc82e9ca57b0))
+
 ## [1.0.7](https://github.com/STARTcloud/armor_private/compare/v1.0.6...v1.0.7) (2025-09-24)
 
 
