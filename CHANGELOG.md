@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.1.0](https://github.com/STARTcloud/armor_private/compare/v1.0.15...v1.1.0) (2025-09-25)
+
+
+### Features
+
+* add development configuration support ([c1816a0](https://github.com/STARTcloud/armor_private/commit/c1816a0f288226b27abc98bc19486960a7e9f718))
+
+
+### Bug Fixes
+
+* eliminate await-in-loop linting warning in auth middleware ([3b52009](https://github.com/STARTcloud/armor_private/commit/3b52009795c596ad9622b816c754b06343c51c37))
+* optimize API key authentication to fix N+1 query problem ([5b4a03f](https://github.com/STARTcloud/armor_private/commit/5b4a03fc88ffe5250bc2a85e621bc5f4188a00c6))
+* resolve prettier formatting error in app.js ([4e95cec](https://github.com/STARTcloud/armor_private/commit/4e95cec2004ee4915f6ef21f68fa2d811221be2b))
+* set up user context in authenticateApiKeyAccess for basic auth ([abb5201](https://github.com/STARTcloud/armor_private/commit/abb520162a65ab738f95f901f3ea99ff1f2b5a86))
+
 ## [1.0.15](https://github.com/STARTcloud/armor_private/compare/v1.0.14...v1.0.15) (2025-09-25)
 
 
