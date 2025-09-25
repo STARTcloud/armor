@@ -52,25 +52,27 @@ window.onload = function () {
 
       const headerHtml = `
         <div style="background-color: #1a1d20; padding: 1rem 0; margin-bottom: 1rem;">
-          <div style="max-width: 1200px; margin: 0 auto; padding: 0 1rem;">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div class="container">
+            <div class="d-flex align-items-center justify-content-between mb-4">
               <nav aria-label="breadcrumb">
-                <ol style="list-style: none; margin: 0; padding: 0; display: flex; align-items: center;">
-                  <li style="color: ${window.serverConfig?.login_primary_color || '#198754'};">
-                    <i class="bi bi-book" style="margin-right: 0.5rem;"></i>API Documentation
+                <ol class="breadcrumb">
+                  <li class="breadcrumb-item">
+                    <span style="color: ${window.serverConfig?.login_primary_color || '#198754'};">
+                      <i class="bi bi-book me-1"></i>API Documentation
+                    </span>
                   </li>
                 </ol>
               </nav>
-              <div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+              <div class="auth-status">
                 <div class="dropdown">
                   <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-person-circle" style="margin-right: 0.25rem;"></i> ${getUserDisplayName(window.userInfo)}
+                    <i class="bi bi-person-circle me-1"></i> ${getUserDisplayName(window.userInfo)}
                   </button>
                   <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="profileDropdown">
-                    <li><a class="dropdown-item" href="/"><i class="bi bi-shield" style="margin-right: 0.5rem;"></i>Dashboard</a></li>
-                    <li><a class="dropdown-item" href="/api-keys"><i class="bi bi-key" style="margin-right: 0.5rem;"></i>API Keys</a></li>
+                    <li><a class="dropdown-item" href="/"><i class="bi bi-shield me-2"></i>Dashboard</a></li>
+                    <li><a class="dropdown-item" href="/api-keys"><i class="bi bi-key me-2"></i>API Keys</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="/logout"><i class="bi bi-box-arrow-right" style="margin-right: 0.5rem;"></i>Logout</a></li>
+                    <li><a class="dropdown-item" href="/logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
                   </ul>
                 </div>
               </div>
