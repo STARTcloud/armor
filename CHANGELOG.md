@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.8.1](https://github.com/STARTcloud/armor_private/compare/v1.8.0...v1.8.1) (2025-09-25)
+
+
+### Bug Fixes
+
+* add proper top spacing to API Keys page header and buttons ([3da8fbd](https://github.com/STARTcloud/armor_private/commit/3da8fbd923330b8a35ede835e5155df91e21e1be))
+* ensure consistent table sizing and form input styling across pages ([a055bee](https://github.com/STARTcloud/armor_private/commit/a055bee256989b53e4f05de6873b9e41150f15e6))
+* remove mt-4 class to match directory listing container structure ([cd0c216](https://github.com/STARTcloud/armor_private/commit/cd0c21600069c54860debe42ad488c58d72bb3cb))
+* styling consistency fixes for API Keys and directory listing pages ([50e999b](https://github.com/STARTcloud/armor_private/commit/50e999bd028463c02317b79017d7f823623ef5b1))
+
 ## [1.8.0](https://github.com/STARTcloud/armor_private/compare/v1.7.1...v1.8.0) (2025-09-25)
 
 
