@@ -1,7 +1,7 @@
 import auth from 'basic-auth';
 import jwt from 'jsonwebtoken';
 import configLoader from '../config/configLoader.js';
-import { isValidUser } from '../utils/auth.js';
+import { isValidUser, getUserPermissions } from '../utils/auth.js';
 import { logAccess, authLogger as logger } from '../config/logger.js';
 import { getApiKeyModel } from '../models/ApiKey.js';
 import { validateApiKey, isApiKeyExpired } from '../utils/apiKeyUtils.js';
@@ -22,13 +22,7 @@ const checkApiKeyAuth = async (req, permission) => {
   try {
     const ApiKey = getApiKeyModel();
 
-    const { hashApiKey } = await import('../utils/apiKeyUtils.js');
-    const hashedKey = await hashApiKey(apiKey);
-
-    const matchingKeys = await ApiKey.findAll({
-      where: {
-        key_hash: hashedKey,
-      },
+    const allKeys = await ApiKey.findAll({
       attributes: [
         'id',
         'key_hash',
@@ -41,13 +35,13 @@ const checkApiKeyAuth = async (req, permission) => {
       ],
     });
 
-    if (matchingKeys.length === 0) {
-      logger.info('API key not found - no matching hash');
+    if (allKeys.length === 0) {
+      logger.info('No API keys found in database');
       return false;
     }
 
     const validationResults = await Promise.all(
-      matchingKeys.map(async keyRecord => ({
+      allKeys.map(async keyRecord => ({
         keyRecord,
         isValid: await validateApiKey(apiKey, keyRecord.key_hash),
       }))
@@ -308,6 +302,17 @@ export const authenticateApiKeyAccess = async (req, res, next) => {
       success: false,
       message: 'Authentication required for API key management',
     });
+  }
+
+  const localUsers = configLoader.getAuthUsers();
+  const localUser = localUsers.find(u => u.username === credentials.name);
+
+  if (localUser) {
+    req.oidcUser = {
+      username: localUser.username,
+      permissions: getUserPermissions(localUser),
+      authType: 'basic',
+    };
   }
 
   logAccess(req, 'AUTH_SUCCESS', 'api_key_management');
