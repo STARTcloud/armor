@@ -1,6 +1,6 @@
 {
   "name": "armor",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "ARMOR Reliably Manages Online Resources",
   "type": "module",
   "main": "app.js",
