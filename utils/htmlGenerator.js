@@ -405,9 +405,10 @@ export const generateDirectoryListing = (
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item">
-                        ${authType === 'uploads' && relativePath === '' ? 
-                            `<a href="/?view=index" style="cursor: pointer;"><i class="bi bi-shield me-1" style="color: ${serverConfig.login_primary_color || '#198754'};"></i>Armor</a>` :
-                            `<a href="/"><i class="bi bi-shield me-1" style="color: ${serverConfig.login_primary_color || '#198754'};"></i>Armor</a>`
+                        ${
+                          authType === 'uploads' && relativePath === ''
+                            ? `<a href="/?view=index" style="cursor: pointer;"><i class="bi bi-shield me-1" style="color: ${serverConfig.login_primary_color || '#198754'};"></i>Armor</a>`
+                            : `<a href="/"><i class="bi bi-shield me-1" style="color: ${serverConfig.login_primary_color || '#198754'};"></i>Armor</a>`
                         }
                     </li>
                     ${generateBreadcrumbs(relativePath)}

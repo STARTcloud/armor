@@ -75,19 +75,19 @@ export const resolveUserPermissions = (email, userinfo) => {
 export const handleOidcUser = async (provider, userinfo) => {
   const User = getUserModel();
   let { email } = userinfo;
-  
+
   // Handle Domino Distinguished Name format (CN=name/OU=unit/O=org)
   if (email && email.startsWith('CN=') && !email.includes('@')) {
     // Extract CN (Common Name) from Distinguished Name
-    const cnMatch = email.match(/CN=([^/]+)/);
-    const orgMatch = email.match(/O=([^/]+)/);
-    
+    const cnMatch = email.match(/CN=(?<name>[^/]+)/);
+    const orgMatch = email.match(/O=(?<org>[^/]+)/);
+
     if (cnMatch && orgMatch) {
       // Create email-like format: henry.doe@moonshinedev.local
-      const userName = cnMatch[1].toLowerCase().replace(/\s+/g, '.');
-      const orgName = orgMatch[1].toLowerCase();
+      const userName = cnMatch.groups.name.toLowerCase().replace(/\s+/g, '.');
+      const orgName = orgMatch.groups.org.toLowerCase();
       email = `${userName}@${orgName}.local`;
-      
+
       logger.info('Converted DN to email format', {
         originalDN: userinfo.email,
         convertedEmail: email,
@@ -95,7 +95,7 @@ export const handleOidcUser = async (provider, userinfo) => {
       });
     }
   }
-  
+
   const name = userinfo.name || userinfo.given_name || userinfo.CN || email.split('@')[0];
   const subject = userinfo.sub;
   const providerKey = `oidc-${provider}`;

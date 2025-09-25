@@ -65,14 +65,14 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
   const relativePath = fullPath.replace(SERVED_DIR, '').replace(/\\/g, '/');
 
   const isRoot = fullPath === SERVED_DIR || fullPath === `${SERVED_DIR}/`;
-  
+
   // Check if user is admin (has uploads permission)
-  const isAdmin = req.oidcUser?.permissions?.includes('uploads') || 
-                  (req.isAuthenticated === 'uploads');
-  
+  const isAdmin =
+    req.oidcUser?.permissions?.includes('uploads') || req.isAuthenticated === 'uploads';
+
   // Check if admin wants to view directory index
   const viewIndex = req.query.view === 'index';
-  
+
   logger.info('Root page check', {
     fullPath,
     SERVED_DIR,
