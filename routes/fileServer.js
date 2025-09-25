@@ -88,26 +88,11 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
     willShowLandingPage: isRoot && !serverConfig.show_root_index && !(isAdmin && viewIndex),
   });
 
-  if (isRoot && !serverConfig.show_root_index && !(isAdmin && viewIndex)) {
-    logger.info('Showing landing page for root access');
-    logAccess(req, 'LANDING_PAGE', 'showing secured site message');
-    const landingConfig = createLandingConfig();
-    landingConfig.packageInfo = configLoader.getPackageInfo();
-    const userInfo =
-      req.oidcUser || (uploadCredentials ? { username: uploadCredentials.name } : null);
-    return res.send(getSecuredSiteMessage(landingConfig, userInfo));
-  }
-
-  const hasBasicUploadAccess = uploadCredentials && isValidUser(uploadCredentials, 'uploads');
-  const hasOidcUploadAccess = req.oidcUser && req.oidcUser.permissions.includes('uploads');
-  const hasUploadAccess = hasBasicUploadAccess || hasOidcUploadAccess;
-
-  const itemsInfo = await getDirectoryItems(fullPath, req.fileWatcher);
-
-  logAccess(req, 'LIST_DIRECTORY', `size: ${itemsInfo.length} items`);
-
-  // Check if client wants JSON response
+  // Check if client wants JSON response first, before landing page logic
   if (req.headers.accept && req.headers.accept.includes('application/json')) {
+    const itemsInfo = await getDirectoryItems(fullPath, req.fileWatcher);
+    logAccess(req, 'LIST_DIRECTORY', `size: ${itemsInfo.length} items`);
+
     // Return JSON directory listing for API clients
     const files = itemsInfo.map(item => ({
       name: item.name,
@@ -125,6 +110,24 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
       total: files.length,
     });
   }
+
+  if (isRoot && !serverConfig.show_root_index && !(isAdmin && viewIndex)) {
+    logger.info('Showing landing page for root access');
+    logAccess(req, 'LANDING_PAGE', 'showing secured site message');
+    const landingConfig = createLandingConfig();
+    landingConfig.packageInfo = configLoader.getPackageInfo();
+    const userInfo =
+      req.oidcUser || (uploadCredentials ? { username: uploadCredentials.name } : null);
+    return res.send(getSecuredSiteMessage(landingConfig, userInfo));
+  }
+
+  const hasBasicUploadAccess = uploadCredentials && isValidUser(uploadCredentials, 'uploads');
+  const hasOidcUploadAccess = req.oidcUser && req.oidcUser.permissions.includes('uploads');
+  const hasUploadAccess = hasBasicUploadAccess || hasOidcUploadAccess;
+
+  const itemsInfo = await getDirectoryItems(fullPath, req.fileWatcher);
+
+  logAccess(req, 'LIST_DIRECTORY', `size: ${itemsInfo.length} items`);
 
   // Return HTML for web browsers
   let indexContent = '';
