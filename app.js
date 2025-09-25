@@ -20,7 +20,6 @@ import { setupHTTPSServer } from './utils/sslManager.js';
 import { specs, swaggerUi } from './config/swagger.js';
 import { getApiKeyModel } from './models/ApiKey.js';
 import { getUserPermissions } from './utils/auth.js';
-import { getUserDisplayName } from './utils/htmlGenerator.js';
 
 const app = express();
 
@@ -448,7 +447,7 @@ const startServer = async () => {
     app.get('/api-docs', (req, res) => {
       const swaggerServerConfig = configLoader.getServerConfig();
       const { userInfo } = req;
-      // Clean implementation using external JS file
+
       const specsJson = JSON.stringify(specs)
         .replace(/</g, '\\u003c')
         .replace(/>/g, '\\u003e')
@@ -461,95 +460,28 @@ const startServer = async () => {
         .replace(/\u2028/g, '\\u2028')
         .replace(/\u2029/g, '\\u2029');
 
-      const customHtml = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Armor API Documentation</title>
-    <link rel="icon" type="image/x-icon" href="/web/static/images/favicon.ico">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
-    <link rel="stylesheet" type="text/css" href="/static/css/SwaggerDark.css" />
-    <link rel="stylesheet" type="text/css" href="/static/css/SwaggerDark.user.css" />
-    <style>
-        body {
-            background-color: #1a1d20;
-            color: #fff;
-            margin: 0;
-            padding: 0;
-        }
-        .auth-status {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .breadcrumb {
-            background-color: transparent;
-            margin-bottom: 0;
-        }
-        .breadcrumb-item > a {
-            color: #6c757d;
-            text-decoration: none;
-        }
-        .breadcrumb-item > a:hover {
-            color: #fff;
-        }
-        .breadcrumb-item.active {
-            color: #fff;
-        }
-        .breadcrumb-item + .breadcrumb-item::before {
-            color: #6c757d;
-        }
-        .swagger-ui {
-            margin-top: 0;
-        }
-    </style>
-</head>
-<body>
-    <div class="container mt-4">
-        <div class="d-flex align-items-center justify-content-between mb-4">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item">
-                        <span style="color: ${swaggerServerConfig.login_primary_color || '#198754'};">
-                            <i class="bi bi-book me-1"></i>API Documentation
-                        </span>
-                    </li>
-                </ol>
-            </nav>
-            <div class="auth-status">
-                <div class="dropdown">
-                    <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-person-circle me-1"></i> ${getUserDisplayName(userInfo)}
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="profileDropdown">
-                        <li><a class="dropdown-item" href="/"><i class="bi bi-shield me-2"></i>Dashboard</a></li>
-                        <li><a class="dropdown-item" href="/api-keys"><i class="bi bi-key me-2"></i>API Keys</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="/logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        
-        <div id="swagger-ui"></div>
-    </div>
-    
-    <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-bundle.js"></script>
-    <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-standalone-preset.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        window.swaggerSpec = ${specsJson};
-        window.userApiKeys = ${userApiKeysJson};
-    </script>
-    <script src="/static/js/swagger-custom.js"></script>
-</body>
-</html>`;
+      const options = {
+        explorer: true,
+        customfavIcon: '/web/static/images/favicon.ico',
+        customSiteTitle: 'Armor API Documentation',
+        swaggerOptions: {
+          persistAuthorization: true,
+        },
+        customCssUrl: ['/static/css/SwaggerDark.css', '/static/css/SwaggerDark.user.css'],
+        customJs: ['/static/js/swagger-custom.js'],
+        customJsStr: [
+          `window.swaggerSpec = ${specsJson};`,
+          `window.userApiKeys = ${userApiKeysJson};`,
+          `window.userInfo = ${JSON.stringify(userInfo || {})
+            .replace(/</g, '\\u003c')
+            .replace(/>/g, '\\u003e')};`,
+          `window.serverConfig = ${JSON.stringify(swaggerServerConfig || {})
+            .replace(/</g, '\\u003c')
+            .replace(/>/g, '\\u003e')};`,
+        ],
+      };
 
-      res.send(customHtml);
+      res.send(swaggerUi.generateHTML(specs, options));
     });
 
     logger.info('API documentation enabled at /api-docs');
