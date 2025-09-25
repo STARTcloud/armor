@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.14](https://github.com/STARTcloud/armor_private/compare/v1.0.13...v1.0.14) (2025-09-25)
+
+
+### Bug Fixes
+
+* packaging ([aa7b588](https://github.com/STARTcloud/armor_private/commit/aa7b588800adae39d4b7c4e48799d5f06debb011))
+
 ## [1.0.13](https://github.com/STARTcloud/armor_private/compare/v1.0.12...v1.0.13) (2025-09-25)
 
 
