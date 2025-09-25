@@ -375,10 +375,11 @@ class FileWatcherService {
           }
         );
 
-        if (updateResult[0] === 0) {
+        const [, affectedRows] = updateResult;
+        if (affectedRows === 0) {
           logger.error(`Database update failed for: ${itemPath} - no rows affected`);
         } else {
-          logger.info(`Database updated with checksum for: ${itemPath} (${updateResult[0]} rows)`);
+          logger.info(`Database updated with checksum for: ${itemPath} (${affectedRows} rows)`);
         }
       });
 
