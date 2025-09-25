@@ -75,11 +75,6 @@ license opt/armor/LICENSE.md license="GPL-3.0" must-accept=false
 <transform dir path=etc/armor$ -> set group armor>
 <transform dir path=etc/armor$ -> set mode 0755>
 
-<transform file path=etc/armor/config.yaml -> set owner armor>
-<transform file path=etc/armor/config.yaml -> set group armor>
-<transform file path=etc/armor/config.yaml -> set mode 0644>
-<transform file path=etc/armor/config.yaml -> set preserve true>
-
 # SSL and database directories (empty) - keeps persistent data in place on uninstall
 <transform dir path=etc/armor/ssl -> set owner armor>
 <transform dir path=etc/armor/ssl -> set group armor>

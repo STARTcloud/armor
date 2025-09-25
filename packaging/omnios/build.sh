@@ -58,8 +58,6 @@ mkdir -p "$DESTDIR"
 #   node_modules/
 #   startup.sh
 #   shutdown.sh
-# /etc/armor/
-#   config.yaml
 # /var/lib/armor/
 # /var/log/armor/
 

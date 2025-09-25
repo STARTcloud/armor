@@ -29,11 +29,6 @@ chown -R armor:armor /var/log/armor
 # Set proper permissions for SSL directory (more restrictive)
 chmod 700 /etc/armor/ssl
 
-# Check if JWT secret exists (SSL certificates will be handled by Node.js if needed)
-if [ ! -f "/etc/armor/.jwt-secret" ]; then
-    echo "Warning: JWT secret not found. Node.js may generate default secrets." >&2
-fi
-
 # Check if Node.js is available
 if ! command -v node >/dev/null 2>&1; then
     echo "Error: Node.js not found in PATH" >&2

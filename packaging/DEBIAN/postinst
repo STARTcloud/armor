@@ -12,18 +12,14 @@ fi
 chown -R armor:armor /opt/armor
 chown -R armor:armor /var/lib/armor
 chown -R armor:armor /var/log/armor
-chown -R armor:armor /etc/armor
-
-
-# Note: JWT secret generation and config migration now handled by Node.js app on startup
 
 # Initialize database directory
-mkdir -p /var/lib/armor/database
-chown armor:armor /var/lib/armor/database
+mkdir -p /var/lib/armor
+chown -R armor:armor /var/lib/armor
 
 # Create SSL directory for certificate generation
 mkdir -p /etc/armor/ssl
-chown armor:armor /etc/armor/ssl
+chown -R armor:armor /etc/armor
 chmod 700 /etc/armor/ssl
 
 # Reload systemd daemon

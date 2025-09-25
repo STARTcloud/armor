@@ -934,7 +934,7 @@ router.post('*splat/search', authenticateDownloads, async (req, res) => {
           },
         ],
       },
-      limit: 100,
+      limit: 1000,
       raw: true,
     });
 
