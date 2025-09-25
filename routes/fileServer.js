@@ -111,7 +111,13 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
     });
   }
 
-  if (isRoot && !serverConfig.show_root_index && !(isAdmin && viewIndex)) {
+  if (
+    isRoot &&
+    !serverConfig.show_root_index &&
+    !(isAdmin && viewIndex) &&
+    !req.query.sort &&
+    !req.query.order
+  ) {
     logger.info('Showing landing page for root access');
     logAccess(req, 'LANDING_PAGE', 'showing secured site message');
     const landingConfig = createLandingConfig();
