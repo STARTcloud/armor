@@ -375,7 +375,7 @@ class FileWatcherService {
           }
         );
 
-        const affectedRows = updateResult[0];
+        const affectedRows = updateResult[1];
         if (affectedRows === 0) {
           logger.error(`Database update failed for: ${itemPath} - no rows affected`);
         } else {
