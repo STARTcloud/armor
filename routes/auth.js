@@ -581,6 +581,78 @@ router.get('/logout', (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /logout/local:
+ *   get:
+ *     summary: Local logout only (skips OIDC provider logout)
+ *     description: Clears local JWT token without redirecting to OIDC provider logout endpoint
+ *     tags: [Authentication]
+ *     responses:
+ *       302:
+ *         description: Redirected to login page
+ *         headers:
+ *           Location:
+ *             schema:
+ *               type: string
+ *               example: /login?logout=success
+ */
+router.get('/logout/local', (req, res) => {
+  try {
+    res.clearCookie('auth_token');
+    logAccess(req, 'LOCAL_LOGOUT', 'JWT cookie cleared via local logout');
+    return res.redirect('/login?logout=success');
+  } catch (error) {
+    logger.error('Local logout error', { error: error.message });
+    return res.redirect('/login?error=logout_failed');
+  }
+});
+
+/**
+ * @swagger
+ * /auth/logout/local:
+ *   post:
+ *     summary: Local logout only (skips OIDC provider logout)
+ *     description: Clears local JWT token without redirecting to OIDC provider logout endpoint
+ *     tags: [Authentication]
+ *     responses:
+ *       200:
+ *         description: Local logout successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Logged out locally
+ *       500:
+ *         description: Logout failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.post('/auth/logout/local', (req, res) => {
+  try {
+    res.clearCookie('auth_token');
+    logAccess(req, 'LOCAL_LOGOUT', 'JWT cookie cleared via local logout POST');
+    return res.json({
+      success: true,
+      message: 'Logged out locally',
+    });
+  } catch (error) {
+    logger.error('Local logout error', { error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: 'Local logout failed',
+    });
+  }
+});
+
 router.get('/web/static/images/favicon.ico', (req, res) => {
   logger.debug('Serving favicon', { ip: req.ip, userAgent: req.get('User-Agent') });
   res.set('Cache-Control', 'public, max-age=86400');
