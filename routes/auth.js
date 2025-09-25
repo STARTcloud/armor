@@ -23,6 +23,7 @@ const router = express.Router();
 router.get('/login', (req, res) => {
   const errorParam = req.query.error;
   const logoutParam = req.query.logout;
+  const oidcProviderParam = req.query.oidc_provider;
   let errorMessage = '';
 
   if (logoutParam === 'success') {
@@ -71,6 +72,7 @@ router.get('/login', (req, res) => {
     iconUrl: serverConfig.login_icon_url || null,
     primaryColor: serverConfig.login_primary_color || '#198754', // Use Armor green
     packageInfo,
+    oidcProvider: oidcProviderParam,
   };
 
   const html = generateLoginPage(errorMessage, loginConfig);
@@ -122,6 +124,8 @@ router.get('/login', (req, res) => {
 router.get('/auth/methods', (req, res) => {
   try {
     const authConfig = configLoader.getAuthenticationConfig();
+    const oidcProviderParam = req.query.oidc_provider;
+
     const methods = [
       {
         id: 'basic',
@@ -131,8 +135,25 @@ router.get('/auth/methods', (req, res) => {
     ];
 
     const oidcProviders = authConfig.oidc_providers || {};
+    const isGloballyHidden = authConfig.oidc_global_hidden || false;
+
     const oidcMethods = Object.entries(oidcProviders)
       .filter(([, providerConfig]) => providerConfig.enabled)
+      .filter(([providerName, providerConfig]) => {
+        if (oidcProviderParam) {
+          return providerName === oidcProviderParam;
+        }
+
+        if (isGloballyHidden) {
+          return false;
+        }
+
+        if (providerConfig.hidden) {
+          return false;
+        }
+
+        return true;
+      })
       .map(([providerName, providerConfig]) => ({
         id: `oidc-${providerName}`,
         name: providerConfig.display_name || `Sign in with ${providerName}`,

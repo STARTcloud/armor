@@ -135,15 +135,19 @@ For Google, Microsoft, or other OIDC authentication:
 
 ```yaml
 authentication:
+  oidc_global_hidden: false           # Hide all OIDC providers by default
   oidc_providers:
     google:
       enabled: true
+      hidden: false                   # Hide this specific provider
       client_id: "your-google-client-id"
       client_secret: "your-google-client-secret"
       display_name: "Sign in with Google"
       issuer: "https://accounts.google.com"
       scope: "openid email profile"
 ```
+
+**Provider Hiding**: Use `hidden: true` on individual providers or `oidc_global_hidden: true` to hide all providers. Hidden providers can be shown by accessing `/login?oidc_provider=providername`.
 
 **Note**: For RP-initiated logout support, the post-logout redirect URI is automatically built from your server configuration as `https://domain:port/login?logout=success`. You must configure this exact URI in your OIDC provider's "Post logout redirect URI(s)" field.
 

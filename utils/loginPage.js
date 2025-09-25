@@ -143,7 +143,10 @@ export const generateLoginPage = (errorMessage = '', config = {}) => {
         }
 
         // Load available auth methods and show OIDC options
-        fetch('/auth/methods')
+        const oidcProvider = '${config.oidcProvider || ''}';
+        const authMethodsUrl = oidcProvider ? '/auth/methods?oidc_provider=' + encodeURIComponent(oidcProvider) : '/auth/methods';
+        
+        fetch(authMethodsUrl)
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.methods) {
