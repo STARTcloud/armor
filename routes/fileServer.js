@@ -260,7 +260,7 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
     </style>
 </head>
 <body>
-    <div class="container mt-4">
+    <div class="container">
         <div class="d-flex align-items-center justify-content-between mb-4">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
@@ -480,8 +480,7 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
                     '</tr>';
             });
 
-            const table = '<div class="table-responsive">' +
-                '<table class="table table-dark table-striped">' +
+            const table = '<table class="table table-dark table-striped">' +
                 '<thead>' +
                 '<tr>' +
                 '<th>Name</th>' +
@@ -493,8 +492,7 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
                 '</tr>' +
                 '</thead>' +
                 '<tbody>' + tableRows + '</tbody>' +
-                '</table>' +
-                '</div>';
+                '</table>';
             
             tableContainer.innerHTML = table;
         }
