@@ -14,7 +14,7 @@
         },
         "app.js",
         "config/swagger.js",
-        "packaging/config/production-config.yaml",
+        "packaging/config/version.yaml",
         "packaging/omnios/man/armor.yaml.5"
       ],
       "changelog-sections": [
