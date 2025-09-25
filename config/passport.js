@@ -236,6 +236,42 @@ export const buildAuthorizationUrl = async (providerName, redirectUri, state, co
   return authUrl;
 };
 
+// Generate end session URL for RP-initiated logout
+export const buildEndSessionUrl = (providerName, postLogoutRedirectUri, state, idTokenHint) => {
+  const config = oidcConfigurations.get(providerName);
+  if (!config) {
+    throw new Error(`OIDC configuration not found for provider: ${providerName}`);
+  }
+
+  if (!config.serverMetadata().end_session_endpoint) {
+    logger.warn(
+      `Provider ${providerName} does not support end_session_endpoint, skipping RP-initiated logout`
+    );
+    return null;
+  }
+
+  const endSessionParams = {
+    post_logout_redirect_uri: postLogoutRedirectUri,
+    state,
+    id_token_hint: idTokenHint,
+  };
+
+  logger.info('=== END SESSION URL DEBUG ===', {
+    provider: providerName,
+    endSessionParams,
+    endSessionEndpoint: config.serverMetadata().end_session_endpoint,
+  });
+
+  const endSessionUrl = client.buildEndSessionUrl(config, endSessionParams);
+
+  logger.info('=== GENERATED END SESSION URL ===', {
+    provider: providerName,
+    url: endSessionUrl.toString(),
+  });
+
+  return endSessionUrl;
+};
+
 // Handle OIDC callback
 export const handleOidcCallback = async (providerName, currentUrl, state, codeVerifier) => {
   const config = oidcConfigurations.get(providerName);

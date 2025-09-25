@@ -143,6 +143,9 @@ authentication:
       display_name: "Sign in with Google"
       issuer: "https://accounts.google.com"
       scope: "openid email profile"
+      post_logout_redirect_uris:
+        - "https://your-domain.com/login?logout=success"
+        - "https://your-domain.com/login"
 ```
 
 ### SSL Configuration
