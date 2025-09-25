@@ -311,7 +311,13 @@ export const setupPassportStrategies = async () => {
         logger.info(`OIDC provider configured: ${providerName}`);
         return { success: true, provider: providerName };
       } catch (error) {
-        logger.error(`Failed to setup OIDC provider ${providerName}:`, error.message);
+        logger.error(`Failed to setup OIDC provider ${providerName}:`, {
+          message: error.message,
+          stack: error.stack,
+          cause: error.cause,
+          name: error.name,
+          code: error.code,
+        });
         return { success: false, provider: providerName, error };
       }
     });

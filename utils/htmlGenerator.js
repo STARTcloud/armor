@@ -66,7 +66,7 @@ export const getSecuredSiteMessage = (config = {}) => {
         </div>
         <div class="mt-3">
             <small class="text-muted">
-                Powered by <a href="https://www.startcloud.com" target="_blank" class="text-decoration-none text-light">STARTcloud</a>
+                Powered by <a href="https://startcloud.com" target="_blank" class="text-decoration-none text-light">STARTcloud</a>
             </small>
         </div>
     </div>
@@ -143,7 +143,7 @@ export const generate404Page = (config = {}) => {
         </div>
         <div class="mt-4">
             <small class="text-muted">
-                Powered by <a href="https://www.startcloud.com" target="_blank" class="text-decoration-none text-light">STARTcloud</a>
+                Powered by <a href="https://startcloud.com" target="_blank" class="text-decoration-none text-light">STARTcloud</a>
             </small>
         </div>
     </div>
@@ -405,7 +405,10 @@ export const generateDirectoryListing = (
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item">
-                        <a href="/"><i class="bi bi-shield me-1"></i>Armor</a>
+                        ${authType === 'uploads' && relativePath === '' ? 
+                            `<a href="/?view=index" style="cursor: pointer;"><i class="bi bi-shield me-1" style="color: ${serverConfig.login_primary_color || '#198754'};"></i>Armor</a>` :
+                            `<a href="/"><i class="bi bi-shield me-1" style="color: ${serverConfig.login_primary_color || '#198754'};"></i>Armor</a>`
+                        }
                     </li>
                     ${generateBreadcrumbs(relativePath)}
                 </ol>
@@ -638,7 +641,7 @@ export const generateDirectoryListing = (
         <div class="container text-center">
             <div class="d-flex align-items-center justify-content-center">
                 <span class="text-muted me-2">Powered by</span>
-                <a href="https://www.startcloud.com" target="_blank" class="text-decoration-none d-flex align-items-center">
+                <a href="https://startcloud.com" target="_blank" class="text-decoration-none d-flex align-items-center">
                     <img src="https://startcloud.com/assets/images/logos/startcloud-logo40.png" alt="STARTcloud" height="20" class="me-2">
                     <span class="text-light">STARTcloud</span>
                 </a>

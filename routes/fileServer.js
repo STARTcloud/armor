@@ -65,18 +65,30 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
   const relativePath = fullPath.replace(SERVED_DIR, '').replace(/\\/g, '/');
 
   const isRoot = fullPath === SERVED_DIR || fullPath === `${SERVED_DIR}/`;
+  
+  // Check if user is admin (has uploads permission)
+  const isAdmin = req.oidcUser?.permissions?.includes('uploads') || 
+                  (req.isAuthenticated === 'uploads');
+  
+  // Check if admin wants to view directory index
+  const viewIndex = req.query.view === 'index';
+  
   logger.info('Root page check', {
     fullPath,
     SERVED_DIR,
     isRoot,
     showRootIndex: serverConfig.show_root_index,
-    willShowLandingPage: isRoot && !serverConfig.show_root_index,
+    isAdmin,
+    viewIndex,
+    willShowLandingPage: isRoot && !serverConfig.show_root_index && !(isAdmin && viewIndex),
   });
 
-  if (isRoot && !serverConfig.show_root_index) {
+  if (isRoot && !serverConfig.show_root_index && !(isAdmin && viewIndex)) {
     logger.info('Showing landing page for root access');
     logAccess(req, 'LANDING_PAGE', 'showing secured site message');
-    return res.send(getSecuredSiteMessage(createLandingConfig()));
+    const landingConfig = createLandingConfig();
+    landingConfig.packageInfo = configLoader.getPackageInfo();
+    return res.send(getSecuredSiteMessage(landingConfig));
   }
 
   const uploadCredentials = auth(req);
@@ -125,7 +137,8 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
     relativePath,
     indexContent,
     userInfo,
-    serverConfig
+    serverConfig,
+    configLoader.getPackageInfo()
   );
   return res.send(html);
 };

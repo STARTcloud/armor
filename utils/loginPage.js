@@ -114,7 +114,7 @@ export const generateLoginPage = (errorMessage = '', config = {}) => {
 
             <div class="text-center mt-3">
                 <small class="text-muted">
-                    Powered by <a href="https://www.startcloud.com" target="_blank" class="text-decoration-none text-light">STARTcloud</a>
+                    Powered by <a href="https://startcloud.com" target="_blank" class="text-decoration-none text-light">STARTcloud</a>
                 </small>
             </div>
         </div>

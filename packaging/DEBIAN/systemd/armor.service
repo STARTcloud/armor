@@ -9,6 +9,7 @@ User=armor
 Group=armor
 Environment=NODE_ENV=production
 Environment=CONFIG_PATH=/etc/armor/config.yaml
+Environment=NODE_OPTIONS=--use-openssl-ca
 WorkingDirectory=/opt/armor
 ExecStart=/usr/bin/node app.js
 Restart=on-failure
