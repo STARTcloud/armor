@@ -40,71 +40,9 @@ window.onload = function () {
     },
   });
 
-  // Add profile dropdown and custom server URL input section
   setTimeout(() => {
     const container = document.querySelector('.swagger-ui');
     if (container) {
-      // Add profile dropdown at the top right
-      const profileDropdown = document.createElement('div');
-      profileDropdown.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 1000;
-      `;
-
-      // Fetch user info for the profile dropdown
-      fetch('/api/user-api-keys')
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            profileDropdown.innerHTML = `
-              <div class="dropdown">
-                <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="swaggerProfileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                  <i class="bi bi-person-circle me-1"></i> User
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="swaggerProfileDropdown">
-                  <li><a class="dropdown-item" href="/"><i class="bi bi-shield me-2"></i>Home</a></li>
-                  <li><a class="dropdown-item" href="/api-keys"><i class="bi bi-key me-2"></i>API Keys</a></li>
-                  <li><hr class="dropdown-divider"></li>
-                  <li><a class="dropdown-item" href="/logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-                </ul>
-              </div>
-            `;
-
-            document.body.appendChild(profileDropdown);
-
-            // Initialize Bootstrap dropdown if available
-            if (window.bootstrap && window.bootstrap.Dropdown) {
-              new window.bootstrap.Dropdown(document.getElementById('swaggerProfileDropdown'));
-            }
-          }
-        })
-        .catch(fetchError => {
-          console.error('Failed to fetch user info for profile dropdown:', fetchError);
-        });
-
-      // Add Bootstrap CSS and JS if not already present
-      if (!document.querySelector('link[href*="bootstrap"]')) {
-        const bootstrapCSS = document.createElement('link');
-        bootstrapCSS.href =
-          'https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css';
-        bootstrapCSS.rel = 'stylesheet';
-        document.head.appendChild(bootstrapCSS);
-
-        const bootstrapIcons = document.createElement('link');
-        bootstrapIcons.href =
-          'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css';
-        bootstrapIcons.rel = 'stylesheet';
-        document.head.appendChild(bootstrapIcons);
-      }
-
-      if (!document.querySelector('script[src*="bootstrap"]')) {
-        const bootstrapJS = document.createElement('script');
-        bootstrapJS.src =
-          'https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js';
-        document.head.appendChild(bootstrapJS);
-      }
       // Modify the scheme container to create horizontal layout
       const schemesSection = document.querySelector('.swagger-ui .scheme-container .schemes');
       const schemesServerContainer = document.querySelector(

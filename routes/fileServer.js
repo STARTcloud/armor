@@ -228,21 +228,46 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
             color: #fff !important;
             border-color: #495057 !important;
         }
+        .auth-status {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .breadcrumb {
+            background-color: transparent;
+            margin-bottom: 0;
+        }
+        .breadcrumb-item > a {
+            color: #6c757d;
+            text-decoration: none;
+        }
+        .breadcrumb-item > a:hover {
+            color: #fff;
+        }
+        .breadcrumb-item.active {
+            color: #fff;
+        }
+        .breadcrumb-item + .breadcrumb-item::before {
+            color: #6c757d;
+        }
     </style>
 </head>
 <body>
     <div class="container mt-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h1><i class="bi bi-key me-2"></i>API Key Management</h1>
-                <p class="text-muted">Manage your API keys for programmatic access to Armor</p>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createKeyModal" title="Generate New API Key">
-                    <i class="bi bi-key"></i>
-                </button>
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <span style="color: ${serverConfig.login_primary_color || '#198754'};">
+                            <i class="bi bi-key me-1"></i>API Key Management
+                        </span>
+                    </li>
+                </ol>
+            </nav>
+            <div class="auth-status">
                 <div class="dropdown">
-                    <button class="btn btn-outline-light dropdown-toggle" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-person-circle me-1"></i> ${getUserDisplayName(userInfo)}
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="profileDropdown">
@@ -255,8 +280,25 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
             </div>
         </div>
 
-        <div class="card bg-dark border-secondary">
-            <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createKeyModal" title="Generate New API Key">
+                <i class="bi bi-key"></i>
+            </button>
+            <div class="d-flex align-items-center gap-2">
+                <div class="input-group" style="width: 300px;">
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search API keys...">
+                    <button type="button" class="btn btn-outline-light" id="searchButton" title="Search">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+                <button type="button" class="btn btn-outline-secondary" id="clearSearchButton" style="display: none;" title="Clear search">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="card bg-dark border-0">
+            <div class="card-header border-0">
                 <h5 class="mb-0">Your API Keys</h5>
             </div>
             <div class="card-body">
@@ -372,11 +414,13 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let userPermissions = [];
+        let allApiKeys = [];
         
         // Load API keys on page load
         document.addEventListener('DOMContentLoaded', () => {
             loadApiKeys();
             filterPermissionCheckboxes();
+            setupSearch();
         });
 
         async function loadApiKeys() {
@@ -385,7 +429,8 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
                 const result = await response.json();
                 
                 if (result.success) {
-                    displayApiKeys(result.api_keys);
+                    allApiKeys = result.api_keys;
+                    displayApiKeys(allApiKeys);
                 } else {
                     showError('Failed to load API keys: ' + result.message);
                 }
@@ -418,9 +463,15 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
                     '<span class="badge bg-secondary me-1">' + perm + '</span>'
                 ).join('');
                 
+                const keyPreviewCell = isExpired ? 
+                    '<td class="' + expiredClass + '"><code class="key-preview">' + key.key_preview + '...</code></td>' :
+                    (key.is_retrievable ? 
+                        '<td><code class="key-preview" style="cursor: pointer; text-decoration: underline;" onclick="retrieveFullKey(' + "'" + key.id + "'" + ')" title="Click to view/copy full key">' + key.key_preview + '...</code></td>' :
+                        '<td><code class="key-preview">' + key.key_preview + '...</code></td>');
+                
                 tableRows += '<tr class="' + expiredClass + '">' +
                     '<td>' + key.name + expiredBadge + '</td>' +
-                    '<td class="key-preview">' + key.key_preview + '...</td>' +
+                    keyPreviewCell +
                     '<td>' + permissionBadges + '</td>' +
                     '<td>' + expiresDate.toLocaleDateString() + '</td>' +
                     '<td>' + lastUsed + '</td>' +
@@ -613,6 +664,64 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
                 }
             }
         });
+
+        // Search functionality
+        function setupSearch() {
+            const searchInput = document.getElementById('searchInput');
+            const searchButton = document.getElementById('searchButton');
+            const clearSearchButton = document.getElementById('clearSearchButton');
+
+            function performSearch() {
+                const query = searchInput.value.toLowerCase().trim();
+                
+                if (query === '') {
+                    displayApiKeys(allApiKeys);
+                    clearSearchButton.style.display = 'none';
+                    return;
+                }
+
+                const filteredKeys = allApiKeys.filter(key => 
+                    key.name.toLowerCase().includes(query) ||
+                    key.key_preview.toLowerCase().includes(query) ||
+                    key.permissions.some(perm => perm.toLowerCase().includes(query))
+                );
+
+                displayApiKeys(filteredKeys);
+                clearSearchButton.style.display = 'inline-block';
+            }
+
+            searchInput.addEventListener('input', performSearch);
+            searchButton.addEventListener('click', performSearch);
+            clearSearchButton.addEventListener('click', () => {
+                searchInput.value = '';
+                performSearch();
+            });
+        }
+
+        async function retrieveFullKey(keyId) {
+            try {
+                const response = await fetch('/api/api-keys/' + keyId + '/full');
+                const result = await response.json();
+                
+                if (result.success) {
+                    await navigator.clipboard.writeText(result.full_key);
+                    
+                    const toast = document.createElement('div');
+                    toast.className = 'position-fixed top-0 start-50 translate-middle-x mt-3 alert alert-success';
+                    toast.style.zIndex = '9999';
+                    toast.innerHTML = '<i class="bi bi-check-circle me-2"></i>API key copied to clipboard!';
+                    document.body.appendChild(toast);
+                    
+                    setTimeout(() => {
+                        document.body.removeChild(toast);
+                    }, 3000);
+                } else {
+                    showError('Failed to retrieve full key: ' + result.message);
+                }
+            } catch (error) {
+                showError('Failed to retrieve full key: ' + error.message);
+            }
+        }
     </script>
 </body>
 </html>
