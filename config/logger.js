@@ -1,17 +1,49 @@
 import winston from 'winston';
 import morgan from 'morgan';
-import { promises as fs, existsSync, mkdirSync, renameSync } from 'fs';
+import {
+  promises as fs,
+  existsSync,
+  mkdirSync,
+  renameSync,
+  createReadStream,
+  createWriteStream,
+} from 'fs';
 import { join, dirname } from 'path';
+import { createGzip } from 'zlib';
 import configLoader from './configLoader.js';
 
 // Load config and logging configuration immediately
 configLoader.load();
 const loggingConfig = configLoader.getLoggingConfig();
 
+const compressFile = async filePath => {
+  try {
+    const compressedPath = `${filePath}.gz`;
+
+    // Check if compressed version already exists
+    if (existsSync(compressedPath)) {
+      return;
+    }
+
+    const readStream = createReadStream(filePath);
+    const writeStream = createWriteStream(compressedPath);
+    const gzip = createGzip();
+
+    await new Promise((resolve, reject) => {
+      readStream.pipe(gzip).pipe(writeStream).on('finish', resolve).on('error', reject);
+    });
+
+    await fs.unlink(filePath);
+  } catch {
+    // Silent failure to match existing error handling pattern
+  }
+};
+
 // Daily log rotation function
 const rotateLogFile = async (filePath, maxFiles) => {
   try {
     const archiveDir = join(dirname(filePath), 'archive');
+    const currentLoggingConfig = configLoader.getLoggingConfig();
 
     // Create archive directory if it doesn't exist
     try {
@@ -27,6 +59,26 @@ const rotateLogFile = async (filePath, maxFiles) => {
     // Move current file to archive with date
     if (existsSync(filePath)) {
       await fs.rename(filePath, join(archiveDir, archiveName));
+    }
+
+    if (currentLoggingConfig.enable_compression) {
+      const compressionAgeDays = currentLoggingConfig.compression_age_days || 7;
+      const compressionThreshold = new Date();
+      compressionThreshold.setDate(compressionThreshold.getDate() - compressionAgeDays);
+
+      const archiveFiles = await fs.readdir(archiveDir);
+      const uncompressedArchives = archiveFiles
+        .filter(file => file.startsWith(baseName) && !file.endsWith('.gz'))
+        .filter(file => {
+          const dateMatch = file.match(/\.(?<date>\d{4}-\d{2}-\d{2})(?:\.(?<counter>\d+))?$/);
+          if (dateMatch) {
+            const fileDate = new Date(dateMatch.groups.date);
+            return fileDate < compressionThreshold;
+          }
+          return false;
+        });
+
+      await Promise.all(uncompressedArchives.map(file => compressFile(join(archiveDir, file))));
     }
 
     // Clean up old archives (keep only max_files days)

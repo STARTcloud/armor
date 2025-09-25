@@ -49,6 +49,8 @@ logging:
   max_file_size_mb: 10
   max_files: 5
   enable_rotation: true
+  enable_compression: true
+  compression_age_days: 7
 
 authentication:
   jwt_secret: "__JWT_SECRET_FROM_FILE__"
