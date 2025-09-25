@@ -1,0 +1,89 @@
+server:
+  config_version: "1.0.15"
+  domain: "localhost"
+  port: 5000
+  show_root_index: true
+  enable_api_docs: true
+  login_title: "Armor Development"
+  login_subtitle: "ARMOR Reliably Manages Online Resources"
+  login_icon_class: "bi bi-cloud-download"
+  login_primary_color: "#198754"
+  oidc_button_style: "btn-outline-success"
+  
+  landing_title: "STARTcloud Armor (Development)"
+  landing_subtitle: "ARMOR Reliably Manages Online Resources"
+  landing_description: "This is a development instance"
+  landing_icon_class: "bi bi-shield-check"
+  landing_primary_color: "#198754"
+  support_email: "dev@localhost"
+
+  cors:
+    whitelist:
+      - "http://localhost:5000"
+      - "https://localhost:5000"
+    allow_origin: true
+    preflight_continue: true
+    credentials: true
+
+swagger:
+  allow_full_key_retrieval: true
+  allow_temp_key_generation: true
+  temp_key_expiration_hours: 24
+
+ssl:
+
+database:
+  dialect: "sqlite"
+  storage: "./dev-file-metadata.db"
+  logging: false
+
+logging:
+  log_directory: "./logs"
+  log_level: "debug"
+  max_file_size_mb: 10
+  max_files: 5
+  enable_rotation: true
+
+authentication:
+  jwt_secret: "dev-jwt-secret-change-this-in-production"
+  jwt_expiration: "24h"
+  
+  local:
+    users:
+      - username: "admin"
+        password: "admin123"
+        permissions: ["downloads", "uploads", "delete"]
+      - username: "user"
+        password: "user123"
+        permissions: ["downloads"]
+    allowed_directories:
+      - "/tmp"
+      - "./test-files"
+    static_directories:
+      - "./public"
+
+  oidc_providers:
+
+  permission_strategy: "domain_based"
+  domain_mappings:
+    downloads: ["*"]
+    uploads: ["*"]
+    delete: ["*"]
+  
+  claims_mappings:
+    downloads: []
+    uploads: []
+
+rate_limiting:
+  window_minutes: 10
+  max_requests: 1000
+  message: "Too many requests from this IP, please try again later."
+  skip_successful_requests: false
+  skip_failed_requests: false
+
+file_watcher:
+  batch_size: 10
+  max_concurrent_checksums: 5
+  batch_delay_ms: 2000
+  checksum_timeout_ms: 300000
+  enable_progress_logging: true

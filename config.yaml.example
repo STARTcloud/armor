@@ -1,0 +1,99 @@
+# Example configuration file for Armor
+# Copy this to config.yaml and customize for your environment
+
+server:
+  domain: "your-domain.com"
+  port: 443
+  show_root_index: false
+  enable_api_docs: true
+  login_title: "Armor"
+  login_subtitle: "ARMOR Reliably Manages Online Resources"
+  login_icon_class: "bi bi-cloud-download"
+  login_primary_color: "#198754"
+  oidc_button_style: "btn-outline-success"
+  
+  # Landing page customization (all optional)
+  landing_title: "Your Organization Armor"
+  landing_subtitle: "ARMOR Reliably Manages Online Resources"
+  landing_description: "This is a secured download site"
+  landing_icon_class: "bi bi-shield-check"
+  landing_primary_color: "#198754"
+  support_email: "support@your-domain.com"
+
+  # CORS configuration
+  cors:
+    whitelist:
+      - "https://your-domain.com"
+    allow_origin: true
+    preflight_continue: true
+    credentials: true
+
+swagger:
+  allow_full_key_retrieval: false
+  allow_temp_key_generation: true
+  temp_key_expiration_hours: 1
+
+ssl:
+  cert: "/path/to/your/cert.pem"
+  key: "/path/to/your/key.pem"
+
+database:
+  dialect: "sqlite"
+  storage: "./file-metadata.db"
+  logging: false
+
+logging:
+  log_directory: "./logs"
+  log_level: "info"
+  max_file_size_mb: 10
+  max_files: 5
+  enable_rotation: true
+
+authentication:
+  jwt_secret: "change-this-to-a-secure-random-string"
+  jwt_expiration: "24h"
+  
+  local:
+    users:
+      - username: "admin"
+        password: "change-this-password"
+        permissions: ["downloads", "uploads", "delete"]
+    allowed_directories:
+      - "/your/allowed/directory"
+    static_directories:
+      - "./public"
+
+  oidc_providers:
+    # Configure your OIDC providers here
+    # example_provider:
+    #   client_id: "your-client-id"
+    #   client_secret: "your-client-secret"
+    #   issuer: "https://your-oidc-provider.com"
+
+  permission_strategy: "domain_based"
+  domain_mappings:
+    downloads: ["*@your-domain.com"]
+    uploads: ["*@your-domain.com"]
+    delete: ["*@your-domain.com"]
+  
+  claims_mappings:
+    downloads:
+      - claim: "groups"
+        values: ["file-readers", "all-users"]
+    uploads:
+      - claim: "groups"
+        values: ["file-admins"]
+
+rate_limiting:
+  window_minutes: 10
+  max_requests: 100
+  message: "Too many requests from this IP, please try again later."
+  skip_successful_requests: false
+  skip_failed_requests: false
+
+file_watcher:
+  batch_size: 10
+  max_concurrent_checksums: 5
+  batch_delay_ms: 2000
+  checksum_timeout_ms: 300000
+  enable_progress_logging: true
