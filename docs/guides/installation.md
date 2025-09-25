@@ -197,6 +197,92 @@ ssl:
   cert_file: "/etc/letsencrypt/live/armor.yourdomain.com/fullchain.pem"
 ```
 
+## Database Setup
+
+Armor supports SQLite (default), PostgreSQL, and MySQL databases.
+
+### SQLite (Default)
+
+No additional setup required. SQLite database is created automatically.
+
+```yaml
+database:
+  dialect: "sqlite"
+  storage: "/var/lib/armor/database/armor.db"
+  logging: false
+```
+
+### PostgreSQL Setup
+
+#### Install Dependencies
+
+```bash
+# Add PostgreSQL support
+npm install pg
+```
+
+#### Create Database and User
+
+```bash
+# Create database and user
+sudo -u postgres createdb armor_db
+sudo -u postgres createuser armor_user
+sudo -u postgres psql -c "ALTER USER armor_user WITH PASSWORD 'armor_password';"
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE armor_db TO armor_user;"
+
+# Critical: Set schema ownership for ENUM creation
+sudo -u postgres psql -d armor_db -c "ALTER SCHEMA public OWNER TO armor_user;"
+```
+
+#### Configure Armor
+
+```yaml
+database:
+  dialect: "postgres"
+  host: "localhost"
+  port: 5432
+  database: "armor_db"
+  username: "armor_user"
+  password: "armor_password"
+  logging: false
+```
+
+### MySQL Setup
+
+#### Install Dependencies
+
+```bash
+# Add MySQL support
+npm install mysql2
+```
+
+#### Create Database and User
+
+```bash
+# Connect to MySQL as root
+mysql -u root -p
+
+# Create database and user
+CREATE DATABASE armor_db;
+CREATE USER 'armor_user'@'localhost' IDENTIFIED BY 'armor_password';
+GRANT ALL PRIVILEGES ON armor_db.* TO 'armor_user'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+#### Configure Armor
+
+```yaml
+database:
+  dialect: "mysql"
+  host: "localhost"
+  port: 3306
+  database: "armor_db"
+  username: "armor_user"
+  password: "armor_password"
+  logging: false
+```
+
 ## Service Configuration
 
 ### DEBIAN/Ubuntu (systemd)

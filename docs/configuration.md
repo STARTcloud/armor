@@ -167,17 +167,82 @@ ssl:
 
 ### Database Configuration
 
-File metadata storage settings.
+File metadata storage settings. Armor supports SQLite, PostgreSQL, and MySQL databases.
 
+#### SQLite Configuration (Default)
 ```yaml
 database:
-  dialect: "sqlite"                   # Database type (sqlite only)
+  dialect: "sqlite"                   # Database type
   storage: "/var/lib/armor/database/armor.db"
   logging: false                      # Enable SQL query logging
   pool:
     max: 5                           # Maximum connections
     min: 0                           # Minimum connections
     idle: 10000                      # Idle timeout (ms)
+```
+
+#### PostgreSQL Configuration
+```yaml
+database:
+  dialect: "postgres"
+  host: "localhost"
+  port: 5432
+  database: "armor_db"
+  username: "armor_user"
+  password: "armor_password"
+  logging: false
+  pool:
+    max: 10
+    min: 2
+    idle: 30000
+```
+
+#### MySQL Configuration
+```yaml
+database:
+  dialect: "mysql"
+  host: "localhost"
+  port: 3306
+  database: "armor_db"
+  username: "armor_user"
+  password: "armor_password"
+  logging: false
+  pool:
+    max: 10
+    min: 2
+    idle: 30000
+```
+
+#### PostgreSQL Configuration
+```yaml
+database:
+  dialect: "postgres"
+  host: "localhost"
+  port: 5432
+  database: "armor_db"
+  username: "armor_user"
+  password: "armor_password"
+  logging: false
+  pool:
+    max: 10
+    min: 2
+    idle: 30000
+```
+
+#### MySQL Configuration
+```yaml
+database:
+  dialect: "mysql"
+  host: "localhost"
+  port: 3306
+  database: "armor_db"
+  username: "armor_user"
+  password: "armor_password"
+  logging: false
+  pool:
+    max: 10
+    min: 2
+    idle: 30000
 ```
 
 ### Swagger UI Configuration
@@ -276,6 +341,14 @@ export ARMOR_SSL_KEY_FILE=/path/to/key.pem
 export ARMOR_SSL_CERT_FILE=/path/to/cert.pem
 
 # Database configuration
+export ARMOR_DATABASE_DIALECT=postgres
+export ARMOR_DATABASE_HOST=localhost
+export ARMOR_DATABASE_PORT=5432
+export ARMOR_DATABASE_NAME=armor_db
+export ARMOR_DATABASE_USERNAME=armor_user
+export ARMOR_DATABASE_PASSWORD=armor_password
+
+# SQLite specific
 export ARMOR_DATABASE_STORAGE=/custom/path/database.db
 
 # Security configuration
@@ -345,9 +418,28 @@ Armor validates configuration on startup and will:
 - Test with basic auth: `curl -k -u admin:admin123 https://localhost/`
 
 **Database Issues**
+
+**SQLite Issues**
 - Check SQLite file permissions: `sudo chown armor:armor /var/lib/armor/database/`
 - Verify disk space available
 - Test database: `sqlite3 /var/lib/armor/database/armor.db .tables`
+
+**PostgreSQL Issues**
+- Check connection: `psql -h localhost -U armor_user -d armor_db`
+- Verify schema ownership: `psql -d armor_db -c "\dn+"`
+- If ENUM creation fails: `sudo -u postgres psql -d armor_db -c "ALTER SCHEMA public OWNER TO armor_user;"`
+- Check PostgreSQL service: `sudo systemctl status postgresql`
+
+**MySQL Issues**
+- Check connection: `mysql -h localhost -u armor_user -p armor_db`
+- Verify user privileges: `SHOW GRANTS FOR 'armor_user'@'localhost';`
+- Check MySQL service: `sudo systemctl status mysql`
+
+**General Database Issues**
+- Verify database dependencies are installed (`pg` for PostgreSQL, `mysql2` for MySQL)
+- Check database service is running
+- Verify network connectivity and firewall settings
+- Review Armor logs: `sudo journalctl -u armor -f`
 
 ---
 
