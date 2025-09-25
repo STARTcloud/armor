@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.5.0](https://github.com/STARTcloud/armor_private/compare/v1.4.1...v1.5.0) (2025-09-25)
+
+
+### Features
+
+* add robots.txt to allow major search engines and block unwanted crawlers ([1753ac9](https://github.com/STARTcloud/armor_private/commit/1753ac953b871845c8bdd5985644b07ef7019d97))
+* add weekly compression for archived log files ([86cce8f](https://github.com/STARTcloud/armor_private/commit/86cce8ff8ac4158652e690208c9d23e5fe11b70a))
+* add weekly compression for archived log files ([744322c](https://github.com/STARTcloud/armor_private/commit/744322c8beecda26345bfa6b64cb9ac923a3c29b))
+
+
+### Bug Fixes
+
+* route OIDC authentication logs to auth.log instead of app.log ([ef16486](https://github.com/STARTcloud/armor_private/commit/ef16486448ce0ab60a06790b79dd60e304cd48a7))
+* route OIDC authentication logs to auth.log instead of app.log ([37dbd0c](https://github.com/STARTcloud/armor_private/commit/37dbd0ce08c5b8468086970e21d494fc5d25dbd1))
+
 ## [1.4.1](https://github.com/STARTcloud/armor_private/compare/v1.4.0...v1.4.1) (2025-09-25)
 
 
