@@ -558,4 +558,11 @@ router.get('/web/static/images/favicon.ico', (req, res) => {
   return res.sendFile('/web/static/images/favicon.ico', { root: '.' });
 });
 
+router.get('/robots.txt', (req, res) => {
+  logger.debug('Serving robots.txt', { ip: req.ip, userAgent: req.get('User-Agent') });
+  res.set('Cache-Control', 'public, max-age=86400');
+  res.set('Content-Type', 'text/plain');
+  return res.sendFile('/web/static/robots.txt', { root: '.' });
+});
+
 export default router;
