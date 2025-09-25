@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.7.0](https://github.com/STARTcloud/armor_private/compare/v1.6.0...v1.7.0) (2025-09-25)
+
+
+### Features
+
+* add basic authentication hiding functionality ([144adff](https://github.com/STARTcloud/armor_private/commit/144adff52460ae867d3672a34db1599f131c5c2d))
+* add OIDC hiding configuration to production config template ([835c9ce](https://github.com/STARTcloud/armor_private/commit/835c9ceeba43345d053b9a8917fa2b3315c2a7ce))
+* add size sorting functionality to file server table ([e8e9a8d](https://github.com/STARTcloud/armor_private/commit/e8e9a8dda71e33cd664ea0cd185658808bb84959))
+* implement OIDC provider hiding functionality ([a3d2476](https://github.com/STARTcloud/armor_private/commit/a3d247668818c9d30b68388ee8cceae5db1d8b9e))
+
+
+### Bug Fixes
+
+* prevent table sorting redirect to landing page when show_root_index is false ([b6f0f96](https://github.com/STARTcloud/armor_private/commit/b6f0f96fd683488b1ae7472600627c330b5afc0f))
+* resolve routing conflict causing JSON parse error in root folder creation ([bbae83b](https://github.com/STARTcloud/armor_private/commit/bbae83b53d04412c168280e2512ebd28f7064f0c))
+
 ## [1.6.0](https://github.com/STARTcloud/armor_private/compare/v1.5.0...v1.6.0) (2025-09-25)
 
 
