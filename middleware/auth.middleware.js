@@ -2,7 +2,7 @@ import auth from 'basic-auth';
 import jwt from 'jsonwebtoken';
 import configLoader from '../config/configLoader.js';
 import { isValidUser } from '../utils/auth.js';
-import { logAccess, logger } from '../config/logger.js';
+import { logAccess, authLogger as logger } from '../config/logger.js';
 import { getApiKeyModel } from '../models/ApiKey.js';
 import { validateApiKey, isApiKeyExpired } from '../utils/apiKeyUtils.js';
 

@@ -1,5 +1,5 @@
 import express from 'express';
-import logger from '../config/logger.js';
+import { sseLogger as logger } from '../config/logger.js';
 import { authenticateDownloads } from '../middleware/auth.middleware.js';
 
 const router = express.Router();

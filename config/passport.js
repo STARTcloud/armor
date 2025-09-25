@@ -4,7 +4,7 @@ import * as client from 'openid-client';
 import { URL } from 'url';
 import configLoader from './configLoader.js';
 import { getUserModel } from '../models/User.js';
-import logger from './logger.js';
+import { authLogger as logger } from './logger.js';
 
 // Store OIDC configurations globally
 const oidcConfigurations = new Map();
@@ -278,7 +278,7 @@ export const setupPassportStrategies = async () => {
           }
 
           // Debug logging
-          logger.info('=== DEBUGGING OUTGOING HTTP REQUEST ===', {
+          logger.debug('=== DEBUGGING OUTGOING HTTP REQUEST ===', {
             url: url.toString(),
             method: options.method || 'GET',
             headers: options.headers || {},

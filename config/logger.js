@@ -103,7 +103,7 @@ try {
   }
 
   // Rotate existing logs synchronously before creating new transports
-  const logFiles = ['app.log', 'access.log', 'database.log', 'error.log'];
+  const logFiles = ['app.log', 'access.log', 'database.log', 'error.log', 'filewatcher.log', 'sse.log', 'auth.log'];
   for (const logFile of logFiles) {
     const logPath = join(logDir, logFile);
     if (existsSync(logPath)) {
@@ -114,11 +114,20 @@ try {
         }
         
         const today = new Date().toISOString().split('T')[0];
-        const archiveName = `${logFile}.${today}`;
+        let archiveName = `${logFile}.${today}`;
+        let archivePath = join(archiveDir, archiveName);
         
-        renameSync(logPath, join(archiveDir, archiveName));
+        // Add incrementing number if file already exists
+        let counter = 1;
+        while (existsSync(archivePath)) {
+          archiveName = `${logFile}.${today}.${counter}`;
+          archivePath = join(archiveDir, archiveName);
+          counter++;
+        }
+        
+        renameSync(logPath, archivePath);
       } catch (error) {
-        // Silent failure
+        // Silent failure, save any errors to var once logger is loaded so that we can display the error using this logger!
       }
     }
   }
@@ -139,7 +148,7 @@ try {
   );
 
 } catch (error) {
-  // Cannot use console.error - continuing with console-only logging
+  // Cannot use console.error - , save any errors to var once logger is loaded so that we can display the error using this logger!
 }
 
 // Create separate loggers for different categories
@@ -176,10 +185,52 @@ const databaseLogger = winston.createLogger({
   ],
 });
 
+// Separate file watcher logger for checksum operations
+const fileWatcherLogger = winston.createLogger({
+  level: loggingConfig.log_level,
+  format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+  transports: [
+    new DailyRotatingFileTransport({
+      filename: join(loggingConfig.log_directory, 'filewatcher.log'),
+      format: winston.format.json(),
+      maxFiles: loggingConfig.max_files,
+    })
+  ],
+});
+
+// Separate SSE logger for server-sent events
+const sseLogger = winston.createLogger({
+  level: loggingConfig.log_level,
+  format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+  transports: [
+    new DailyRotatingFileTransport({
+      filename: join(loggingConfig.log_directory, 'sse.log'),
+      format: winston.format.json(),
+      maxFiles: loggingConfig.max_files,
+    })
+  ],
+});
+
+// Separate auth logger for authentication operations
+const authLogger = winston.createLogger({
+  level: loggingConfig.log_level,
+  format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+  transports: [
+    new DailyRotatingFileTransport({
+      filename: join(loggingConfig.log_directory, 'auth.log'),
+      format: winston.format.json(),
+      maxFiles: loggingConfig.max_files,
+    })
+  ],
+});
+
 // Initialize log files with startup entries
 logger.info('Application logger initialized');
 accessLogger.info('Access logger initialized');
 databaseLogger.info('Database logger initialized');
+fileWatcherLogger.info('File watcher logger initialized');
+sseLogger.info('SSE logger initialized');
+authLogger.info('Auth logger initialized');
 
 export const logAccess = (req, action, details = '') => {
   const timestamp = new Date().toISOString();
@@ -201,5 +252,5 @@ export const morganMiddleware = morgan('combined', {
   },
 });
 
-export { logger, databaseLogger };
+export { logger, databaseLogger, fileWatcherLogger, sseLogger, authLogger };
 export default logger;

@@ -5,7 +5,7 @@ import { createHash } from 'crypto';
 import { Op } from 'sequelize';
 import { getFileModel } from '../models/File.js';
 import { sendChecksumUpdate } from '../routes/sse.js';
-import logger from '../config/logger.js';
+import { fileWatcherLogger as logger } from '../config/logger.js';
 import configLoader from '../config/configLoader.js';
 
 class FileWatcherService {
