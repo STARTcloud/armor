@@ -1,7 +1,7 @@
 import auth from 'basic-auth';
 import jwt from 'jsonwebtoken';
 import configLoader from '../config/configLoader.js';
-import { isValidUser } from '../utils/auth.js';
+import { isValidUser, getUserPermissions } from '../utils/auth.js';
 import { logAccess, authLogger as logger } from '../config/logger.js';
 import { getApiKeyModel } from '../models/ApiKey.js';
 import { validateApiKey, isApiKeyExpired } from '../utils/apiKeyUtils.js';
@@ -21,7 +21,8 @@ const checkApiKeyAuth = async (req, permission) => {
 
   try {
     const ApiKey = getApiKeyModel();
-    const apiKeys = await ApiKey.findAll({
+
+    const allKeys = await ApiKey.findAll({
       attributes: [
         'id',
         'key_hash',
@@ -34,68 +35,75 @@ const checkApiKeyAuth = async (req, permission) => {
       ],
     });
 
-    const validationPromises = apiKeys.map(async keyRecord => {
-      const isValid = await validateApiKey(apiKey, keyRecord.key_hash);
-      return { keyRecord, isValid };
-    });
+    if (allKeys.length === 0) {
+      logger.info('No API keys found in database');
+      return false;
+    }
 
-    const validationResults = await Promise.all(validationPromises);
+    const validationResults = await Promise.all(
+      allKeys.map(async keyRecord => ({
+        keyRecord,
+        isValid: await validateApiKey(apiKey, keyRecord.key_hash),
+      }))
+    );
 
-    for (const { keyRecord, isValid } of validationResults) {
-      if (isValid) {
-        // Check if key is expired
-        if (isApiKeyExpired(keyRecord.expires_at)) {
-          logger.info('API key expired', { keyId: keyRecord.id });
-          return false;
-        }
+    const validResult = validationResults.find(result => result.isValid);
 
-        // Check if key has required permission
-        if (!keyRecord.permissions.includes(permission)) {
-          logger.info('API key lacks permission', {
-            keyId: keyRecord.id,
-            permission,
-            keyPermissions: keyRecord.permissions,
-          });
-          return false;
-        }
+    if (validResult) {
+      const { keyRecord } = validResult;
 
-        // Update last_used timestamp
-        keyRecord.update({ last_used: new Date() });
+      // Check if key is expired
+      if (isApiKeyExpired(keyRecord.expires_at)) {
+        logger.info('API key expired', { keyId: keyRecord.id });
+        return false;
+      }
 
-        // Create user context for API key
-        if (keyRecord.user_type === 'oidc') {
+      // Check if key has required permission
+      if (!keyRecord.permissions.includes(permission)) {
+        logger.info('API key lacks permission', {
+          keyId: keyRecord.id,
+          permission,
+          keyPermissions: keyRecord.permissions,
+        });
+        return false;
+      }
+
+      // Update last_used timestamp
+      keyRecord.update({ last_used: new Date() });
+
+      // Create user context for API key
+      if (keyRecord.user_type === 'oidc') {
+        req.oidcUser = {
+          userId: keyRecord.user_id,
+          permissions: keyRecord.permissions,
+          authType: 'api_key',
+          apiKeyId: keyRecord.id,
+        };
+      } else {
+        // Local user - need to get username
+        const localUsers = configLoader.getAuthUsers();
+        const localUser = localUsers.find(u => u.id === keyRecord.local_user_id);
+
+        if (localUser) {
           req.oidcUser = {
-            userId: keyRecord.user_id,
+            username: localUser.username,
             permissions: keyRecord.permissions,
             authType: 'api_key',
             apiKeyId: keyRecord.id,
           };
-        } else {
-          // Local user - need to get username
-          const localUsers = configLoader.getAuthUsers();
-          const localUser = localUsers.find(u => u.id === keyRecord.local_user_id);
-
-          if (localUser) {
-            req.oidcUser = {
-              username: localUser.username,
-              permissions: keyRecord.permissions,
-              authType: 'api_key',
-              apiKeyId: keyRecord.id,
-            };
-          }
         }
-
-        logger.info('API key auth success', {
-          keyId: keyRecord.id,
-          permission,
-          keyName: keyRecord.name,
-        });
-
-        return true;
       }
+
+      logger.info('API key auth success', {
+        keyId: keyRecord.id,
+        permission,
+        keyName: keyRecord.name,
+      });
+
+      return true;
     }
 
-    logger.info('API key not found or invalid');
+    logger.info('API key validation failed');
     return false;
   } catch (error) {
     logger.error('API key validation error', { error: error.message });
@@ -294,6 +302,17 @@ export const authenticateApiKeyAccess = async (req, res, next) => {
       success: false,
       message: 'Authentication required for API key management',
     });
+  }
+
+  const localUsers = configLoader.getAuthUsers();
+  const localUser = localUsers.find(u => u.username === credentials.name);
+
+  if (localUser) {
+    req.oidcUser = {
+      username: localUser.username,
+      permissions: getUserPermissions(localUser),
+      authType: 'basic',
+    };
   }
 
   logAccess(req, 'AUTH_SUCCESS', 'api_key_management');

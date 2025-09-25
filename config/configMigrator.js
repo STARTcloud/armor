@@ -18,6 +18,9 @@ class ConfigMigrator {
     this.templatePath = join(__dirname, '../packaging/config/production-config.yaml');
     this.userConfigPath = process.env.CONFIG_PATH || '/etc/armor/config.yaml';
     this.packagePath = join(__dirname, '../package.json');
+
+    this.devConfigPath = join(__dirname, '../dev.config.yaml');
+    this.isDevMode = fs.existsSync(this.devConfigPath);
   }
 
   /**
@@ -25,6 +28,10 @@ class ConfigMigrator {
    */
   isMigrationNeeded() {
     try {
+      if (this.isDevMode) {
+        return { needed: false, reason: 'dev_mode', appVersion: 'dev' };
+      }
+
       // Get current app version
       const packageData = JSON.parse(fs.readFileSync(this.packagePath, 'utf8'));
       const appVersion = packageData.version;

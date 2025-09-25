@@ -32,7 +32,7 @@ We appreciate all pull requests! To ensure smooth collaboration:
 
 1. Clone your fork of the repository
 2. Install dependencies: `npm install`
-3. Copy `config/config.yaml.example` to `config/config.yaml` and configure for development
+3. Copy `config.yaml.example` to `config.yaml` and configure for development, or use the provided `dev.config.yaml` for quick local testing
 4. Run in development mode: `npm run dev`
 5. Access the API documentation at `http://localhost:5000/api-docs`
 

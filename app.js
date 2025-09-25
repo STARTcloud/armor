@@ -22,10 +22,12 @@ import { getApiKeyModel } from './models/ApiKey.js';
 import { getUserPermissions } from './utils/auth.js';
 
 const app = express();
-const port = process.env.PORT || 443;
 
 const startServer = async () => {
   configLoader.load();
+
+  const serverPortConfig = configLoader.getServerConfig();
+  const port = process.env.PORT || serverPortConfig.port || 443;
 
   await initializeDatabase();
 
