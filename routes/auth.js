@@ -5,7 +5,11 @@ import configLoader from '../config/configLoader.js';
 import { isValidUser, getUserPermissions } from '../utils/auth.js';
 import { logAccess, logger } from '../config/logger.js';
 import { generateLoginPage } from '../utils/loginPage.js';
-import { buildAuthorizationUrl, handleOidcCallback } from '../config/passport.js';
+import {
+  buildAuthorizationUrl,
+  handleOidcCallback,
+  buildEndSessionUrl,
+} from '../config/passport.js';
 
 /**
  * @swagger
@@ -18,24 +22,32 @@ const router = express.Router();
 
 router.get('/login', (req, res) => {
   const errorParam = req.query.error;
+  const logoutParam = req.query.logout;
   let errorMessage = '';
 
-  switch (errorParam) {
-    case 'invalid_credentials':
-      errorMessage = 'Invalid username or password';
-      break;
-    case 'oidc_failed':
-      errorMessage = 'OIDC authentication failed. Please try again or use basic authentication.';
-      break;
-    case 'network_error':
-      errorMessage = 'Network error occurred. Please try again.';
-      break;
-    case 'token_failed':
-      errorMessage = 'Failed to generate authentication token';
-      break;
-    case 'no_oidc_providers':
-      errorMessage = 'No OIDC providers are configured';
-      break;
+  if (logoutParam === 'success') {
+    errorMessage = 'You have been successfully logged out.';
+  } else {
+    switch (errorParam) {
+      case 'invalid_credentials':
+        errorMessage = 'Invalid username or password';
+        break;
+      case 'oidc_failed':
+        errorMessage = 'OIDC authentication failed. Please try again or use basic authentication.';
+        break;
+      case 'network_error':
+        errorMessage = 'Network error occurred. Please try again.';
+        break;
+      case 'token_failed':
+        errorMessage = 'Failed to generate authentication token';
+        break;
+      case 'no_oidc_providers':
+        errorMessage = 'No OIDC providers are configured';
+        break;
+      case 'logout_failed':
+        errorMessage = 'Logout failed. Please try again.';
+        break;
+    }
   }
 
   // Get login page configuration from config loader
@@ -189,7 +201,7 @@ router.get('/auth/oidc/callback', async (req, res) => {
     const currentUrl = new URL(baseUrl + req.url);
 
     // Handle the callback using v6 API
-    const { user } = await handleOidcCallback(provider, currentUrl, state, codeVerifier);
+    const { user, tokens } = await handleOidcCallback(provider, currentUrl, state, codeVerifier);
 
     // Generate JWT token
     const authConfig = configLoader.getAuthenticationConfig();
@@ -201,6 +213,7 @@ router.get('/auth/oidc/callback', async (req, res) => {
         provider: user.provider,
         permissions: user.permissions,
         role: user.role,
+        id_token: tokens?.id_token,
       },
       authConfig.jwt_secret,
       {
@@ -299,12 +312,72 @@ router.get('/auth/oidc/:provider', async (req, res) => {
  *                   example: Logged out successfully
  */
 router.post('/auth/logout', (req, res) => {
-  res.clearCookie('auth_token');
-  logAccess(req, 'LOGOUT', 'JWT cookie cleared');
-  return res.json({
-    success: true,
-    message: 'Logged out successfully',
-  });
+  try {
+    // Extract JWT token to determine authentication method
+    const token = req.cookies.auth_token;
+    let userProvider = null;
+    let idToken = null;
+
+    if (token) {
+      try {
+        const authConfig = configLoader.getAuthenticationConfig();
+        const decoded = jwt.verify(token, authConfig.jwt_secret);
+        userProvider = decoded.provider;
+        idToken = decoded.id_token;
+      } catch (jwtError) {
+        logger.warn('Failed to decode JWT token during logout', { error: jwtError.message });
+      }
+    }
+
+    res.clearCookie('auth_token');
+    logAccess(req, 'LOGOUT', 'JWT cookie cleared');
+
+    if (userProvider && userProvider.startsWith('oidc-')) {
+      const providerName = userProvider.replace('oidc-', '');
+
+      try {
+        const serverConfig = configLoader.getServerConfig();
+        const postLogoutRedirectUri =
+          serverConfig.port === 443
+            ? `https://${serverConfig.domain}/login?logout=success`
+            : `https://${serverConfig.domain}:${serverConfig.port}/login?logout=success`;
+
+        const state = client.randomState();
+
+        const endSessionUrl = buildEndSessionUrl(
+          providerName,
+          postLogoutRedirectUri,
+          state,
+          idToken
+        );
+
+        if (endSessionUrl) {
+          logger.info(`Redirecting to OIDC provider logout: ${providerName}`);
+          return res.json({
+            success: true,
+            message: 'Logged out successfully',
+            redirect_url: endSessionUrl.toString(),
+          });
+        }
+      } catch (error) {
+        logger.error(
+          `Failed to build end session URL for provider ${providerName}:`,
+          error.message
+        );
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: 'Logged out successfully',
+    });
+  } catch (error) {
+    logger.error('Logout error', { error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: 'Logout failed',
+    });
+  }
 });
 
 /**
@@ -415,9 +488,62 @@ router.post('/auth/login/basic', (req, res) => {
 });
 
 router.get('/logout', (req, res) => {
-  res.clearCookie('auth_token');
-  logAccess(req, 'LOGOUT', 'JWT cookie cleared via GET');
-  return res.redirect('/login');
+  try {
+    // Extract JWT token to determine authentication method
+    const token = req.cookies.auth_token;
+    let userProvider = null;
+    let idToken = null;
+
+    if (token) {
+      try {
+        const authConfig = configLoader.getAuthenticationConfig();
+        const decoded = jwt.verify(token, authConfig.jwt_secret);
+        userProvider = decoded.provider;
+        idToken = decoded.id_token;
+      } catch (jwtError) {
+        logger.warn('Failed to decode JWT token during logout', { error: jwtError.message });
+      }
+    }
+
+    res.clearCookie('auth_token');
+    logAccess(req, 'LOGOUT', 'JWT cookie cleared via GET');
+
+    if (userProvider && userProvider.startsWith('oidc-')) {
+      const providerName = userProvider.replace('oidc-', '');
+
+      try {
+        const serverConfig = configLoader.getServerConfig();
+        const postLogoutRedirectUri =
+          serverConfig.port === 443
+            ? `https://${serverConfig.domain}/login?logout=success`
+            : `https://${serverConfig.domain}:${serverConfig.port}/login?logout=success`;
+
+        const state = client.randomState();
+
+        const endSessionUrl = buildEndSessionUrl(
+          providerName,
+          postLogoutRedirectUri,
+          state,
+          idToken
+        );
+
+        if (endSessionUrl) {
+          logger.info(`Redirecting to OIDC provider logout: ${providerName}`);
+          return res.redirect(endSessionUrl.toString());
+        }
+      } catch (error) {
+        logger.error(
+          `Failed to build end session URL for provider ${providerName}:`,
+          error.message
+        );
+      }
+    }
+
+    return res.redirect('/login');
+  } catch (error) {
+    logger.error('Logout error', { error: error.message });
+    return res.redirect('/login?error=logout_failed');
+  }
 });
 
 router.get('/web/static/images/favicon.ico', (req, res) => {
