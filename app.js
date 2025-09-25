@@ -530,6 +530,7 @@ const startServer = async () => {
                         <li><a class="dropdown-item" href="/api-keys"><i class="bi bi-key me-2"></i>API Keys</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="/logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                        <li><a class="dropdown-item" href="/logout/local"><i class="bi bi-box-arrow-left me-2"></i>Logout (Local)</a></li>
                     </ul>
                 </div>
             </div>
