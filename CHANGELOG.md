@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.13](https://github.com/STARTcloud/armor_private/compare/v1.0.12...v1.0.13) (2025-09-25)
+
+
+### Bug Fixes
+
+* oidc users api keys ([19779ac](https://github.com/STARTcloud/armor_private/commit/19779ac995ca5b35258c4b2d24d1ae9759c02310))
+* packaging ([ac6c800](https://github.com/STARTcloud/armor_private/commit/ac6c800767fdc25aaa9427e1aacfdbdd82b0bda2))
+
 ## [1.0.12](https://github.com/STARTcloud/armor_private/compare/v1.0.11...v1.0.12) (2025-09-25)
 
 
