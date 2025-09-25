@@ -200,6 +200,7 @@ router.get('/auth/oidc/callback', async (req, res) => {
         name: user.name,
         provider: user.provider,
         permissions: user.permissions,
+        role: user.role,
       },
       authConfig.jwt_secret,
       {

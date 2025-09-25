@@ -16,12 +16,12 @@ const rotateLogFile = async (filePath, maxFiles) => {
     // Create archive directory if it doesn't exist
     try {
       await fs.mkdir(archiveDir, { recursive: true });
-    } catch (error) {
+    } catch {
       return;
     }
 
-    const baseName = filePath.split('/').pop();
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const [baseName] = filePath.split('/').slice(-1);
+    const [today] = new Date().toISOString().split('T'); // YYYY-MM-DD
     const archiveName = `${baseName}.${today}`;
 
     // Move current file to archive with date
@@ -38,12 +38,10 @@ const rotateLogFile = async (filePath, maxFiles) => {
 
     if (logArchives.length > maxFiles) {
       const filesToDelete = logArchives.slice(maxFiles);
-      for (const file of filesToDelete) {
-        await fs.unlink(join(archiveDir, file));
-      }
+      await Promise.all(filesToDelete.map(file => fs.unlink(join(archiveDir, file))));
     }
-  } catch (error) {
-    // Cannot use console.error - rotation failure is silent
+  } catch {
+    // Cannot use console.error - , save any errors to var once logger is loaded so that we can display the error using this logger! This is the future plan do not delete this commment
   }
 };
 
@@ -57,15 +55,15 @@ class DailyRotatingFileTransport extends winston.transports.File {
 
   async write(info, callback) {
     try {
-      const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-      
+      const [currentDate] = new Date().toISOString().split('T'); // YYYY-MM-DD
+
       // Check if we need to rotate (new day)
       if (this.lastRotateDate !== currentDate && existsSync(this.filename)) {
         await rotateLogFile(this.filename, this.maxFiles);
         this.lastRotateDate = currentDate;
       }
-    } catch (error) {
-      // No console.error - just continue
+    } catch {
+      // No console.error -  , save any errors to var once logger is loaded so that we can display the error using this logger!
     }
 
     // Call parent write method
@@ -73,25 +71,12 @@ class DailyRotatingFileTransport extends winston.transports.File {
   }
 }
 
-
 // Initialize logger with file transports immediately using loaded config
 const transports = [
   new winston.transports.Console({
     format: winston.format.simple(),
   }),
 ];
-
-// Rotate existing logs on startup
-const rotateLogsOnStartup = async (logDir) => {
-  const logFiles = ['app.log', 'access.log', 'database.log', 'error.log'];
-  
-  for (const logFile of logFiles) {
-    const logPath = join(logDir, logFile);
-    if (existsSync(logPath)) {
-      await rotateLogFile(logPath, loggingConfig.max_files);
-    }
-  }
-};
 
 // Rotate logs synchronously BEFORE creating transports
 const logDir = loggingConfig.log_directory;
@@ -103,7 +88,15 @@ try {
   }
 
   // Rotate existing logs synchronously before creating new transports
-  const logFiles = ['app.log', 'access.log', 'database.log', 'error.log', 'filewatcher.log', 'sse.log', 'auth.log'];
+  const logFiles = [
+    'app.log',
+    'access.log',
+    'database.log',
+    'error.log',
+    'filewatcher.log',
+    'sse.log',
+    'auth.log',
+  ];
   for (const logFile of logFiles) {
     const logPath = join(logDir, logFile);
     if (existsSync(logPath)) {
@@ -112,11 +105,11 @@ try {
         if (!existsSync(archiveDir)) {
           mkdirSync(archiveDir, { recursive: true });
         }
-        
-        const today = new Date().toISOString().split('T')[0];
+
+        const [today] = new Date().toISOString().split('T');
         let archiveName = `${logFile}.${today}`;
         let archivePath = join(archiveDir, archiveName);
-        
+
         // Add incrementing number if file already exists
         let counter = 1;
         while (existsSync(archivePath)) {
@@ -124,15 +117,15 @@ try {
           archivePath = join(archiveDir, archiveName);
           counter++;
         }
-        
+
         renameSync(logPath, archivePath);
-      } catch (error) {
-        // Silent failure, save any errors to var once logger is loaded so that we can display the error using this logger!
+      } catch {
+        // Cannot use console.error - , save any errors to var once logger is loaded so that we can display the error using this logger! This is the future plan do not delete this commment
       }
     }
   }
 
-  // Add app.log and error.log (access.log is separate)  
+  // Add app.log and error.log (access.log is separate)
   transports.push(
     new DailyRotatingFileTransport({
       filename: join(logDir, 'app.log'),
@@ -146,9 +139,8 @@ try {
       maxFiles: loggingConfig.max_files,
     })
   );
-
-} catch (error) {
-  // Cannot use console.error - , save any errors to var once logger is loaded so that we can display the error using this logger!
+} catch {
+  // Cannot use console.error - , save any errors to var once logger is loaded so that we can display the error using this logger! This is the future plan do not delete this commment
 }
 
 // Create separate loggers for different categories
@@ -168,7 +160,7 @@ const accessLogger = winston.createLogger({
       format: winston.format.json(),
       level: 'info',
       maxFiles: loggingConfig.max_files,
-    })
+    }),
   ],
 });
 
@@ -181,7 +173,7 @@ const databaseLogger = winston.createLogger({
       filename: join(loggingConfig.log_directory, 'database.log'),
       format: winston.format.json(),
       maxFiles: loggingConfig.max_files,
-    })
+    }),
   ],
 });
 
@@ -194,7 +186,7 @@ const fileWatcherLogger = winston.createLogger({
       filename: join(loggingConfig.log_directory, 'filewatcher.log'),
       format: winston.format.json(),
       maxFiles: loggingConfig.max_files,
-    })
+    }),
   ],
 });
 
@@ -207,7 +199,7 @@ const sseLogger = winston.createLogger({
       filename: join(loggingConfig.log_directory, 'sse.log'),
       format: winston.format.json(),
       maxFiles: loggingConfig.max_files,
-    })
+    }),
   ],
 });
 
@@ -220,7 +212,7 @@ const authLogger = winston.createLogger({
       filename: join(loggingConfig.log_directory, 'auth.log'),
       format: winston.format.json(),
       maxFiles: loggingConfig.max_files,
-    })
+    }),
   ],
 });
 

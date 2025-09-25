@@ -45,6 +45,12 @@ export const initializeUserModel = sequelize => {
         defaultValue: [],
         comment: 'Array of permissions: ["downloads", "uploads"]',
       },
+      role: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 'user',
+        comment: 'User role: "user" or "admin"',
+      },
       last_login: {
         type: DataTypes.DATE,
         allowNull: true,

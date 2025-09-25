@@ -79,6 +79,53 @@ export const resolveUserPermissions = (email, userinfo) => {
   return permissions;
 };
 
+export const resolveUserRole = (provider, email, userinfo) => {
+  const authConfig = configLoader.getAuthenticationConfig();
+  const strategy = authConfig.permission_strategy || 'domain_based';
+
+  if (strategy === 'domain_based') {
+    // Use provider-specific role mappings for domain-based strategy
+    const providerConfig = authConfig.oidc_providers[provider];
+    const roleMappings = providerConfig?.role_mappings || {};
+
+    // Use original email (DN) for role matching
+    const originalEmail = userinfo.email || email;
+
+    // Check admin role first
+    const adminDomains = roleMappings.admin || [];
+    if (adminDomains.some(pattern => matchDomain(originalEmail, pattern))) {
+      return 'admin';
+    }
+
+    // Check user role
+    const userDomains = roleMappings.user || [];
+    if (userDomains.some(pattern => matchDomain(originalEmail, pattern))) {
+      return 'user';
+    }
+  } else if (strategy === 'claims_based') {
+    // For claims-based strategy, check if userinfo contains role claim
+    const roleClaim = userinfo.role || userinfo.roles;
+    
+    if (roleClaim) {
+      // Handle both string and array role claims
+      const roles = Array.isArray(roleClaim) ? roleClaim : [roleClaim];
+      
+      // Check for admin role variations
+      if (roles.some(role => ['admin', 'administrator', 'superuser'].includes(role.toLowerCase()))) {
+        return 'admin';
+      }
+      
+      // Default to user role if other roles present
+      if (roles.length > 0) {
+        return 'user';
+      }
+    }
+  }
+
+  // Default role if no mapping matches
+  return 'user';
+};
+
 export const handleOidcUser = async (provider, userinfo) => {
   const User = getUserModel();
   let { email } = userinfo;
@@ -115,6 +162,7 @@ export const handleOidcUser = async (provider, userinfo) => {
 
   if (!user) {
     const permissions = resolveUserPermissions(email, userinfo);
+    const role = resolveUserRole(provider, email, userinfo);
 
     user = await User.create({
       email,
@@ -122,18 +170,21 @@ export const handleOidcUser = async (provider, userinfo) => {
       provider: providerKey,
       subject,
       permissions,
+      role,
       last_login: new Date(),
     });
 
-    logger.info(`Created new OIDC user: ${email} with permissions: ${permissions.join(', ')}`);
+    logger.info(`Created new OIDC user: ${email} with role: ${role} and permissions: ${permissions.join(', ')}`);
   } else {
     const permissions = resolveUserPermissions(email, userinfo);
+    const role = resolveUserRole(provider, email, userinfo);
     await user.update({
       permissions,
+      role,
       last_login: new Date(),
     });
 
-    logger.info(`Updated OIDC user: ${email} with permissions: ${permissions.join(', ')}`);
+    logger.info(`Updated OIDC user: ${email} with role: ${role} and permissions: ${permissions.join(', ')}`);
   }
 
   return user;
@@ -230,6 +281,7 @@ export const setupPassportStrategies = async () => {
             name: user.name,
             provider: user.provider,
             permissions: user.permissions,
+            role: user.role,
           });
         } catch (error) {
           logger.error('JWT Strategy error', { error: error.message });
