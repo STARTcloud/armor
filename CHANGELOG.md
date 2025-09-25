@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.2](https://github.com/STARTcloud/armor_private/compare/v1.3.1...v1.3.2) (2025-09-25)
+
+
+### Documentation
+
+* add PostgreSQL and MySQL database configuration examples ([06173d2](https://github.com/STARTcloud/armor_private/commit/06173d288febe2e8c93b61db5d456286c1523938))
+
 ## [1.3.1](https://github.com/STARTcloud/armor_private/compare/v1.3.0...v1.3.1) (2025-09-25)
 
 
