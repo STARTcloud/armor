@@ -360,10 +360,13 @@ router.post('/auth/logout', (req, res) => {
           });
         }
       } catch (error) {
-        logger.error(
-          `Failed to build end session URL for provider ${providerName}:`,
-          error.message
-        );
+        logger.error(`Failed to build end session URL for provider ${providerName}:`, {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+          code: error.code,
+          cause: error.cause,
+        });
       }
     }
 
@@ -532,10 +535,13 @@ router.get('/logout', (req, res) => {
           return res.redirect(endSessionUrl.toString());
         }
       } catch (error) {
-        logger.error(
-          `Failed to build end session URL for provider ${providerName}:`,
-          error.message
-        );
+        logger.error(`Failed to build end session URL for provider ${providerName}:`, {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+          code: error.code,
+          cause: error.cause,
+        });
       }
     }
 
