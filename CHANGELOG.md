@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.11](https://github.com/STARTcloud/armor_private/compare/v1.0.10...v1.0.11) (2025-09-25)
+
+
+### Bug Fixes
+
+* detailed logging and log rotation ([7896bbe](https://github.com/STARTcloud/armor_private/commit/7896bbe97f5e718edbfc054189a1a368f99d326a))
+* landing page and config merging ([713e1cc](https://github.com/STARTcloud/armor_private/commit/713e1ccbf9863017e7042042dee322ce6e465428))
+* landing page and config merging ([19eb540](https://github.com/STARTcloud/armor_private/commit/19eb5406f743d6e8f541015697ef3269a58ea0fa))
+* linting ([d767332](https://github.com/STARTcloud/armor_private/commit/d76733266f85567f7a8974bcd55385df46dfd843))
+* oidc roles ([45442da](https://github.com/STARTcloud/armor_private/commit/45442da47ddb3ad236ac5208b4cbb45bd5d6bab7))
+* versioning ([b251d1c](https://github.com/STARTcloud/armor_private/commit/b251d1c72fb5c22225ad1702e5ca757ad32d323e))
+
 ## [1.0.10](https://github.com/STARTcloud/armor_private/compare/v1.0.9...v1.0.10) (2025-09-25)
 
 
