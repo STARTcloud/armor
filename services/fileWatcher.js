@@ -525,23 +525,52 @@ class FileWatcherService {
       const isDirectory = stats ? stats.isDirectory() : false;
 
       const File = getFileModel();
+
+      const existingFile = await File.findOne({
+        where: { file_path: itemPath },
+        raw: true,
+      });
+
       const [, created] = await File.upsert({
         file_path: itemPath,
         file_size: stats ? stats.size : 0,
         last_modified: stats ? stats.mtime : new Date(),
         is_directory: isDirectory,
-        checksum_status: isDirectory ? 'complete' : 'pending',
+        checksum_status: isDirectory ? 'complete' : existingFile?.checksum_status || 'pending',
       });
 
+      // Only queue checksum if:
+      // 1. It's a new file (created = true)
+      // 2. File changed (different size or mtime)
+      // 3. Checksum failed before (status = 'error' or 'pending')
+      // 4. No existing checksum
       if (!isDirectory) {
-        // Queue checksum generation instead of doing it immediately
-        this.queueChecksumGeneration(itemPath);
+        const needsChecksum =
+          created ||
+          !existingFile ||
+          !existingFile.checksum_sha256 ||
+          existingFile.checksum_status === 'error' ||
+          existingFile.checksum_status === 'pending' ||
+          existingFile.file_size !== (stats ? stats.size : 0) ||
+          new Date(existingFile.last_modified).getTime() !== (stats ? stats.mtime.getTime() : 0);
+
+        if (needsChecksum) {
+          this.queueChecksumGeneration(itemPath);
+          logger.info(
+            `${created ? 'Created' : 'Updated'} database record: ${itemPath} (using chokidar stats, checksum queued)`
+          );
+          return { created, itemPath, skipped: false };
+        }
+        logger.info(
+          `${created ? 'Created' : 'Updated'} database record: ${itemPath} (using chokidar stats, checksum valid, skipped)`
+        );
+        return { created, itemPath, skipped: true };
       }
 
       logger.info(
         `${created ? 'Created' : 'Updated'} database record: ${itemPath} (using chokidar stats)`
       );
-      return { created, itemPath };
+      return { created, itemPath, skipped: false };
     } catch (error) {
       logger.error(`Error updating database for ${dirPath}/${itemName}: ${error.message}`);
       // Fallback to regular method if stats-based method fails
