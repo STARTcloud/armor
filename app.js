@@ -40,6 +40,9 @@ const startServer = async () => {
     logger.error('File watcher initialization failed', { error: error.message });
   });
 
+  const { default: maintenanceService } = await import('./services/maintenanceService.js');
+  maintenanceService.start();
+
   app.use((req, res, next) => {
     req.fileWatcher = fileWatcher;
     res.locals.fileWatcher = fileWatcher;
