@@ -960,7 +960,102 @@ router.put('*splat', authenticateUploads, async (req, res, next) => {
   }
 });
 
-// Dedicated search endpoint - much cleaner!
+// Handle search requests from root directory
+router.post('/search', authenticateDownloads, async (req, res) => {
+  try {
+    const { query: searchQuery, page = 1, limit = 100 } = req.body;
+
+    if (!searchQuery || searchQuery.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Search query is required',
+      });
+    }
+
+    const requestPath = '';
+    const currentDir = getSecurePath(requestPath);
+    const pageNum = Math.max(1, parseInt(page));
+    const pageLimit = Math.min(parseInt(limit), 1000);
+    const offset = (pageNum - 1) * pageLimit;
+
+    const { getFileModel } = await import('../models/File.js');
+    const File = getFileModel();
+
+    const searchConditions = {
+      [Op.and]: [
+        {
+          file_path: {
+            [Op.like]: `${currentDir}%`,
+          },
+        },
+        {
+          [Op.or]: [
+            {
+              file_path: {
+                [Op.like]: `%${searchQuery}%`,
+              },
+            },
+            {
+              checksum_sha256: {
+                [Op.like]: `%${searchQuery}%`,
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    const totalCount = await File.count({
+      where: searchConditions,
+    });
+
+    const searchResults = await File.findAll({
+      where: searchConditions,
+      limit: pageLimit,
+      offset,
+      order: [['last_modified', 'DESC']],
+      raw: true,
+    });
+
+    const results = searchResults.map(file => ({
+      name: basename(file.file_path),
+      path: file.file_path.replace(SERVED_DIR, ''),
+      size: file.file_size,
+      mtime: file.last_modified,
+      checksum: file.checksum_sha256 || 'Pending',
+      isDirectory: file.is_directory,
+    }));
+
+    logAccess(
+      req,
+      'SEARCH',
+      `query: "${searchQuery}", results: ${results.length}, page: ${pageNum}`
+    );
+
+    return res.json({
+      success: true,
+      query: searchQuery,
+      results,
+      pagination: {
+        page: pageNum,
+        limit: pageLimit,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / pageLimit),
+        hasNext: pageNum * pageLimit < totalCount,
+        hasPrev: pageNum > 1,
+      },
+    });
+  } catch (error) {
+    logger.error('Search error', { error: error.message });
+    logAccess(req, 'SEARCH_ERROR', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Search failed',
+    });
+  }
+});
+
+// Handle search requests from subdirectories
 /**
  * @swagger
  * /{path}/search:
