@@ -1166,6 +1166,70 @@ router.post('*splat/search', authenticateDownloads, async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
+// Handle folder creation for root directory
+router.post('/folders', authenticateUploads, async (req, res) => {
+  try {
+    const { folderName } = req.body;
+
+    if (!folderName || folderName.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Folder name is required',
+      });
+    }
+
+    const sanitizedFolderName = folderName.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const requestPath = '';
+    const targetDir = getSecurePath(requestPath);
+    const newFolderPath = join(targetDir, sanitizedFolderName);
+
+    try {
+      await fs.access(newFolderPath);
+      return res.status(400).json({
+        success: false,
+        message: 'Folder already exists',
+      });
+    } catch {
+      logger.debug(`Folder doesn't exist, proceeding with creation: ${newFolderPath}`);
+    }
+
+    await fs.mkdir(newFolderPath);
+
+    const { getFileModel } = await import('../models/File.js');
+    const File = getFileModel();
+    const stats = await fs.stat(newFolderPath);
+
+    await File.create({
+      file_path: newFolderPath,
+      file_size: 0,
+      last_modified: stats.mtime,
+      is_directory: true,
+      checksum_status: 'complete',
+    });
+
+    logger.info(`Added folder to database: ${newFolderPath}`);
+
+    const { sendFolderCreated } = await import('./sse.js');
+    sendFolderCreated(newFolderPath);
+
+    logAccess(req, 'CREATE_FOLDER', `path: ${newFolderPath}`);
+
+    return res.status(200).json({
+      success: true,
+      folderName: sanitizedFolderName,
+      message: 'Folder created successfully',
+    });
+  } catch (error) {
+    logger.error('Folder creation error', { error: error.message });
+    logAccess(req, 'CREATE_FOLDER_ERROR', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to create folder',
+    });
+  }
+});
+
+// Handle folder creation for subdirectories
 router.post('*splat/folders', authenticateUploads, async (req, res) => {
   try {
     const { folderName } = req.body;
@@ -1453,7 +1517,10 @@ router.post('*splat', authenticateUploads, upload.single('file'), async (req, re
   try {
     if (!req.file) {
       logAccess(req, 'UPLOAD_FAILED', 'no file provided');
-      return res.status(400).send('No file uploaded');
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded',
+      });
     }
 
     req.fileWatcher.markUploadComplete(req.file.path);
