@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/STARTcloud/armor_private/compare/v1.3.0...v1.3.1) (2025-09-25)
+
+
+### Bug Fixes
+
+* adding mysql and postgres for sequelize ([d84ee02](https://github.com/STARTcloud/armor_private/commit/d84ee02bf02591443b7d7761d20986d299b559a9))
+
 ## [1.3.0](https://github.com/STARTcloud/armor_private/compare/v1.2.0...v1.3.0) (2025-09-25)
 
 
