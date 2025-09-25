@@ -55,6 +55,7 @@ logging:
 authentication:
   jwt_secret: "__JWT_SECRET_FROM_FILE__"
   jwt_expiration: "24h"
+  oidc_global_hidden: false  # Set to true to hide all OIDC providers by default
   
   local:
     users:
@@ -62,6 +63,15 @@ authentication:
     static_directories:
 
   oidc_providers:
+    # Example OIDC provider configuration with hiding support
+    # google:
+    #   enabled: true
+    #   hidden: false  # Set to true to hide this specific provider
+    #   client_id: "your-google-client-id"
+    #   client_secret: "your-google-client-secret"
+    #   display_name: "Sign in with Google"
+    #   issuer: "https://accounts.google.com"
+    #   scope: "openid email profile"
 
   permission_strategy: "domain_based"
   domain_mappings:
