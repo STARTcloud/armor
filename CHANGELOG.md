@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.10](https://github.com/STARTcloud/armor_private/compare/v1.0.9...v1.0.10) (2025-09-25)
+
+
+### Bug Fixes
+
+* landing page and config merging ([73acdfa](https://github.com/STARTcloud/armor_private/commit/73acdfa94093e50b21d184b992fddbea8448e5dc))
+
 ## [1.0.9](https://github.com/STARTcloud/armor_private/compare/v1.0.8...v1.0.9) (2025-09-25)
 
 
