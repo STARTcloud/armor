@@ -143,6 +143,72 @@ authentication:
     delete: ["company.com"]             # Only company.com gets delete
 ```
 
+### OIDC Logout (RP-Initiated Logout)
+
+Armor supports RP-initiated logout for OIDC providers that implement the OpenID Connect Session Management specification.
+
+#### How It Works
+
+When an OIDC-authenticated user logs out:
+1. **Local Session Cleared**: JWT token is removed from browser
+2. **Provider Logout**: User is redirected to OIDC provider's logout endpoint
+3. **Provider Session Cleared**: OIDC provider terminates the user's session
+4. **Return to Application**: User is redirected back to login page with success message
+
+#### Configuration Requirements
+
+**OIDC Provider Setup** (Required):
+- Configure post-logout redirect URI in your OIDC provider
+- URI format: `https://your-domain.com/login?logout=success`
+- For port 443: `https://your-domain.com/login?logout=success`
+- For other ports: `https://your-domain.com:8443/login?logout=success`
+
+**Application Configuration** (Automatic):
+- No additional configuration needed in `config.yaml`
+- Redirect URI is built dynamically from server domain and port
+- Logout flow activates automatically for OIDC users
+
+#### Provider-Specific Notes
+
+**Google OAuth**:
+- Supports RP-initiated logout
+- Configure redirect URI in Google Cloud Console OAuth settings
+
+**Microsoft Azure AD**:
+- Supports RP-initiated logout
+- Configure redirect URI in Azure App Registration
+
+**Domino OIDC Provider**:
+- Logout endpoint: `/auth/protocol/oidc/logout`
+- Configure in "Post logout redirect URI(s)" field
+- Cannot be used with Multi-Server SSO (LTPA) configurations
+
+#### Testing Logout Flow
+
+1. **Login via OIDC**: Use "Sign in with [Provider]" button
+2. **Access Protected Resource**: Verify authentication works
+3. **Logout**: Click logout button or navigate to `/logout`
+4. **Verify Provider Logout**: Should redirect to provider logout page
+5. **Return to Application**: Should show "You have been successfully logged out"
+6. **Test Session Cleared**: Accessing protected resources should require re-authentication
+
+#### Troubleshooting
+
+**Logout Redirects to Login Without Provider Interaction**:
+- Provider may not support `end_session_endpoint`
+- Check provider's OpenID Connect discovery document
+- Verify provider configuration supports logout
+
+**"Invalid Redirect URI" Error**:
+- Ensure exact URI match in provider configuration
+- Check domain and port match your server configuration
+- Verify HTTPS is used (required for OIDC)
+
+**Logout Fails Silently**:
+- Check application logs for error messages
+- Verify `id_token` is present in JWT payload
+- Ensure provider accepts logout parameters
+
 ## API Key Authentication
 
 ### Creating API Keys
