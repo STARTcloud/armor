@@ -441,7 +441,7 @@ export const generateDirectoryListing = (
         ${
           authType === 'uploads'
             ? `
-        <div class="upload-drop-zone">
+        <div class="upload-drop-zone" id="uploadSection" style="display: none;">
             <div class="upload-drop-zone__prompt">
                 <i class="bi bi-cloud-upload" style="font-size: 2rem; margin-bottom: 10px;"></i>
                 <div>Drop files here or click to upload</div>
@@ -468,9 +468,14 @@ export const generateDirectoryListing = (
         </div>
         
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createFolderModal" title="Create Folder">
-                <i class="bi bi-folder-plus"></i>
-            </button>
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createFolderModal" title="Create Folder">
+                    <i class="bi bi-folder-plus"></i>
+                </button>
+                <button type="button" class="btn btn-outline-success" id="toggleUploadSection" title="Show Upload Section">
+                    <i class="bi bi-cloud-upload"></i>
+                </button>
+            </div>
             <div class="d-flex align-items-center gap-2">
                 <div class="input-group" style="width: 300px;">
                     <input type="text" class="form-control" id="searchInput" placeholder="Search files or checksums...">
@@ -1539,6 +1544,27 @@ export const generateDirectoryListing = (
                     performSearch();
                 }
             };
+        }
+
+        // Upload section toggle functionality
+        const toggleUploadBtn = document.getElementById('toggleUploadSection');
+        const uploadSection = document.getElementById('uploadSection');
+        
+        if (toggleUploadBtn && uploadSection) {
+            toggleUploadBtn.addEventListener('click', () => {
+                const isHidden = uploadSection.style.display === 'none';
+                uploadSection.style.display = isHidden ? 'block' : 'none';
+                
+                // Update button icon to reflect state
+                const icon = toggleUploadBtn.querySelector('i');
+                if (isHidden) {
+                    icon.className = 'bi bi-cloud-upload-fill';
+                    toggleUploadBtn.title = 'Hide Upload Section';
+                } else {
+                    icon.className = 'bi bi-cloud-upload';
+                    toggleUploadBtn.title = 'Show Upload Section';
+                }
+            });
         }
         `
             : ''
