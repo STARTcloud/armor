@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.4.1](https://github.com/STARTcloud/armor_private/compare/v1.4.0...v1.4.1) (2025-09-25)
+
+
+### Bug Fixes
+
+* Merge pull request [#38](https://github.com/STARTcloud/armor_private/issues/38) from STARTcloud/devin/1727265680-docs-cleanup-oidc-logout ([e2663d8](https://github.com/STARTcloud/armor_private/commit/e2663d8e1f69610650234a4a8d04515c9fd31ccd))
+
+
+### Documentation
+
+* remove unused post_logout_redirect_uris config and add comprehensive OIDC logout documentation ([e2663d8](https://github.com/STARTcloud/armor_private/commit/e2663d8e1f69610650234a4a8d04515c9fd31ccd))
+* remove unused post_logout_redirect_uris config and add comprehensive OIDC logout documentation ([5a6671f](https://github.com/STARTcloud/armor_private/commit/5a6671f2e496920f4b8a52e69bae93732b5c7354))
+
 ## [1.4.0](https://github.com/STARTcloud/armor_private/compare/v1.3.2...v1.4.0) (2025-09-25)
 
 
