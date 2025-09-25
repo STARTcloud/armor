@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.1](https://github.com/STARTcloud/armor_private/compare/v1.7.0...v1.7.1) (2025-09-25)
+
+
+### Bug Fixes
+
+* resolve routing conflict causing search failure from root directory ([52d0853](https://github.com/STARTcloud/armor_private/commit/52d08530a5f3c0c66fa986f3cf1758bae558ca12))
+
 ## [1.7.0](https://github.com/STARTcloud/armor_private/compare/v1.6.0...v1.7.0) (2025-09-25)
 
 
