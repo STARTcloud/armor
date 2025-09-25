@@ -39,7 +39,7 @@ graph TD
     B -- File Operations --> C[File System];
     B -- Real-time Updates --> D[WebSocket/SSE];
     B -- Authentication --> E[JWT/API Keys];
-    B -- File Metadata --> F[SQLite Database];
+    B -- File Metadata --> F[Database (SQLite/PostgreSQL/MySQL)];
     G[CLI Tools] -- HTTP Basic Auth --> B;
     H[API Clients] -- Bearer Tokens --> B;
 ```

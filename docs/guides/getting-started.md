@@ -24,7 +24,8 @@ This guide will walk you through setting up Armor for the first time, from insta
 Before starting, ensure you have:
 
 - **Node.js 22+** - Required for running Armor server
-- **SQLite3** - For file metadata storage
+- **Database** - SQLite3 (default), PostgreSQL, or MySQL for file metadata storage
+- **Database Dependencies** - `pg` package for PostgreSQL, `mysql2` for MySQL (install via npm)
 - **OpenSSL** - For SSL certificate generation
 - **Network Access** - For HTTPS file serving
 
@@ -55,7 +56,7 @@ cd armor_private
 npm ci
 
 # Configure
-cp config.yaml.example config.yaml
+cp dev.config.yaml config.yaml
 # Edit config.yaml with your settings
 
 # Start server
