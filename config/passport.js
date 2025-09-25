@@ -105,16 +105,18 @@ export const resolveUserRole = (provider, email, userinfo) => {
   } else if (strategy === 'claims_based') {
     // For claims-based strategy, check if userinfo contains role claim
     const roleClaim = userinfo.role || userinfo.roles;
-    
+
     if (roleClaim) {
       // Handle both string and array role claims
       const roles = Array.isArray(roleClaim) ? roleClaim : [roleClaim];
-      
+
       // Check for admin role variations
-      if (roles.some(role => ['admin', 'administrator', 'superuser'].includes(role.toLowerCase()))) {
+      if (
+        roles.some(role => ['admin', 'administrator', 'superuser'].includes(role.toLowerCase()))
+      ) {
         return 'admin';
       }
-      
+
       // Default to user role if other roles present
       if (roles.length > 0) {
         return 'user';
@@ -174,7 +176,9 @@ export const handleOidcUser = async (provider, userinfo) => {
       last_login: new Date(),
     });
 
-    logger.info(`Created new OIDC user: ${email} with role: ${role} and permissions: ${permissions.join(', ')}`);
+    logger.info(
+      `Created new OIDC user: ${email} with role: ${role} and permissions: ${permissions.join(', ')}`
+    );
   } else {
     const permissions = resolveUserPermissions(email, userinfo);
     const role = resolveUserRole(provider, email, userinfo);
@@ -184,7 +188,9 @@ export const handleOidcUser = async (provider, userinfo) => {
       last_login: new Date(),
     });
 
-    logger.info(`Updated OIDC user: ${email} with role: ${role} and permissions: ${permissions.join(', ')}`);
+    logger.info(
+      `Updated OIDC user: ${email} with role: ${role} and permissions: ${permissions.join(', ')}`
+    );
   }
 
   return user;
