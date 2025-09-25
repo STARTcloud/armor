@@ -233,6 +233,17 @@ export const generateDirectoryListing = (
         return sortOrder === 'asc'
           ? a.mtime.getTime() - b.mtime.getTime()
           : b.mtime.getTime() - a.mtime.getTime();
+      case 'size':
+        if (a.isDirectory && !b.isDirectory) {
+          return -1;
+        }
+        if (!a.isDirectory && b.isDirectory) {
+          return 1;
+        }
+        if (a.isDirectory && b.isDirectory) {
+          return 0;
+        } // Both directories, maintain order
+        return sortOrder === 'asc' ? a.size - b.size : b.size - a.size;
       case 'name':
       default:
         return sortOrder === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
@@ -566,7 +577,17 @@ export const generateDirectoryListing = (
                         </a>
                     </th>
                     <th>Type</th>
-                    <th>Size</th>
+                    <th>
+                        <a href="?sort=size&order=${sortBy === 'size' && sortOrder === 'asc' ? 'desc' : 'asc'}"
+                           class="text-light text-decoration-none">
+                            Size ${(() => {
+                              if (sortBy !== 'size') {
+                                return '';
+                              }
+                              return sortOrder === 'asc' ? '↑' : '↓';
+                            })()}
+                        </a>
+                    </th>
                     <th>
                         <a href="?sort=modified&order=${sortBy === 'modified' && sortOrder === 'asc' ? 'desc' : 'asc'}"
                            class="text-light text-decoration-none">
