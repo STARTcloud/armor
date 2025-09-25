@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/STARTcloud/armor_private/compare/v1.1.2...v1.2.0) (2025-09-25)
+
+
+### Features
+
+* optimize database transactions for checksum processing ([89e9398](https://github.com/STARTcloud/armor_private/commit/89e939830768d7f076734517cd752c9060b1784c))
+
 ## [1.1.2](https://github.com/STARTcloud/armor_private/compare/v1.1.1...v1.1.2) (2025-09-25)
 
 
