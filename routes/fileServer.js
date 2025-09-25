@@ -286,7 +286,7 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
             </button>
             <div class="d-flex align-items-center gap-2">
                 <div class="input-group" style="width: 300px;">
-                    <input type="text" class="form-control" id="searchInput" placeholder="Search API keys...">
+                    <input type="text" class="form-control bg-dark text-light border-secondary" id="searchInput" placeholder="Search API keys...">
                     <button type="button" class="btn btn-outline-light" id="searchButton" title="Search">
                         <i class="bi bi-search"></i>
                     </button>
@@ -297,19 +297,12 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
             </div>
         </div>
 
-        <div class="card bg-dark border-0">
-            <div class="card-header border-0">
-                <h5 class="mb-0">Your API Keys</h5>
-            </div>
-            <div class="card-body">
-                <div id="apiKeysTable">
-                    <div class="text-center py-4">
-                        <div class="spinner-border text-success" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="mt-2 text-muted">Loading API keys...</p>
-                    </div>
+        <div id="apiKeysTable">
+            <div class="text-center py-4">
+                <div class="spinner-border text-success" role="status">
+                    <span class="visually-hidden">Loading...</span>
                 </div>
+                <p class="mt-2 text-muted">Loading API keys...</p>
             </div>
         </div>
 
@@ -325,7 +318,7 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
                         <form id="createKeyForm">
                             <div class="mb-3">
                                 <label for="keyName" class="form-label">Key Name</label>
-                                <input type="text" class="form-control" id="keyName" placeholder="e.g., CI Pipeline, Mobile App" required>
+                                <input type="text" class="form-control bg-dark text-light border-secondary" id="keyName" placeholder="e.g., CI Pipeline, Mobile App" required>
                                 <small class="form-text text-muted">Choose a descriptive name to identify this key</small>
                             </div>
                             <div class="mb-3">

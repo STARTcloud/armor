@@ -516,7 +516,7 @@ export const generateDirectoryListing = (
                         <form id="createFolderForm">
                             <div class="mb-3">
                                 <label for="folderNameInput" class="form-label text-light">Folder Name</label>
-                                <input type="text" class="form-control" id="folderNameInput" placeholder="Enter folder name" required>
+                                <input type="text" class="form-control bg-dark text-light border-secondary" id="folderNameInput" placeholder="Enter folder name" required>
                             </div>
                         </form>
                     </div>
@@ -540,7 +540,7 @@ export const generateDirectoryListing = (
                         <form id="renameForm">
                             <div class="mb-3">
                                 <label for="newNameInput" class="form-label text-light">New Name</label>
-                                <input type="text" class="form-control" id="newNameInput" placeholder="Enter new name" required>
+                                <input type="text" class="form-control bg-dark text-light border-secondary" id="newNameInput" placeholder="Enter new name" required>
                                 <small class="form-text text-muted">Special characters will be replaced with underscores</small>
                             </div>
                         </form>
