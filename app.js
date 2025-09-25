@@ -25,7 +25,7 @@ const app = express();
 
 const startServer = async () => {
   configLoader.load();
-  
+
   const serverPortConfig = configLoader.getServerConfig();
   const port = process.env.PORT || serverPortConfig.port || 443;
 
