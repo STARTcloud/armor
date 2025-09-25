@@ -262,7 +262,7 @@ export const buildEndSessionUrl = (providerName, postLogoutRedirectUri, state, i
     endSessionEndpoint: config.serverMetadata().end_session_endpoint,
   });
 
-  const endSessionUrl = config.endSessionUrl(endSessionParams);
+  const endSessionUrl = client.buildEndSessionUrl(config, endSessionParams);
 
   logger.info('=== GENERATED END SESSION URL ===', {
     provider: providerName,
