@@ -15,20 +15,7 @@ chown -R armor:armor /var/log/armor
 chown -R armor:armor /etc/armor
 
 
-# Generate JWT secret if it doesn't exist
-if [ ! -f /etc/armor/.jwt-secret ]; then
-    openssl rand -hex 32 > /etc/armor/.jwt-secret
-    chown armor:armor /etc/armor/.jwt-secret
-    chmod 600 /etc/armor/.jwt-secret
-    echo "Generated JWT secret in /etc/armor/.jwt-secret"
-fi
-
-# Update config file with actual JWT secret
-if [ -f /etc/armor/.jwt-secret ]; then
-    JWT_SECRET=$(cat /etc/armor/.jwt-secret)
-    sed -i "s/__JWT_SECRET_FROM_FILE__/${JWT_SECRET}/g" /etc/armor/config.yaml
-    echo "Updated config with JWT secret"
-fi
+# Note: JWT secret generation and config migration now handled by Node.js app on startup
 
 # Initialize database directory
 mkdir -p /var/lib/armor/database

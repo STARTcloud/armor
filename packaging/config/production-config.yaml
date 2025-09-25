@@ -1,4 +1,6 @@
 server:
+  config_version:
+    $replace: "1.0.7"
   domain: "local.home.Mydomain.net"
   port: 443
   show_root_index: false
@@ -52,7 +54,7 @@ logging:
   enable_rotation: true
 
 authentication:
-  jwt_secret: "boxvault-secret-example-secret-key-225-3243-dfsa-233"
+  jwt_secret: "__JWT_SECRET_FROM_FILE__"
   jwt_expiration: "24h"
   
   local:

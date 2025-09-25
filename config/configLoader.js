@@ -2,6 +2,7 @@ import fs from 'fs';
 import { join, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 import yaml from 'js-yaml';
+import configMigrator from './configMigrator.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -14,6 +15,12 @@ class ConfigLoader {
   load() {
     if (!this.config) {
       try {
+        // Run config migration first (if needed)
+        const migrationResult = configMigrator.migrate();
+        if (!migrationResult.success) {
+          console.warn('Config migration failed:', migrationResult.error);
+        }
+
         // Check environment variable first (set by systemd)
         const configFiles = [];
 
