@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.0](https://github.com/STARTcloud/armor_private/compare/v1.7.1...v1.8.0) (2025-09-25)
+
+
+### Features
+
+* add local-only logout endpoints for dashboard flexibility ([92b6612](https://github.com/STARTcloud/armor_private/commit/92b6612fa96e3975933014334f3e9fe6cded26ff))
+* add logout buttons to UI dropdown for both RP-initiated and local logout options ([5138935](https://github.com/STARTcloud/armor_private/commit/513893563ca57df2c4f0fd722f6b180a98812fc6))
+
 ## [1.7.1](https://github.com/STARTcloud/armor_private/compare/v1.7.0...v1.7.1) (2025-09-25)
 
 
