@@ -58,7 +58,7 @@ jobs:
 
       - name: Copy application files to Debian package
         run: |
-          cp -r models routes middleware config utils services scripts packaging app.js package.json "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
+          cp -r models routes middleware config utils services packaging app.js package.json "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
           cp -r node_modules "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
           mkdir -p "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/"
           cp -r web/static "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/static"

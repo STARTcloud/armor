@@ -39,7 +39,7 @@ mkdir -p "${PACKAGE_NAME}_${VERSION}_${ARCH}"/{opt/armor,etc/armor,etc/systemd/s
 ### 3. Copy Application Files
 ```bash
 # Application files to /opt/armor (Armor's backend-only structure)
-cp -r models routes middleware config utils services scripts packaging app.js package.json "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
+cp -r models routes middleware config utils services packaging app.js package.json "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
 cp -r node_modules "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
 mkdir -p "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/"
 cp -r web/static "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/static"
