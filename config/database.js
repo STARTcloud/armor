@@ -1,6 +1,6 @@
 import { Sequelize } from 'sequelize';
 import configLoader from './configLoader.js';
-import logger from './logger.js';
+import { databaseLogger } from './logger.js';
 import { initializeFileModel } from '../models/File.js';
 import { initializeUserModel } from '../models/User.js';
 import { initializeApiKeyModel } from '../models/ApiKey.js';
@@ -13,7 +13,7 @@ export const initializeDatabase = async () => {
   sequelize = new Sequelize({
     dialect: dbConfig.dialect,
     storage: dbConfig.storage,
-    logging: dbConfig.logging ? msg => logger.info(msg) : false,
+    logging: dbConfig.logging ? msg => databaseLogger.info(msg) : false,
     define: {
       timestamps: true,
       underscored: true,
@@ -47,18 +47,18 @@ export const initializeDatabase = async () => {
 
   try {
     await sequelize.authenticate();
-    logger.info('Database connection established successfully');
+    databaseLogger.info('Database connection established successfully');
 
     initializeFileModel(sequelize);
     initializeUserModel(sequelize);
     initializeApiKeyModel(sequelize);
 
     await sequelize.sync({ alter: false });
-    logger.info('Database synchronized');
+    databaseLogger.info('Database synchronized');
 
     return sequelize;
   } catch (error) {
-    logger.error(`Unable to connect to database: ${error.message}`);
+    databaseLogger.error(`Unable to connect to database: ${error.message}`);
     throw error;
   }
 };

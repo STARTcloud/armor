@@ -1,17 +1,14 @@
 import winston from 'winston';
 import morgan from 'morgan';
-import { promises as fs, existsSync } from 'fs';
+import { promises as fs, existsSync, mkdirSync, renameSync } from 'fs';
 import { join, dirname } from 'path';
+import configLoader from './configLoader.js';
 
-let loggingConfig = {
-  log_directory: '/var/log/armor',
-  log_level: 'info',
-  max_file_size_mb: 10,
-  max_files: 5,
-  enable_rotation: true,
-};
+// Load config and logging configuration immediately
+configLoader.load();
+const loggingConfig = configLoader.getLoggingConfig();
 
-// Simple log rotation function
+// Daily log rotation function
 const rotateLogFile = async (filePath, maxFiles) => {
   try {
     const archiveDir = join(dirname(filePath), 'archive');
@@ -20,58 +17,55 @@ const rotateLogFile = async (filePath, maxFiles) => {
     try {
       await fs.mkdir(archiveDir, { recursive: true });
     } catch (error) {
-      console.error(`Cannot create archive directory ${archiveDir}: ${error.message}`);
       return;
     }
 
     const baseName = filePath.split('/').pop();
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const archiveName = `${baseName}.${today}`;
 
-    // Move existing numbered files using Promise.all for performance
-    const movePromises = [];
-    for (let i = maxFiles - 1; i >= 1; i--) {
-      const oldFile = join(archiveDir, `${baseName}.${i}`);
-      const newFile = join(archiveDir, `${baseName}.${i + 1}`);
+    // Move current file to archive with date
+    if (existsSync(filePath)) {
+      await fs.rename(filePath, join(archiveDir, archiveName));
+    }
 
-      if (existsSync(oldFile)) {
-        if (i === maxFiles - 1) {
-          // Delete the oldest file
-          movePromises.push(fs.unlink(oldFile));
-        } else {
-          // Move file to next number
-          movePromises.push(fs.rename(oldFile, newFile));
-        }
+    // Clean up old archives (keep only max_files days)
+    const archiveFiles = await fs.readdir(archiveDir);
+    const logArchives = archiveFiles
+      .filter(file => file.startsWith(baseName))
+      .sort()
+      .reverse();
+
+    if (logArchives.length > maxFiles) {
+      const filesToDelete = logArchives.slice(maxFiles);
+      for (const file of filesToDelete) {
+        await fs.unlink(join(archiveDir, file));
       }
     }
-    await Promise.all(movePromises);
-
-    // Move current file to .1
-    if (existsSync(filePath)) {
-      await fs.rename(filePath, join(archiveDir, `${baseName}.1`));
-    }
   } catch (error) {
-    console.error(`Log rotation failed for ${filePath}: ${error.message}`);
+    // Cannot use console.error - rotation failure is silent
   }
 };
 
-// Custom winston transport with rotation
-class RotatingFileTransport extends winston.transports.File {
+// Custom winston transport with daily rotation
+class DailyRotatingFileTransport extends winston.transports.File {
   constructor(options) {
     super(options);
-    this.maxSize = (options.maxSize || 10) * 1024 * 1024; // Convert MB to bytes
     this.maxFiles = options.maxFiles || 5;
+    this.lastRotateDate = null;
   }
 
   async write(info, callback) {
     try {
-      // Check if file needs rotation
-      if (existsSync(this.filename)) {
-        const stats = await fs.stat(this.filename);
-        if (stats.size >= this.maxSize) {
-          await rotateLogFile(this.filename, this.maxFiles);
-        }
+      const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      
+      // Check if we need to rotate (new day)
+      if (this.lastRotateDate !== currentDate && existsSync(this.filename)) {
+        await rotateLogFile(this.filename, this.maxFiles);
+        this.lastRotateDate = currentDate;
       }
     } catch (error) {
-      console.error(`Error checking log file size: ${error.message}`);
+      // No console.error - just continue
     }
 
     // Call parent write method
@@ -79,92 +73,120 @@ class RotatingFileTransport extends winston.transports.File {
   }
 }
 
-// Initialize logger with default config (will be updated later)
-const createLoggerTransports = async config => {
-  const transports = [
-    new winston.transports.Console({
-      format: winston.format.simple(),
-    }),
-  ];
 
-  try {
-    // Ensure log directory exists
-    const logDir = config.log_directory;
-    if (!existsSync(logDir)) {
-      await fs.mkdir(logDir, { recursive: true });
+// Initialize logger with file transports immediately using loaded config
+const transports = [
+  new winston.transports.Console({
+    format: winston.format.simple(),
+  }),
+];
+
+// Rotate existing logs on startup
+const rotateLogsOnStartup = async (logDir) => {
+  const logFiles = ['app.log', 'access.log', 'database.log', 'error.log'];
+  
+  for (const logFile of logFiles) {
+    const logPath = join(logDir, logFile);
+    if (existsSync(logPath)) {
+      await rotateLogFile(logPath, loggingConfig.max_files);
     }
-
-    // App log (general application logs)
-    transports.push(
-      new RotatingFileTransport({
-        filename: join(logDir, 'app.log'),
-        format: winston.format.json(),
-        maxSize: config.max_file_size_mb,
-        maxFiles: config.max_files,
-      })
-    );
-
-    // Access log (HTTP requests)
-    transports.push(
-      new RotatingFileTransport({
-        filename: join(logDir, 'access.log'),
-        format: winston.format.json(),
-        level: 'info',
-        maxSize: config.max_file_size_mb,
-        maxFiles: config.max_files,
-      })
-    );
-
-    // Error log (errors only)
-    transports.push(
-      new RotatingFileTransport({
-        filename: join(logDir, 'error.log'),
-        format: winston.format.json(),
-        level: 'error',
-        maxSize: config.max_file_size_mb,
-        maxFiles: config.max_files,
-      })
-    );
-
-    console.log(`Logging configured: ${logDir} with rotation enabled`);
-  } catch (error) {
-    console.error(`Cannot setup file logging to ${config.log_directory}: ${error.message}`);
-    console.error('Continuing with console-only logging');
   }
-
-  return transports;
 };
 
+// Rotate logs synchronously BEFORE creating transports
+const logDir = loggingConfig.log_directory;
+
+try {
+  // Ensure log directory exists synchronously
+  if (!existsSync(logDir)) {
+    mkdirSync(logDir, { recursive: true });
+  }
+
+  // Rotate existing logs synchronously before creating new transports
+  const logFiles = ['app.log', 'access.log', 'database.log', 'error.log'];
+  for (const logFile of logFiles) {
+    const logPath = join(logDir, logFile);
+    if (existsSync(logPath)) {
+      try {
+        const archiveDir = join(logDir, 'archive');
+        if (!existsSync(archiveDir)) {
+          mkdirSync(archiveDir, { recursive: true });
+        }
+        
+        const today = new Date().toISOString().split('T')[0];
+        const archiveName = `${logFile}.${today}`;
+        
+        renameSync(logPath, join(archiveDir, archiveName));
+      } catch (error) {
+        // Silent failure
+      }
+    }
+  }
+
+  // Add app.log and error.log (access.log is separate)  
+  transports.push(
+    new DailyRotatingFileTransport({
+      filename: join(logDir, 'app.log'),
+      format: winston.format.json(),
+      maxFiles: loggingConfig.max_files,
+    }),
+    new DailyRotatingFileTransport({
+      filename: join(logDir, 'error.log'),
+      format: winston.format.json(),
+      level: 'error',
+      maxFiles: loggingConfig.max_files,
+    })
+  );
+
+} catch (error) {
+  // Cannot use console.error - continuing with console-only logging
+}
+
+// Create separate loggers for different categories
 const logger = winston.createLogger({
   level: loggingConfig.log_level,
   format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+  transports,
+});
+
+// Separate access logger for HTTP requests only
+const accessLogger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
   transports: [
-    new winston.transports.Console({
-      format: winston.format.simple(),
-    }),
+    new DailyRotatingFileTransport({
+      filename: join(loggingConfig.log_directory, 'access.log'),
+      format: winston.format.json(),
+      level: 'info',
+      maxFiles: loggingConfig.max_files,
+    })
   ],
 });
 
-// Function to update logger configuration after config is loaded
-export const updateLoggerConfig = async newConfig => {
-  loggingConfig = { ...loggingConfig, ...newConfig };
+// Separate database logger for database operations
+const databaseLogger = winston.createLogger({
+  level: loggingConfig.log_level,
+  format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+  transports: [
+    new DailyRotatingFileTransport({
+      filename: join(loggingConfig.log_directory, 'database.log'),
+      format: winston.format.json(),
+      maxFiles: loggingConfig.max_files,
+    })
+  ],
+});
 
-  // Clear existing transports except console
-  logger.clear();
-
-  // Add new transports
-  const newTransports = await createLoggerTransports(loggingConfig);
-  newTransports.forEach(transport => logger.add(transport));
-
-  logger.info('Logger configuration updated', loggingConfig);
-};
+// Initialize log files with startup entries
+logger.info('Application logger initialized');
+accessLogger.info('Access logger initialized');
+databaseLogger.info('Database logger initialized');
 
 export const logAccess = (req, action, details = '') => {
   const timestamp = new Date().toISOString();
   const ip = req.ip || req.connection.remoteAddress;
   const path = decodeURIComponent(req.path);
 
-  logger.info('ACCESS_LOG', {
+  accessLogger.info('ACCESS_LOG', {
     timestamp,
     ip,
     action,
@@ -175,9 +197,9 @@ export const logAccess = (req, action, details = '') => {
 
 export const morganMiddleware = morgan('combined', {
   stream: {
-    write: message => logger.info(message.trim()),
+    write: message => accessLogger.info(message.trim()),
   },
 });
 
-export { logger };
+export { logger, databaseLogger };
 export default logger;
