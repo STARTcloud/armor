@@ -112,6 +112,7 @@ const startServer = async () => {
   app.get('/api/user-api-keys', async (req, res) => {
     try {
       let userApiKeys = [];
+      let userPermissions = [];
       const swaggerConfig = configLoader.getSwaggerConfig();
 
       if (req.cookies?.auth_token) {
@@ -119,6 +120,8 @@ const startServer = async () => {
           const jwt = await import('jsonwebtoken');
           const authConfigForJWT = configLoader.getAuthenticationConfig();
           const decoded = jwt.default.verify(req.cookies.auth_token, authConfigForJWT.jwt_secret);
+
+          userPermissions = decoded.permissions || [];
 
           if (decoded) {
             const ApiKey = getApiKeyModel();
@@ -164,6 +167,7 @@ const startServer = async () => {
       res.json({
         success: true,
         api_keys: userApiKeys,
+        user_permissions: userPermissions,
         swagger_config: {
           allow_full_key_retrieval: swaggerConfig.allow_full_key_retrieval,
           allow_temp_key_generation: swaggerConfig.allow_temp_key_generation,

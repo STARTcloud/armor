@@ -454,16 +454,10 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Get user permissions from their existing keys or default to downloads only
-                        let userHasUploads = false;
-                        let userHasDelete = false;
-                        
-                        if (data.api_keys && data.api_keys.length > 0) {
-                            // Check what permissions user's existing keys have
-                            const allPermissions = data.api_keys.flatMap(key => key.permissions);
-                            userHasUploads = allPermissions.includes('uploads');
-                            userHasDelete = allPermissions.includes('delete');
-                        }
+                        // Check user's actual permissions from JWT token
+                        const userPermissions = data.user_permissions || [];
+                        const userHasUploads = userPermissions.includes('uploads');
+                        const userHasDelete = userPermissions.includes('delete');
                         
                         checkboxes.forEach(checkbox => {
                             const permission = checkbox.value;
