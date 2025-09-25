@@ -143,11 +143,21 @@ export const generateLoginPage = (errorMessage = '', config = {}) => {
         }
 
         // Load available auth methods and show OIDC options
-        fetch('/auth/methods')
+        const oidcProvider = '${config.oidcProvider || ''}';
+        const authMethod = '${config.authMethod || ''}';
+        
+        let authMethodsUrl = '/auth/methods';
+        const params = new URLSearchParams();
+        if (oidcProvider) params.append('oidc_provider', oidcProvider);
+        if (authMethod) params.append('auth_method', authMethod);
+        if (params.toString()) authMethodsUrl += '?' + params.toString();
+        
+        fetch(authMethodsUrl)
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.methods) {
                     let hasOidc = false;
+                    let hasBasic = false;
                     const oidcContainer = document.getElementById('oidc-providers');
                     
                     data.methods.forEach(method => {
@@ -168,11 +178,23 @@ export const generateLoginPage = (errorMessage = '', config = {}) => {
                             buttonElement.innerHTML = '<i class="bi bi-shield-lock"></i> ' + method.name;
                             
                             oidcContainer.appendChild(buttonElement);
+                        } else if (method.id === 'basic' && method.enabled) {
+                            hasBasic = true;
                         }
                     });
                     
+                    const basicAuthForm = document.getElementById('basicAuthForm');
+                    if (hasBasic) {
+                        basicAuthForm.style.display = 'block';
+                    } else {
+                        basicAuthForm.style.display = 'none';
+                    }
+                    
                     if (hasOidc) {
                         document.getElementById('oidc-providers').style.display = 'block';
+                    }
+                    
+                    if (hasOidc && hasBasic) {
                         document.getElementById('auth-divider').style.display = 'block';
                     }
                 }
