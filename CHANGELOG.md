@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.6.0](https://github.com/STARTcloud/armor_private/compare/v1.5.0...v1.6.0) (2025-09-25)
+
+
+### Features
+
+* add uniform header to Swagger API documentation page ([49939a3](https://github.com/STARTcloud/armor_private/commit/49939a35222d9b236e259bb31c84c23b7b158c53))
+* add upload section toggle and improve API Keys page UI ([08d8063](https://github.com/STARTcloud/armor_private/commit/08d80638bcaad3a4150d4545260bb319e9ae0fa4))
+* add upload section toggle and improve API Keys page UI ([eb8e3d9](https://github.com/STARTcloud/armor_private/commit/eb8e3d9a74e54378155c2a9203e37d93623b207b))
+
+
+### Bug Fixes
+
+* change upload toggle button to blue and match search input styling ([5f968e7](https://github.com/STARTcloud/armor_private/commit/5f968e714c2cb76f96f52c7e2b88bd903e93fd3f))
+
 ## [1.5.0](https://github.com/STARTcloud/armor_private/compare/v1.4.1...v1.5.0) (2025-09-25)
 
 
