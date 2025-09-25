@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1](https://github.com/STARTcloud/armor_private/compare/v1.1.0...v1.1.1) (2025-09-25)
+
+
+### Bug Fixes
+
+* allow JSON API access to root directory when show_root_index is false ([9374a0e](https://github.com/STARTcloud/armor_private/commit/9374a0ea9cdfdae174c58a316f0f66d602d671f8))
+* allow JSON API access to root directory when show_root_index is false ([2b6d47f](https://github.com/STARTcloud/armor_private/commit/2b6d47f98d897baf630537aef34948a1c0308968))
+
 ## [1.1.0](https://github.com/STARTcloud/armor_private/compare/v1.0.15...v1.1.0) (2025-09-25)
 
 
