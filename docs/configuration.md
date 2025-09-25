@@ -136,6 +136,7 @@ For Google, Microsoft, or other OIDC authentication:
 ```yaml
 authentication:
   oidc_global_hidden: false           # Hide all OIDC providers by default
+  basic_auth_hidden: false            # Hide basic authentication by default
   oidc_providers:
     google:
       enabled: true
@@ -148,6 +149,8 @@ authentication:
 ```
 
 **Provider Hiding**: Use `hidden: true` on individual providers or `oidc_global_hidden: true` to hide all providers. Hidden providers can be shown by accessing `/login?oidc_provider=providername`.
+
+**Basic Auth Hiding**: Use `basic_auth_hidden: true` to hide the username/password form by default. Hidden basic auth can be shown by accessing `/login?auth_method=basic`.
 
 **Note**: For RP-initiated logout support, the post-logout redirect URI is automatically built from your server configuration as `https://domain:port/login?logout=success`. You must configure this exact URI in your OIDC provider's "Post logout redirect URI(s)" field.
 

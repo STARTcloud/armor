@@ -56,6 +56,7 @@ authentication:
   jwt_secret: "__JWT_SECRET_FROM_FILE__"
   jwt_expiration: "24h"
   oidc_global_hidden: false  # Set to true to hide all OIDC providers by default
+  basic_auth_hidden: false   # Set to true to hide basic authentication by default
   
   local:
     users:

@@ -24,6 +24,7 @@ router.get('/login', (req, res) => {
   const errorParam = req.query.error;
   const logoutParam = req.query.logout;
   const oidcProviderParam = req.query.oidc_provider;
+  const authMethodParam = req.query.auth_method;
   let errorMessage = '';
 
   if (logoutParam === 'success') {
@@ -73,6 +74,7 @@ router.get('/login', (req, res) => {
     primaryColor: serverConfig.login_primary_color || '#198754', // Use Armor green
     packageInfo,
     oidcProvider: oidcProviderParam,
+    authMethod: authMethodParam,
   };
 
   const html = generateLoginPage(errorMessage, loginConfig);
@@ -125,14 +127,20 @@ router.get('/auth/methods', (req, res) => {
   try {
     const authConfig = configLoader.getAuthenticationConfig();
     const oidcProviderParam = req.query.oidc_provider;
+    const authMethodParam = req.query.auth_method;
 
-    const methods = [
-      {
+    const methods = [];
+
+    const isBasicHidden = authConfig.basic_auth_hidden || false;
+    const shouldShowBasic = authMethodParam === 'basic' || !isBasicHidden;
+
+    if (shouldShowBasic) {
+      methods.push({
         id: 'basic',
         name: 'Username/Password',
         enabled: true,
-      },
-    ];
+      });
+    }
 
     const oidcProviders = authConfig.oidc_providers || {};
     const isGloballyHidden = authConfig.oidc_global_hidden || false;

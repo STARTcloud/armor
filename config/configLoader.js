@@ -123,6 +123,7 @@ class ConfigLoader {
         jwt_expiration: '24h',
         oidc_providers: {},
         oidc_global_hidden: false,
+        basic_auth_hidden: false,
         permission_strategy: 'domain_based',
         domain_mappings: {
           downloads: ['*'],
