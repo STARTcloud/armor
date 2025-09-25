@@ -121,6 +121,9 @@ class ConfigMigrator {
       // Handle JWT secret generation/preservation
       this.handleJWTSecret(merged);
 
+      // Handle config version update (json-merger doesn't process $import)
+      this.updateConfigVersion(merged);
+
       // Write merged result back to user config
       this.ensureConfigDirectory();
       fs.writeFileSync(
@@ -135,6 +138,25 @@ class ConfigMigrator {
       return { merged: true };
     } catch (error) {
       throw new Error(`Config merge failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update config version to match app version
+   */
+  updateConfigVersion(config) {
+    try {
+      const packageData = JSON.parse(fs.readFileSync(this.packagePath, 'utf8'));
+      const appVersion = packageData.version;
+      
+      if (!config.server) {
+        config.server = {};
+      }
+      
+      config.server.config_version = appVersion;
+      console.log(`Updated config_version to ${appVersion}`);
+    } catch (error) {
+      console.warn('Failed to update config version:', error.message);
     }
   }
 
