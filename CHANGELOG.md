@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/STARTcloud/armor_private/compare/v1.1.1...v1.1.2) (2025-09-25)
+
+
+### Bug Fixes
+
+* preserve checksum status in cacheItemInfoWithStats to prevent unnecessary recalculation on restart ([a0e9a6c](https://github.com/STARTcloud/armor_private/commit/a0e9a6cd65d14eb6b3d925cf26989d043ece4a9e))
+
 ## [1.1.1](https://github.com/STARTcloud/armor_private/compare/v1.1.0...v1.1.1) (2025-09-25)
 
 
