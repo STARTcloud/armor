@@ -51,11 +51,12 @@ export const getSecuredSiteMessage = (config = {}, userInfo = null) => {
 <body>
     <div class="landing-card">
         <div class="shield-icon">
-            ${isAdmin ? 
-                `<a href="/?view=index" style="color: inherit; text-decoration: none;">
+            ${
+              isAdmin
+                ? `<a href="/?view=index" style="color: inherit; text-decoration: none;">
                     ${iconUrl ? `<img src="${iconUrl}" alt="${title}" height="64">` : `<i class="${iconClass}"></i>`}
-                </a>` :
-                `${iconUrl ? `<img src="${iconUrl}" alt="${title}" height="64">` : `<i class="${iconClass}"></i>`}`
+                </a>`
+                : `${iconUrl ? `<img src="${iconUrl}" alt="${title}" height="64">` : `<i class="${iconClass}"></i>`}`
             }
         </div>
         <h1 class="display-4 mb-4">${title}</h1>

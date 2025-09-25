@@ -51,7 +51,8 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
     logAccess(req, 'ACCESS_DENIED', 'directory not in allowed list');
     const landingConfig = createLandingConfig();
     landingConfig.packageInfo = configLoader.getPackageInfo();
-    const userInfo = req.oidcUser || (uploadCredentials ? { username: uploadCredentials.name } : null);
+    const userInfo =
+      req.oidcUser || (uploadCredentials ? { username: uploadCredentials.name } : null);
     return res.send(getSecuredSiteMessage(landingConfig, userInfo));
   }
 
@@ -92,7 +93,8 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
     logAccess(req, 'LANDING_PAGE', 'showing secured site message');
     const landingConfig = createLandingConfig();
     landingConfig.packageInfo = configLoader.getPackageInfo();
-    const userInfo = req.oidcUser || (uploadCredentials ? { username: uploadCredentials.name } : null);
+    const userInfo =
+      req.oidcUser || (uploadCredentials ? { username: uploadCredentials.name } : null);
     return res.send(getSecuredSiteMessage(landingConfig, userInfo));
   }
 
