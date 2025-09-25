@@ -51,6 +51,14 @@ export const initializeFileModel = sequelize => {
         {
           fields: ['is_directory'],
         },
+        {
+          fields: ['file_path', 'checksum_sha256'],
+          name: 'idx_file_search',
+        },
+        {
+          fields: ['file_path', 'is_directory', 'last_modified'],
+          name: 'idx_directory_listing',
+        },
       ],
     }
   );

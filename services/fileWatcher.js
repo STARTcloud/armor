@@ -7,6 +7,8 @@ import { getFileModel } from '../models/File.js';
 import { sendChecksumUpdate } from '../routes/sse.js';
 import { fileWatcherLogger as logger } from '../config/logger.js';
 import configLoader from '../config/configLoader.js';
+import { getDatabase } from '../config/database.js';
+import cacheService from './cacheService.js';
 
 class FileWatcherService {
   constructor(watchPath) {
@@ -258,18 +260,21 @@ class FileWatcherService {
 
     this.watcher.on('change', (filePath, stats) => {
       logger.info(`File changed: ${filePath}`);
+      cacheService.invalidate(dirname(filePath));
       // Use stats from chokidar instead of doing our own fs.stat
       this.scheduleFileProcessingWithStats(filePath, stats);
     });
 
     this.watcher.on('add', (filePath, stats) => {
       logger.info(`File added: ${filePath}`);
+      cacheService.invalidate(dirname(filePath));
       // Use stats from chokidar instead of doing our own fs.stat
       this.scheduleFileProcessingWithStats(filePath, stats);
     });
 
     this.watcher.on('unlink', filePath => {
       logger.info(`File deleted: ${filePath}`);
+      cacheService.invalidate(dirname(filePath));
       const File = getFileModel();
       File.destroy({ where: { file_path: filePath } });
     });
@@ -330,7 +335,7 @@ class FileWatcherService {
   // Process checksum with timeout monitoring
   async processChecksumWithTimeout(itemPath) {
     const File = getFileModel();
-    const { sequelize } = await import('../config/database.js');
+    const sequelize = getDatabase();
     const startTime = Date.now();
 
     try {
@@ -402,6 +407,13 @@ class FileWatcherService {
   async getCachedDirectoryItems(dirPath) {
     try {
       const cleanDirPath = dirPath.endsWith('/') ? dirPath.slice(0, -1) : dirPath;
+      const cacheKey = `dir:${cleanDirPath}`;
+
+      const cached = cacheService.get(cacheKey);
+      if (cached) {
+        logger.info(`Cache hit for directory: ${cleanDirPath}`);
+        return cached;
+      }
 
       const File = getFileModel();
       const files = await File.findAll({
@@ -427,6 +439,9 @@ class FileWatcherService {
       }));
 
       logger.info(`Found ${items.length} items in database for ${dirPath}`);
+
+      cacheService.set(cacheKey, items);
+
       return items;
     } catch (error) {
       logger.error(`Error querying database for directory ${dirPath}: ${error.message}`);

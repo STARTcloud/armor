@@ -898,7 +898,7 @@ router.put('*splat', authenticateUploads, async (req, res, next) => {
  */
 router.post('*splat/search', authenticateDownloads, async (req, res) => {
   try {
-    const { query: searchQuery } = req.body;
+    const { query: searchQuery, page = 1, limit = 100 } = req.body;
 
     if (!searchQuery || searchQuery.trim() === '') {
       return res.status(400).json({
@@ -909,35 +909,46 @@ router.post('*splat/search', authenticateDownloads, async (req, res) => {
 
     const requestPath = decodeURIComponent(req.path.replace('/search', ''));
     const currentDir = getSecurePath(requestPath);
+    const pageNum = Math.max(1, parseInt(page));
+    const pageLimit = Math.min(parseInt(limit), 1000);
+    const offset = (pageNum - 1) * pageLimit;
 
     const { getFileModel } = await import('../models/File.js');
     const File = getFileModel();
 
-    const searchResults = await File.findAll({
-      where: {
-        [Op.and]: [
-          {
-            file_path: {
-              [Op.like]: `${currentDir}%`,
+    const searchConditions = {
+      [Op.and]: [
+        {
+          file_path: {
+            [Op.like]: `${currentDir}%`,
+          },
+        },
+        {
+          [Op.or]: [
+            {
+              file_path: {
+                [Op.like]: `%${searchQuery}%`,
+              },
             },
-          },
-          {
-            [Op.or]: [
-              {
-                file_path: {
-                  [Op.like]: `%${searchQuery}%`,
-                },
+            {
+              checksum_sha256: {
+                [Op.like]: `%${searchQuery}%`,
               },
-              {
-                checksum_sha256: {
-                  [Op.like]: `%${searchQuery}%`,
-                },
-              },
-            ],
-          },
-        ],
-      },
-      limit: 1000,
+            },
+          ],
+        },
+      ],
+    };
+
+    const totalCount = await File.count({
+      where: searchConditions,
+    });
+
+    const searchResults = await File.findAll({
+      where: searchConditions,
+      limit: pageLimit,
+      offset,
+      order: [['last_modified', 'DESC']],
       raw: true,
     });
 
@@ -950,13 +961,24 @@ router.post('*splat/search', authenticateDownloads, async (req, res) => {
       isDirectory: file.is_directory,
     }));
 
-    logAccess(req, 'SEARCH', `query: "${searchQuery}", results: ${results.length}`);
+    logAccess(
+      req,
+      'SEARCH',
+      `query: "${searchQuery}", results: ${results.length}, page: ${pageNum}`
+    );
 
     return res.json({
       success: true,
       query: searchQuery,
       results,
-      total: results.length,
+      pagination: {
+        page: pageNum,
+        limit: pageLimit,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / pageLimit),
+        hasNext: pageNum * pageLimit < totalCount,
+        hasPrev: pageNum > 1,
+      },
     });
   } catch (error) {
     logger.error('Search error', { error: error.message });
