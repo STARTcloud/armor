@@ -78,9 +78,6 @@ jobs:
           mkdir -p "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/"
           cp -r web/static "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/static"
 
-          # Configuration files
-          cp packaging/config/production-config.yaml "${PACKAGE_NAME}_${VERSION}_${ARCH}/etc/armor/config.yaml"
-
           # Systemd service
           cp packaging/DEBIAN/systemd/armor.service "${PACKAGE_NAME}_${VERSION}_${ARCH}/etc/systemd/system/"
 

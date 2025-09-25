@@ -61,8 +61,8 @@ Thumbs.db
 *.temp
 
 # Skip specific scripts
-scripts/sync-versions.js
-scripts/generate-docs.js
+packaging/scripts/sync-versions.js
+packaging/scripts/generate-docs.js
 
 # SQLite files
 *.sqlite

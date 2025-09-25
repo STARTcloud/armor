@@ -7,11 +7,6 @@
       "package-name": "armor",
       "include-component-in-tag": false,
       "extra-files": [
-        {
-          "type": "json",
-          "path": "web/package.json",
-          "jsonpath": "$.version"
-        },
         "app.js",
         "config/swagger.js",
         "packaging/config/version.yaml",

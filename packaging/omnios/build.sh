@@ -124,7 +124,6 @@ install_app() {
     # Install configuration
     logmsg "Installing configuration files"
     logcmd mkdir -p etc/armor
-    logcmd cp $SRCDIR/packaging/config/production-config.yaml etc/armor/config.yaml
 
     # Create data and log directories
     logcmd mkdir -p var/lib/armor
