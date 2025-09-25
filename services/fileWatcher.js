@@ -330,47 +330,53 @@ class FileWatcherService {
   // Process checksum with timeout monitoring
   async processChecksumWithTimeout(itemPath) {
     const File = getFileModel();
+    const { sequelize } = await import('../config/database.js');
     const startTime = Date.now();
 
     try {
       logger.info(`Starting checksum generation for: ${itemPath}`);
 
-      await File.update({ checksum_status: 'generating' }, { where: { file_path: itemPath } });
+      let checksum;
+      await sequelize.transaction(async t => {
+        await File.update(
+          { checksum_status: 'generating' },
+          { where: { file_path: itemPath }, transaction: t }
+        );
 
-      logger.info(`Starting checksum calculation for: ${itemPath}`);
+        logger.info(`Starting checksum calculation for: ${itemPath}`);
 
-      // Add timeout warning (but don't skip file)
-      const timeoutWarning = setTimeout(() => {
+        const timeoutWarning = setTimeout(() => {
+          const elapsed = Math.round((Date.now() - startTime) / 1000);
+          logger.warn(`Checksum taking longer than expected for ${itemPath} (${elapsed}s elapsed)`);
+        }, this.config.checksum_timeout_ms);
+
+        checksum = await this.calculateChecksum(itemPath);
+        clearTimeout(timeoutWarning);
+
         const elapsed = Math.round((Date.now() - startTime) / 1000);
-        logger.warn(`Checksum taking longer than expected for ${itemPath} (${elapsed}s elapsed)`);
-      }, this.config.checksum_timeout_ms);
+        logger.info(`Checksum calculation completed for: ${itemPath} (${elapsed}s)`);
 
-      const checksum = await this.calculateChecksum(itemPath);
-      clearTimeout(timeoutWarning);
+        logger.info(`Updating database with checksum for: ${itemPath}`);
+        const updateResult = await File.update(
+          {
+            checksum_sha256: checksum,
+            checksum_status: 'complete',
+            checksum_generated_at: new Date(),
+          },
+          {
+            where: { file_path: itemPath },
+            returning: true,
+            transaction: t,
+          }
+        );
 
-      const elapsed = Math.round((Date.now() - startTime) / 1000);
-      logger.info(`Checksum calculation completed for: ${itemPath} (${elapsed}s)`);
-
-      logger.info(`Updating database with checksum for: ${itemPath}`);
-      const updateResult = await File.update(
-        {
-          checksum_sha256: checksum,
-          checksum_status: 'complete',
-          checksum_generated_at: new Date(),
-        },
-        {
-          where: { file_path: itemPath },
-          returning: true,
+        if (updateResult[0] === 0) {
+          logger.error(`Database update failed for: ${itemPath} - no rows affected`);
+        } else {
+          logger.info(`Database updated with checksum for: ${itemPath} (${updateResult[0]} rows)`);
         }
-      );
+      });
 
-      if (updateResult[0] === 0) {
-        logger.error(`Database update failed for: ${itemPath} - no rows affected`);
-      } else {
-        logger.info(`Database updated with checksum for: ${itemPath} (${updateResult[0]} rows)`);
-      }
-
-      // Get file stats for SSE update
       logger.info(`Getting file stats for SSE update: ${itemPath}`);
       const stats = await fs.stat(itemPath);
 
