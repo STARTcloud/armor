@@ -7,6 +7,7 @@ import { getFileModel } from '../models/File.js';
 import { sendChecksumUpdate } from '../routes/sse.js';
 import { fileWatcherLogger as logger } from '../config/logger.js';
 import configLoader from '../config/configLoader.js';
+import { getDatabase } from '../config/database.js';
 
 class FileWatcherService {
   constructor(watchPath) {
@@ -330,7 +331,7 @@ class FileWatcherService {
   // Process checksum with timeout monitoring
   async processChecksumWithTimeout(itemPath) {
     const File = getFileModel();
-    const { sequelize } = await import('../config/database.js');
+    const sequelize = getDatabase();
     const startTime = Date.now();
 
     try {
