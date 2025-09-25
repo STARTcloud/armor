@@ -148,11 +148,11 @@ class ConfigMigrator {
     try {
       const packageData = JSON.parse(fs.readFileSync(this.packagePath, 'utf8'));
       const appVersion = packageData.version;
-      
+
       if (!config.server) {
         config.server = {};
       }
-      
+
       config.server.config_version = appVersion;
       console.log(`Updated config_version to ${appVersion}`);
     } catch (error) {
