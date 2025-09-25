@@ -74,8 +74,29 @@ export const resolveUserPermissions = (email, userinfo) => {
 
 export const handleOidcUser = async (provider, userinfo) => {
   const User = getUserModel();
-  const { email } = userinfo;
-  const name = userinfo.name || userinfo.given_name || email.split('@')[0];
+  let { email } = userinfo;
+  
+  // Handle Domino Distinguished Name format (CN=name/OU=unit/O=org)
+  if (email && email.startsWith('CN=') && !email.includes('@')) {
+    // Extract CN (Common Name) from Distinguished Name
+    const cnMatch = email.match(/CN=([^/]+)/);
+    const orgMatch = email.match(/O=([^/]+)/);
+    
+    if (cnMatch && orgMatch) {
+      // Create email-like format: henry.doe@moonshinedev.local
+      const userName = cnMatch[1].toLowerCase().replace(/\s+/g, '.');
+      const orgName = orgMatch[1].toLowerCase();
+      email = `${userName}@${orgName}.local`;
+      
+      logger.info('Converted DN to email format', {
+        originalDN: userinfo.email,
+        convertedEmail: email,
+        provider,
+      });
+    }
+  }
+  
+  const name = userinfo.name || userinfo.given_name || userinfo.CN || email.split('@')[0];
   const subject = userinfo.sub;
   const providerKey = `oidc-${provider}`;
 
@@ -124,12 +145,26 @@ export const buildAuthorizationUrl = async (providerName, redirectUri, state, co
 
   const codeChallenge = await client.calculatePKCECodeChallenge(codeVerifier);
 
-  const authUrl = client.buildAuthorizationUrl(config, {
+  const authParams = {
     redirect_uri: redirectUri,
     scope: providerConfig.scope || 'openid profile email',
     state,
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
+  };
+
+  logger.info('=== AUTHORIZATION URL DEBUG ===', {
+    provider: providerName,
+    clientId: providerConfig.client_id,
+    authParams,
+  });
+
+  const authUrl = client.buildAuthorizationUrl(config, authParams);
+
+  logger.info('=== GENERATED AUTHORIZATION URL ===', {
+    provider: providerName,
+    url: authUrl.toString(),
+    clientIdInUrl: authUrl.searchParams.get('client_id'),
   });
 
   return authUrl;
