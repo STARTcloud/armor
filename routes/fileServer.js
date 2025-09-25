@@ -212,6 +212,9 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
             background-color: #212529; 
             color: #fff;
         }
+        body {
+            padding-top: 1.5rem;
+        }
         .table { color: #fff; }
         .table td { vertical-align: middle; }
         .key-preview { font-family: monospace; }
@@ -260,7 +263,7 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
     </style>
 </head>
 <body>
-    <div class="container mt-4">
+    <div class="container">
         <div class="d-flex align-items-center justify-content-between mb-4">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
@@ -293,7 +296,7 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
             </button>
             <div class="d-flex align-items-center gap-2">
                 <div class="input-group" style="width: 300px;">
-                    <input type="text" class="form-control" id="searchInput" placeholder="Search API keys...">
+                    <input type="text" class="form-control bg-dark text-light border-secondary" id="searchInput" placeholder="Search API keys...">
                     <button type="button" class="btn btn-outline-light" id="searchButton" title="Search">
                         <i class="bi bi-search"></i>
                     </button>
@@ -304,19 +307,12 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
             </div>
         </div>
 
-        <div class="card bg-dark border-0">
-            <div class="card-header border-0">
-                <h5 class="mb-0">Your API Keys</h5>
-            </div>
-            <div class="card-body">
-                <div id="apiKeysTable">
-                    <div class="text-center py-4">
-                        <div class="spinner-border text-success" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="mt-2 text-muted">Loading API keys...</p>
-                    </div>
+        <div id="apiKeysTable">
+            <div class="text-center py-4">
+                <div class="spinner-border text-success" role="status">
+                    <span class="visually-hidden">Loading...</span>
                 </div>
+                <p class="mt-2 text-muted">Loading API keys...</p>
             </div>
         </div>
 
@@ -332,7 +328,7 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
                         <form id="createKeyForm">
                             <div class="mb-3">
                                 <label for="keyName" class="form-label">Key Name</label>
-                                <input type="text" class="form-control" id="keyName" placeholder="e.g., CI Pipeline, Mobile App" required>
+                                <input type="text" class="form-control bg-dark text-light border-secondary" id="keyName" placeholder="e.g., CI Pipeline, Mobile App" required>
                                 <small class="form-text text-muted">Choose a descriptive name to identify this key</small>
                             </div>
                             <div class="mb-3">
@@ -487,8 +483,7 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
                     '</tr>';
             });
 
-            const table = '<div class="table-responsive">' +
-                '<table class="table table-dark table-striped">' +
+            const table = '<table class="table table-dark table-striped">' +
                 '<thead>' +
                 '<tr>' +
                 '<th>Name</th>' +
@@ -500,8 +495,7 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
                 '</tr>' +
                 '</thead>' +
                 '<tbody>' + tableRows + '</tbody>' +
-                '</table>' +
-                '</div>';
+                '</table>';
             
             tableContainer.innerHTML = table;
         }
