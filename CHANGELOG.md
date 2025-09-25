@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.4.0](https://github.com/STARTcloud/armor_private/compare/v1.3.2...v1.4.0) (2025-09-25)
+
+
+### Features
+
+* add RP-initiated logout support for OIDC providers ([d4ec7dd](https://github.com/STARTcloud/armor_private/commit/d4ec7dd314001cd70b48f79319fb2c9d1b9acf89))
+* implement RP-initiated logout support for OIDC configurations ([bf996ef](https://github.com/STARTcloud/armor_private/commit/bf996ef265dfcabc236de3267d2b886e526dd890))
+
+
+### Bug Fixes
+
+* correct buildEndSessionUrl API usage for openid-client v6.8.0 ([3705722](https://github.com/STARTcloud/armor_private/commit/37057222df403c34059a85326ae78b9cd6f72190))
+* resolve linting issues in logout error handling ([2dde50f](https://github.com/STARTcloud/armor_private/commit/2dde50ff833be1b970eae6b5fdfe40163528bc2e))
+
 ## [1.3.2](https://github.com/STARTcloud/armor_private/compare/v1.3.1...v1.3.2) (2025-09-25)
 
 
