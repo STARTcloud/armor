@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.3.0](https://github.com/STARTcloud/armor_private/compare/v1.2.0...v1.3.0) (2025-09-25)
+
+
+### Features
+
+* implement comprehensive database optimizations and fix checksum transaction bug ([ea02912](https://github.com/STARTcloud/armor_private/commit/ea02912aaabf456b77167c2cf19ea347fb1b0a85))
+
+
+### Bug Fixes
+
+* correct logging to show actual affected rows instead of undefined ([94da725](https://github.com/STARTcloud/armor_private/commit/94da72522c30815fbb8ab1e2868a067833bba120))
+* resolve checksum transaction error by moving getDatabase import to top of file ([182a26a](https://github.com/STARTcloud/armor_private/commit/182a26ae489ba6a4c5812eea071f9f04e184733b))
+* resolve undefined rows logging issue in checksum processing ([cc638ba](https://github.com/STARTcloud/armor_private/commit/cc638badb3b7c76dff610167f79f2ad19490f9d4))
+* use array destructuring for linting compliance ([916b9f7](https://github.com/STARTcloud/armor_private/commit/916b9f7b41b526e611861151df9a46e651b4cdb1))
+
 ## [1.2.0](https://github.com/STARTcloud/armor_private/compare/v1.1.2...v1.2.0) (2025-09-25)
 
 
