@@ -143,10 +143,9 @@ authentication:
       display_name: "Sign in with Google"
       issuer: "https://accounts.google.com"
       scope: "openid email profile"
-      post_logout_redirect_uris:
-        - "https://your-domain.com/login?logout=success"
-        - "https://your-domain.com/login"
 ```
+
+**Note**: For RP-initiated logout support, the post-logout redirect URI is automatically built from your server configuration as `https://domain:port/login?logout=success`. You must configure this exact URI in your OIDC provider's "Post logout redirect URI(s)" field.
 
 ### SSL Configuration
 
