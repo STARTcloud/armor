@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import * as client from 'openid-client';
 import configLoader from '../config/configLoader.js';
 import { isValidUser, getUserPermissions } from '../utils/auth.js';
-import { logAccess, logger } from '../config/logger.js';
+import { logAccess, authLogger as logger } from '../config/logger.js';
 import { generateLoginPage } from '../utils/loginPage.js';
 import {
   buildAuthorizationUrl,
