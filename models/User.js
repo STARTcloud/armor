@@ -66,9 +66,6 @@ export const initializeUserModel = sequelize => {
         {
           fields: ['email'],
         },
-        {
-          fields: ['permissions'],
-        },
       ],
     }
   );
