@@ -16,7 +16,13 @@ export const initializeUserModel = sequelize => {
         allowNull: false,
         unique: true,
         validate: {
-          isEmail: true,
+          isEmailOrDN(value) {
+            // Allow email format or Distinguished Name format
+            if (value.includes('@') || value.startsWith('CN=')) {
+              return true;
+            }
+            throw new Error('Must be an email address or Distinguished Name');
+          },
         },
       },
       name: {

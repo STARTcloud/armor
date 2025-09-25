@@ -74,13 +74,24 @@ authentication:
       client_id: "XXXXXXXXXXXXXXXXXX-XXXXXXXXXXXXXXXXXXXXXXXX.apps.googleusercontent.com"
       client_secret: "XXXXXXXXX-XXXXXXXXXXXXXXXXX_XXXXXXXXXXXXXX"
       scope: "openid profile email"
+    
+    moonshine:
+      enabled: true
+      color: "#231B3B"
+      display_name: "Sign in with XXXXXX.XXXXX"
+      issuer: "https://XXXX.nomad-1.XXXXXX.XXXX/auth/protocol/oidc"
+      client_id: "xxxxxxxx-downloads"
+      client_secret: "XXXXXXXXXXXXXXXXXXXXXX"
+      scope: "openid profile email"
+      fallback_domain: "xxxxxxxxxx.xxxx"
+      token_endpoint_auth_method: "client_secret_basic"
 
 
   permission_strategy: "domain_based"
   domain_mappings:
     downloads: ["*"]
-    uploads: ["*@Mydomain.net", "*@TheirDomain.cloud"]
-    delete: ["*@Mydomain.net", "*@TheirDomain.cloud"]
+    uploads: ["*@Mydomain.net", "*@TheirDomain.cloud", "O=XxxxxxxxxxxxXXX", "*@xxxxxxxxxx.xxxx"]
+    delete: ["*@Mydomain.net", "*@TheirDomain.cloud", "O=XxxxxxxxxXXX", "*@xxxxxxxxxx.xxxx"]
   
   claims_mappings:
     downloads:
