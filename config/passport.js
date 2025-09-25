@@ -44,7 +44,7 @@ export const resolveUserPermissions = (email, userinfo) => {
 
   if (strategy === 'domain_based') {
     const domainMappings = authConfig.domain_mappings || {};
-    
+
     // Use original email (DN) for permission matching
     const originalEmail = userinfo.email || email;
 
@@ -88,13 +88,13 @@ export const handleOidcUser = async (provider, userinfo) => {
     const authConfig = configLoader.getAuthenticationConfig();
     const providerConfig = authConfig.oidc_providers[provider];
     const fallbackDomain = providerConfig?.fallback_domain;
-    
+
     if (fallbackDomain) {
       const cnMatch = email.match(/CN=(?<name>[^/]+)/);
       if (cnMatch) {
         const userName = cnMatch.groups.name.toLowerCase().replace(/\s+/g, '.');
         email = `${userName}@${fallbackDomain}`;
-        
+
         logger.info('Converted DN to email using fallback_domain', {
           originalDN: userinfo.email,
           convertedEmail: email,
