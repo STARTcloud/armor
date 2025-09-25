@@ -472,13 +472,13 @@ export const generateDirectoryListing = (
                 <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createFolderModal" title="Create Folder">
                     <i class="bi bi-folder-plus"></i>
                 </button>
-                <button type="button" class="btn btn-outline-success" id="toggleUploadSection" title="Show Upload Section">
+                <button type="button" class="btn btn-outline-primary" id="toggleUploadSection" title="Show Upload Section">
                     <i class="bi bi-cloud-upload"></i>
                 </button>
             </div>
             <div class="d-flex align-items-center gap-2">
                 <div class="input-group" style="width: 300px;">
-                    <input type="text" class="form-control" id="searchInput" placeholder="Search files or checksums...">
+                    <input type="text" class="form-control bg-dark text-light border-secondary" id="searchInput" placeholder="Search files or checksums...">
                     <button type="button" class="btn btn-outline-light" id="searchButton" title="Search">
                         <i class="bi bi-search"></i>
                     </button>
