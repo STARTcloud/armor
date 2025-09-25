@@ -206,6 +206,9 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
             background-color: #212529; 
             color: #fff;
         }
+        body {
+            padding-top: 1.5rem;
+        }
         .table { color: #fff; }
         .table td { vertical-align: middle; }
         .key-preview { font-family: monospace; }
