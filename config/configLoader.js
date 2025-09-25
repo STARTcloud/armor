@@ -167,6 +167,8 @@ class ConfigLoader {
         max_file_size_mb: 10,
         max_files: 5,
         enable_rotation: true,
+        enable_compression: true,
+        compression_age_days: 7,
       }
     );
   }
