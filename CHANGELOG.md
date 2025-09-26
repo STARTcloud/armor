@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.9.0](https://github.com/STARTcloud/armor_private/compare/v1.8.1...v1.9.0) (2025-09-26)
+
+
+### Features
+
+* add debug logging to unlinkDir handler and fix all dynamic imports ([f14db60](https://github.com/STARTcloud/armor_private/commit/f14db60bba1c2ff4c7cd03faf97b87d046e0e72a))
+* add more targeted debug logging to isolate SSE execution issue ([51363a3](https://github.com/STARTcloud/armor_private/commit/51363a3609711480ba13109c3f142653a12f9edf))
+* add SSE notifications to unlinkDir handler and fix dynamic imports ([ff70f6c](https://github.com/STARTcloud/armor_private/commit/ff70f6cccd113f39a826b8c2a85901e5254a03c8))
+* add SSE notifications to unlinkDir handler for real-time UI updates ([7e42bd5](https://github.com/STARTcloud/armor_private/commit/7e42bd5d359d4fc4479affd7ca53b6481dddba53))
+* add unlinkDir event handler for directory move cleanup ([d3c6310](https://github.com/STARTcloud/armor_private/commit/d3c6310869b82eee148485b6c4a526da068eda54))
+* add unlinkDir event handler for directory move cleanup ([39f502d](https://github.com/STARTcloud/armor_private/commit/39f502d43b0edc7713471e02a85c57167d8d444d))
+
+
+### Bug Fixes
+
+* resolve lint formatting errors in fileWatcher.js ([edb593e](https://github.com/STARTcloud/armor_private/commit/edb593e0dca880b63510962957844d53e733246d))
+* resolve lint formatting errors in fileWatcher.js ([e0b4e59](https://github.com/STARTcloud/armor_private/commit/e0b4e5988a2e49976b1a0647b92fce6237cd9c87))
+
 ## [1.8.1](https://github.com/STARTcloud/armor_private/compare/v1.8.0...v1.8.1) (2025-09-25)
 
 
