@@ -3,13 +3,12 @@ import { promises as fs } from 'fs';
 import { join, dirname, basename } from 'path';
 import { Op } from 'sequelize';
 import { getFileModel } from '../models/File.js';
-import { sendChecksumUpdate, sendFileDeleted, sendFileAdded } from '../routes/sse.js';
+import { sendFileDeleted, sendFileAdded } from '../routes/sse.js';
 import { fileWatcherLogger as logger } from '../config/logger.js';
 import configLoader from '../config/configLoader.js';
 import { withDatabaseRetry } from '../config/database.js';
 import cacheService from './cacheService.js';
 import databaseOperationService from './databaseOperationService.js';
-import ChecksumWorkerPool from './checksumWorker.js';
 
 class FileWatcherService {
   constructor(watchPath) {
@@ -17,18 +16,12 @@ class FileWatcherService {
     this.watcher = null;
     this.activeUploads = new Set(); // Track files currently being uploaded
     this.fileStabilityTimers = new Map(); // Track file stability timeouts
-    this.activeChecksums = new Set(); // Track active checksum operations
-    this.checksumQueue = []; // Queue for checksum operations
     this.config = null; // Will be loaded from configLoader
-    this.checksumWorkerPool = null; // Worker pool for checksum calculation
   }
 
   async initialize() {
     this.config = configLoader.getFileWatcherConfig();
-    this.checksumWorkerPool = new ChecksumWorkerPool(this.config.max_concurrent_checksums);
     logger.info(`FileWatcher config loaded`, this.config);
-
-    this.startChecksumProcessor();
 
     logger.info(`Starting initial directory scan of: ${this.watchPath}`);
     await this.cacheDirectory(this.watchPath);
@@ -38,18 +31,9 @@ class FileWatcherService {
 
     const File = getFileModel();
     const fileCount = await File.count();
-    const pendingChecksums = await File.count({ where: { checksum_status: 'pending' } });
 
     logger.info(`🎉 File watcher initialization complete!`);
-    logger.info(
-      `📊 Database summary: ${fileCount} total items, ${pendingChecksums} checksums queued, ${this.checksumQueue.length} in processing queue`
-    );
-
-    if (pendingChecksums > 0) {
-      logger.info(
-        `⏳ Checksum processing will continue in background (max ${this.config.max_concurrent_checksums} concurrent)`
-      );
-    }
+    logger.info(`📊 Database summary: ${fileCount} total items tracked`);
   }
 
   async cacheDirectory(dirPath) {
@@ -228,9 +212,8 @@ class FileWatcherService {
           new Date(existingFile.last_modified).getTime() !== stats.mtime.getTime();
 
         if (needsChecksum) {
-          this.queueChecksumGeneration(itemPath);
           logger.info(
-            `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (checksum queued)`
+            `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (checksum will be processed by checksum service)`
           );
         } else {
           logger.info(
@@ -361,159 +344,6 @@ class FileWatcherService {
         );
       }
     });
-  }
-
-  calculateChecksum(filePath) {
-    return this.checksumWorkerPool.calculateChecksum(filePath);
-  }
-
-  // Start the checksum queue processor
-  startChecksumProcessor() {
-    const processQueue = async () => {
-      if (
-        this.checksumQueue.length === 0 ||
-        this.activeChecksums.size >= this.config.max_concurrent_checksums
-      ) {
-        return;
-      }
-
-      const filePath = this.checksumQueue.shift();
-      this.activeChecksums.add(filePath);
-
-      logger.info(
-        `Starting queued checksum for: ${filePath} (${this.activeChecksums.size}/${this.config.max_concurrent_checksums} active, ${this.checksumQueue.length} queued)`
-      );
-
-      try {
-        await this.processChecksumWithTimeout(filePath);
-      } catch (error) {
-        logger.error(`Queued checksum failed for ${filePath}: ${error.message}`);
-      } finally {
-        this.activeChecksums.delete(filePath);
-      }
-    };
-
-    // Process queue every 1 second
-    setInterval(processQueue, 1000);
-
-    setInterval(async () => {
-      await this.retryErrorFiles();
-    }, 30000); // Retry every 30 seconds
-
-    logger.info(
-      `Checksum processor started with max ${this.config.max_concurrent_checksums} concurrent operations`
-    );
-  }
-
-  // Add file to checksum queue instead of processing immediately
-  queueChecksumGeneration(itemPath) {
-    if (!this.checksumQueue.includes(itemPath) && !this.activeChecksums.has(itemPath)) {
-      this.checksumQueue.push(itemPath);
-      logger.info(`Queued checksum for: ${itemPath} (queue size: ${this.checksumQueue.length})`);
-    }
-  }
-
-  async retryErrorFiles() {
-    try {
-      logger.info(`Starting retry check for error files`);
-      const File = getFileModel();
-      const errorFiles = await withDatabaseRetry(() =>
-        File.findAll({
-          where: { checksum_status: 'error' },
-          raw: true,
-        })
-      );
-
-      logger.info(`Found ${errorFiles.length} files with error status`);
-
-      for (const file of errorFiles) {
-        if (
-          !this.checksumQueue.includes(file.file_path) &&
-          !this.activeChecksums.has(file.file_path)
-        ) {
-          // Check if file still exists before requeuing
-          try {
-            await fs.access(file.file_path);
-            this.queueChecksumGeneration(file.file_path);
-            logger.info(`Retrying error file: ${file.file_path}`);
-          } catch {
-            await withDatabaseRetry(() => File.destroy({ where: { file_path: file.file_path } }));
-            logger.info(`Removed non-existent error file from database: ${file.file_path}`);
-          }
-        } else {
-          logger.info(`Skipping retry for ${file.file_path} (already queued or processing)`);
-        }
-      }
-      logger.info(`Completed retry check for error files`);
-    } catch (error) {
-      logger.error(`Error during retry of error files: ${error.message}`);
-    }
-  }
-
-  async processChecksumWithTimeout(itemPath) {
-    const startTime = Date.now();
-
-    try {
-      logger.info(`Starting checksum generation for: ${itemPath}`);
-
-      await withDatabaseRetry(() =>
-        databaseOperationService.queueChecksumUpdate({
-          filePath: itemPath,
-          updateFields: { checksum_status: 'generating' },
-        })
-      );
-
-      logger.info(`Starting checksum calculation for: ${itemPath}`);
-
-      const timeoutWarning = setTimeout(() => {
-        const elapsed = Math.round((Date.now() - startTime) / 1000);
-        logger.warn(`Checksum taking longer than expected for ${itemPath} (${elapsed}s elapsed)`);
-      }, this.config.checksum_timeout_ms);
-
-      const checksum = await this.calculateChecksum(itemPath);
-      clearTimeout(timeoutWarning);
-
-      const elapsed = Math.round((Date.now() - startTime) / 1000);
-      logger.info(`Checksum calculation completed for: ${itemPath} (${elapsed}s)`);
-
-      logger.info(`Updating database with checksum for: ${itemPath}`);
-      await withDatabaseRetry(() =>
-        databaseOperationService.queueChecksumUpdate({
-          filePath: itemPath,
-          updateFields: {
-            checksum_sha256: checksum,
-            checksum_status: 'complete',
-            checksum_generated_at: new Date(),
-          },
-        })
-      );
-
-      logger.info(`Database updated with checksum for: ${itemPath}`);
-
-      logger.info(`Getting file stats for SSE update: ${itemPath}`);
-      const stats = await fs.stat(itemPath);
-
-      logger.info(`About to send SSE update for ${itemPath}`);
-      sendChecksumUpdate(itemPath, checksum, stats);
-      logger.info(`SSE update sent for ${itemPath}`);
-
-      logger.info(`Generated checksum for ${itemPath}: ${checksum}`);
-    } catch (error) {
-      logger.error(`Checksum generation failed for ${itemPath}: ${error.message}`, {
-        stack: error.stack,
-      });
-      try {
-        await withDatabaseRetry(() =>
-          databaseOperationService.queueChecksumUpdate({
-            filePath: itemPath,
-            updateFields: { checksum_status: 'error' },
-          })
-        );
-        logger.info(`Marked ${itemPath} as error in database`);
-      } catch (dbError) {
-        logger.error(`Failed to mark ${itemPath} as error: ${dbError.message}`);
-      }
-    }
   }
 
   async getCachedDirectoryItems(dirPath) {
