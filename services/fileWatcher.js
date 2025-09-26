@@ -272,11 +272,51 @@ class FileWatcherService {
       this.scheduleFileProcessingWithStats(filePath, stats);
     });
 
-    this.watcher.on('unlink', filePath => {
+    this.watcher.on('unlink', async filePath => {
       logger.info(`File deleted: ${filePath}`);
       cacheService.invalidate(dirname(filePath));
       const File = getFileModel();
-      File.destroy({ where: { file_path: filePath } });
+      try {
+        await File.destroy({ where: { file_path: filePath } });
+        logger.info(`Database record removed for deleted file: ${filePath}`);
+      } catch (error) {
+        logger.error(
+          `Failed to remove database record for deleted file ${filePath}: ${error.message}`
+        );
+      }
+    });
+
+    this.watcher.on('unlinkDir', async dirPath => {
+      logger.info(`Directory deleted: ${dirPath}`);
+      cacheService.invalidate(dirname(dirPath));
+      const File = getFileModel();
+      try {
+        const filesToDelete = await File.findAll({
+          where: {
+            file_path: {
+              [Op.like]: `${dirPath}%`,
+            },
+          },
+          attributes: ['file_path'],
+        });
+
+        if (filesToDelete.length > 0) {
+          const deletePromises = filesToDelete.map(file =>
+            File.destroy({ where: { file_path: file.file_path } })
+          );
+
+          await Promise.all(deletePromises);
+          logger.info(
+            `Database records removed for deleted directory: ${dirPath} (${filesToDelete.length} records)`
+          );
+        } else {
+          logger.info(`No database records found for deleted directory: ${dirPath}`);
+        }
+      } catch (error) {
+        logger.error(
+          `Failed to remove database records for deleted directory ${dirPath}: ${error.message}`
+        );
+      }
     });
   }
 
