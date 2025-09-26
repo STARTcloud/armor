@@ -947,6 +947,20 @@ export const generateDirectoryListing = (
             }
         });
         
+        eventSource.addEventListener('file-added', function(event) {
+            console.log('Received file-added event:', event);
+            console.log('Event data:', event.data);
+            
+            try {
+                const data = JSON.parse(event.data);
+                console.log('Parsed file addition data:', data);
+                const fileName = data.filePath.split('/').pop();
+                addFileToTable(fileName);
+            } catch (error) {
+                console.error('Error parsing file addition SSE data:', error);
+            }
+        });
+
         eventSource.addEventListener('file-deleted', function(event) {
             console.log('Received file-deleted event:', event);
             console.log('Event data:', event.data);
@@ -1003,7 +1017,7 @@ export const generateDirectoryListing = (
                 \`<td>File</td>\` +
                 \`<td>-</td>\` +
                 \`<td>\${new Date().toLocaleString()}</td>\` +
-                \`<td><span class="text-muted">Pending</span></td>\` +
+                \`<td><span class="text-warning">Pending...</span></td>\` +
                 (isUploads ? \`<td><div class="btn-group" role="group"><button class="btn btn-outline-warning btn-sm rename-btn" data-path="\${currentPath}\${fileName}" data-name="\${fileName}" title="Rename file"><i class="bi bi-pencil"></i></button><button class="btn btn-outline-danger btn-sm delete-btn" data-path="\${currentPath}\${fileName}" title="Delete file"><i class="bi bi-trash"></i></button></div></td>\` : '');
             
             tbody.appendChild(row);
@@ -1031,8 +1045,8 @@ export const generateDirectoryListing = (
                     
                     console.log('Checking row - filename:', cellText, 'checksum status:', checksumText);
                     
-                    // Match exact filename and look for "Pending" status (handles duplicates)
-                    if (cellText.includes(fileName) && checksumText === 'Pending') {
+                    // Match exact filename and look for "Pending..." status (handles duplicates)
+                    if (cellText === fileName && checksumText === 'Pending...') {
                         console.log('Found matching row with Pending status, updating...');
                         
                         // Update checksum
@@ -1204,7 +1218,7 @@ export const generateDirectoryListing = (
                     progressBar.style.width = percentComplete + '%';
                     progressBar.setAttribute('aria-valuenow', percentComplete);
                     progressText.textContent = percentComplete + '%';
-                    console.log('Upload progress:', percentComplete + '%');
+                    console.log(\`Upload progress: \${Math.round(percentComplete)}%\`);
                 }
             };
             
@@ -1436,7 +1450,7 @@ export const generateDirectoryListing = (
             })
             .catch(error => {
                 console.error('Search error:', error);
-                alert('Search failed: ' + error.message);
+                alert(\`Search failed: \${error.message}\`);
             });
         }
         
