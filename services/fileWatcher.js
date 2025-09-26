@@ -301,6 +301,8 @@ class FileWatcherService {
         });
 
         if (filesToDelete.length > 0) {
+          logger.info(`DEBUG: Found ${filesToDelete.length} files to delete for directory: ${dirPath}`);
+          
           const deletePromises = filesToDelete.map(file =>
             File.destroy({ where: { file_path: file.file_path } })
           );
@@ -310,6 +312,7 @@ class FileWatcherService {
             `Database records removed for deleted directory: ${dirPath} (${filesToDelete.length} records)`
           );
 
+          logger.info(`DEBUG: Database cleanup completed, now processing SSE notifications`);
           logger.info(
             `DEBUG: About to process ${filesToDelete.length} files for SSE notifications`
           );
