@@ -395,6 +395,11 @@ class FileWatcherService {
 
     // Process queue every 1 second
     setInterval(processQueue, 1000);
+
+    setInterval(async () => {
+      await this.retryErrorFiles();
+    }, 30000); // Retry every 30 seconds
+
     logger.info(
       `Checksum processor started with max ${this.config.max_concurrent_checksums} concurrent operations`
     );
@@ -405,6 +410,43 @@ class FileWatcherService {
     if (!this.checksumQueue.includes(itemPath) && !this.activeChecksums.has(itemPath)) {
       this.checksumQueue.push(itemPath);
       logger.info(`Queued checksum for: ${itemPath} (queue size: ${this.checksumQueue.length})`);
+    }
+  }
+
+  async retryErrorFiles() {
+    try {
+      logger.info(`Starting retry check for error files`);
+      const File = getFileModel();
+      const errorFiles = await withDatabaseRetry(() =>
+        File.findAll({
+          where: { checksum_status: 'error' },
+          raw: true,
+        })
+      );
+
+      logger.info(`Found ${errorFiles.length} files with error status`);
+
+      for (const file of errorFiles) {
+        if (
+          !this.checksumQueue.includes(file.file_path) &&
+          !this.activeChecksums.has(file.file_path)
+        ) {
+          // Check if file still exists before requeuing
+          try {
+            await fs.access(file.file_path);
+            this.queueChecksumGeneration(file.file_path);
+            logger.info(`Retrying error file: ${file.file_path}`);
+          } catch {
+            await withDatabaseRetry(() => File.destroy({ where: { file_path: file.file_path } }));
+            logger.info(`Removed non-existent error file from database: ${file.file_path}`);
+          }
+        } else {
+          logger.info(`Skipping retry for ${file.file_path} (already queued or processing)`);
+        }
+      }
+      logger.info(`Completed retry check for error files`);
+    } catch (error) {
+      logger.error(`Error during retry of error files: ${error.message}`);
     }
   }
 
