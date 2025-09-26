@@ -24,7 +24,7 @@ class ChecksumWorkerPool {
     }
 
     const job = this.queue.shift();
-    const worker = new Worker(__filename, {
+    const worker = new Worker(new URL(import.meta.url), {
       workerData: { filePath: job.filePath },
     });
 
