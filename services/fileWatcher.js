@@ -4,7 +4,7 @@ import { join, dirname, basename } from 'path';
 import { createHash } from 'crypto';
 import { Op } from 'sequelize';
 import { getFileModel } from '../models/File.js';
-import { sendChecksumUpdate } from '../routes/sse.js';
+import { sendChecksumUpdate, sendFileDeleted } from '../routes/sse.js';
 import { fileWatcherLogger as logger } from '../config/logger.js';
 import configLoader from '../config/configLoader.js';
 import { getDatabase } from '../config/database.js';
@@ -272,11 +272,70 @@ class FileWatcherService {
       this.scheduleFileProcessingWithStats(filePath, stats);
     });
 
-    this.watcher.on('unlink', filePath => {
+    this.watcher.on('unlink', async filePath => {
       logger.info(`File deleted: ${filePath}`);
       cacheService.invalidate(dirname(filePath));
       const File = getFileModel();
-      File.destroy({ where: { file_path: filePath } });
+      try {
+        await File.destroy({ where: { file_path: filePath } });
+        logger.info(`Database record removed for deleted file: ${filePath}`);
+      } catch (error) {
+        logger.error(
+          `Failed to remove database record for deleted file ${filePath}: ${error.message}`
+        );
+      }
+    });
+
+    this.watcher.on('unlinkDir', async dirPath => {
+      logger.info(`Directory deleted: ${dirPath}`);
+      cacheService.invalidate(dirname(dirPath));
+      const File = getFileModel();
+      try {
+        const filesToDelete = await File.findAll({
+          where: {
+            file_path: {
+              [Op.like]: `${dirPath}%`,
+            },
+          },
+          attributes: ['file_path', 'is_directory'],
+        });
+
+        if (filesToDelete.length > 0) {
+          const deletePromises = filesToDelete.map(file =>
+            File.destroy({ where: { file_path: file.file_path } })
+          );
+
+          await Promise.all(deletePromises);
+          logger.info(
+            `Database records removed for deleted directory: ${dirPath} (${filesToDelete.length} records)`
+          );
+
+          filesToDelete.forEach(file => {
+            if (!file.is_directory) {
+              logger.info(`SSE: Sending file deletion event for: ${file.file_path}`);
+              sendFileDeleted(file.file_path, false);
+            }
+          });
+
+          filesToDelete.forEach(file => {
+            if (file.is_directory && file.file_path !== dirPath) {
+              logger.info(`SSE: Sending directory deletion event for: ${file.file_path}`);
+              sendFileDeleted(file.file_path, true);
+            }
+          });
+
+          logger.info(`SSE: Sending directory deletion event for: ${dirPath}`);
+          sendFileDeleted(dirPath, true);
+        } else {
+          logger.info(`No database records found for deleted directory: ${dirPath}`);
+          logger.info(`SSE: Sending directory deletion event for: ${dirPath}`);
+          sendFileDeleted(dirPath, true);
+        }
+      } catch (error) {
+        logger.error(
+          `Failed to remove database records for deleted directory ${dirPath}: ${error.message}`
+        );
+      }
     });
   }
 
