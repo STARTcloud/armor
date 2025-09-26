@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.11.0](https://github.com/STARTcloud/armor_private/compare/v1.10.1...v1.11.0) (2025-09-26)
+
+
+### Features
+
+* implement worker threads for checksum calculation and fix chokidar unlink detection ([b8109eb](https://github.com/STARTcloud/armor_private/commit/b8109eb1018ef773084a142eb25a0c2643714051))
+
+
+### Bug Fixes
+
+* add retry mechanism for files stuck in error status ([8a7b2fb](https://github.com/STARTcloud/armor_private/commit/8a7b2fb26ddcfdc3e210f38df029ca1a847f8fbf))
+* replace __filename with import.meta.url for ES module compatibility in worker threads ([9948834](https://github.com/STARTcloud/armor_private/commit/99488340c4992dcd3c300c3ada4c37d36b9b7deb))
+
 ## [1.10.1](https://github.com/STARTcloud/armor_private/compare/v1.10.0...v1.10.1) (2025-09-26)
 
 
