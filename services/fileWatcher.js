@@ -310,8 +310,10 @@ class FileWatcherService {
             `Database records removed for deleted directory: ${dirPath} (${filesToDelete.length} records)`
           );
 
-          logger.info(`DEBUG: About to process ${filesToDelete.length} files for SSE notifications`);
-          
+          logger.info(
+            `DEBUG: About to process ${filesToDelete.length} files for SSE notifications`
+          );
+
           filesToDelete.forEach(file => {
             if (!file.is_directory) {
               logger.info(`DEBUG: Processing non-directory file: ${file.file_path}`);
