@@ -120,4 +120,45 @@ export const optimizeDatabase = async () => {
   }
 };
 
+export const withDatabaseRetry = (operation, maxRetries = 5) => {
+  const executeWithRetry = async attempt => {
+    try {
+      return await operation();
+    } catch (error) {
+      const isRetryable =
+        error.name === 'SequelizeDatabaseError' &&
+        (error.message.includes('SQLITE_BUSY') ||
+          error.message.includes('SQLITE_LOCKED') ||
+          error.message.includes('database is locked') ||
+          error.message.includes('Lock wait timeout') ||
+          error.message.includes('Deadlock found'));
+
+      if (!isRetryable || attempt >= maxRetries) {
+        throw error;
+      }
+
+      const baseDelay = 100 * 1.5 ** (attempt - 1);
+      const jitter = Math.random() * 0.1 * baseDelay;
+      const delay = baseDelay + jitter;
+
+      databaseLogger.warn(
+        `Database operation failed (attempt ${attempt}/${maxRetries}), retrying in ${Math.round(delay)}ms: ${error.message}`
+      );
+
+      return new Promise((resolve, reject) => {
+        setTimeout(async () => {
+          try {
+            const result = await executeWithRetry(attempt + 1);
+            resolve(result);
+          } catch (retryError) {
+            reject(retryError);
+          }
+        }, delay);
+      });
+    }
+  };
+
+  return executeWithRetry(1);
+};
+
 export default sequelize;

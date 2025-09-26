@@ -27,6 +27,7 @@ import {
 import { logAccess, logger } from '../config/logger.js';
 import configLoader from '../config/configLoader.js';
 import { getFileModel } from '../models/File.js';
+import { withDatabaseRetry } from '../config/database.js';
 import { sendFileDeleted, sendFileRenamed, sendFolderCreated } from './sse.js';
 
 // Helper function to create landing config
@@ -41,6 +42,43 @@ const createLandingConfig = () => {
     supportEmail: serverConfig.support_email || 'support@prominic.net',
     primaryColor: serverConfig.landing_primary_color || '#198754',
   };
+};
+
+// Helper function to handle JSON directory response
+const handleJsonDirectoryResponse = async (req, res, fullPath, relativePath) => {
+  const itemsInfo = await getDirectoryItems(fullPath, req.fileWatcher);
+  logAccess(req, 'LIST_DIRECTORY', `size: ${itemsInfo.length} items`);
+
+  const files = itemsInfo.map(item => ({
+    name: item.name,
+    path: join(relativePath, item.name).replace(/\\/g, '/'),
+    size: item.size,
+    mtime: item.mtime.toISOString(),
+    checksum: item.checksum || 'Pending',
+    isDirectory: item.isDirectory,
+  }));
+
+  return res.json({
+    success: true,
+    path: relativePath,
+    files,
+    total: files.length,
+  });
+};
+
+// Helper function to check if landing page should be shown
+const shouldShowLandingPage = (isRoot, serverConfig, isAdmin, viewIndex, query) =>
+  isRoot && !serverConfig.show_root_index && !(isAdmin && viewIndex) && !query.sort && !query.order;
+
+// Helper function to handle landing page response
+const handleLandingPageResponse = (req, res, uploadCredentials) => {
+  logger.info('Showing landing page for root access');
+  logAccess(req, 'LANDING_PAGE', 'showing secured site message');
+  const landingConfig = createLandingConfig();
+  landingConfig.packageInfo = configLoader.getPackageInfo();
+  const userInfo =
+    req.oidcUser || (uploadCredentials ? { username: uploadCredentials.name } : null);
+  return res.send(getSecuredSiteMessage(landingConfig, userInfo));
 };
 
 // Helper function to handle directory listing
@@ -70,14 +108,9 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
 
   const serverConfig = configLoader.getServerConfig();
   const relativePath = fullPath.replace(SERVED_DIR, '').replace(/\\/g, '/');
-
   const isRoot = fullPath === SERVED_DIR || fullPath === `${SERVED_DIR}/`;
-
-  // Check if user is admin (has uploads permission)
   const isAdmin =
     req.oidcUser?.permissions?.includes('uploads') || req.isAuthenticated === 'uploads';
-
-  // Check if admin wants to view directory index
   const viewIndex = req.query.view === 'index';
 
   logger.info('Root page check', {
@@ -87,46 +120,15 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
     showRootIndex: serverConfig.show_root_index,
     isAdmin,
     viewIndex,
-    willShowLandingPage: isRoot && !serverConfig.show_root_index && !(isAdmin && viewIndex),
+    willShowLandingPage: shouldShowLandingPage(isRoot, serverConfig, isAdmin, viewIndex, req.query),
   });
 
-  // Check if client wants JSON response first, before landing page logic
   if (req.headers.accept && req.headers.accept.includes('application/json')) {
-    const itemsInfo = await getDirectoryItems(fullPath, req.fileWatcher);
-    logAccess(req, 'LIST_DIRECTORY', `size: ${itemsInfo.length} items`);
-
-    // Return JSON directory listing for API clients
-    const files = itemsInfo.map(item => ({
-      name: item.name,
-      path: join(relativePath, item.name).replace(/\\/g, '/'),
-      size: item.size,
-      mtime: item.mtime.toISOString(),
-      checksum: item.checksum || 'Pending',
-      isDirectory: item.isDirectory,
-    }));
-
-    return res.json({
-      success: true,
-      path: relativePath,
-      files,
-      total: files.length,
-    });
+    return handleJsonDirectoryResponse(req, res, fullPath, relativePath);
   }
 
-  if (
-    isRoot &&
-    !serverConfig.show_root_index &&
-    !(isAdmin && viewIndex) &&
-    !req.query.sort &&
-    !req.query.order
-  ) {
-    logger.info('Showing landing page for root access');
-    logAccess(req, 'LANDING_PAGE', 'showing secured site message');
-    const landingConfig = createLandingConfig();
-    landingConfig.packageInfo = configLoader.getPackageInfo();
-    const userInfo =
-      req.oidcUser || (uploadCredentials ? { username: uploadCredentials.name } : null);
-    return res.send(getSecuredSiteMessage(landingConfig, userInfo));
+  if (shouldShowLandingPage(isRoot, serverConfig, isAdmin, viewIndex, req.query)) {
+    return handleLandingPageResponse(req, res, uploadCredentials);
   }
 
   const hasBasicUploadAccess = uploadCredentials && isValidUser(uploadCredentials, 'uploads');
@@ -134,16 +136,13 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
   const hasUploadAccess = hasBasicUploadAccess || hasOidcUploadAccess;
 
   const itemsInfo = await getDirectoryItems(fullPath, req.fileWatcher);
-
   logAccess(req, 'LIST_DIRECTORY', `size: ${itemsInfo.length} items`);
 
-  // Return HTML for web browsers
   let indexContent = '';
   if (fullPath !== SERVED_DIR) {
     indexContent = (await getStaticContent(fullPath)) || '';
   }
 
-  // Extract user info from JWT token or oidcUser
   const userInfo =
     req.oidcUser || (uploadCredentials ? { username: uploadCredentials.name } : null);
 
@@ -898,39 +897,45 @@ router.put('*splat', authenticateUploads, async (req, res, next) => {
 
     if (stats.isDirectory()) {
       // For directories, update all files within
-      await File.update(
-        {
-          file_path: newFullPath,
-        },
-        {
-          where: { file_path: oldFullPath },
-        }
+      await withDatabaseRetry(() =>
+        File.update(
+          {
+            file_path: newFullPath,
+          },
+          {
+            where: { file_path: oldFullPath },
+          }
+        )
       );
 
       // Update all files within the directory
-      const filesInDir = await File.findAll({
-        where: {
-          file_path: {
-            [Op.like]: `${oldFullPath}%`,
+      const filesInDir = await withDatabaseRetry(() =>
+        File.findAll({
+          where: {
+            file_path: {
+              [Op.like]: `${oldFullPath}%`,
+            },
           },
-        },
-      });
+        })
+      );
 
       const updatePromises = filesInDir.map(file => {
         const newFilePath = file.file_path.replace(oldFullPath, newFullPath);
-        return file.update({ file_path: newFilePath });
+        return withDatabaseRetry(() => file.update({ file_path: newFilePath }));
       });
 
       await Promise.all(updatePromises);
     } else {
       // For files, just update the single record
-      await File.update(
-        {
-          file_path: newFullPath,
-        },
-        {
-          where: { file_path: oldFullPath },
-        }
+      await withDatabaseRetry(() =>
+        File.update(
+          {
+            file_path: newFullPath,
+          },
+          {
+            where: { file_path: oldFullPath },
+          }
+        )
       );
     }
 
@@ -1004,13 +1009,15 @@ router.post('/search', authenticateDownloads, async (req, res) => {
       where: searchConditions,
     });
 
-    const searchResults = await File.findAll({
-      where: searchConditions,
-      limit: pageLimit,
-      offset,
-      order: [['last_modified', 'DESC']],
-      raw: true,
-    });
+    const searchResults = await withDatabaseRetry(() =>
+      File.findAll({
+        where: searchConditions,
+        limit: pageLimit,
+        offset,
+        order: [['last_modified', 'DESC']],
+        raw: true,
+      })
+    );
 
     const results = searchResults.map(file => ({
       name: basename(file.file_path),
@@ -1148,13 +1155,15 @@ router.post('*splat/search', authenticateDownloads, async (req, res) => {
       where: searchConditions,
     });
 
-    const searchResults = await File.findAll({
-      where: searchConditions,
-      limit: pageLimit,
-      offset,
-      order: [['last_modified', 'DESC']],
-      raw: true,
-    });
+    const searchResults = await withDatabaseRetry(() =>
+      File.findAll({
+        where: searchConditions,
+        limit: pageLimit,
+        offset,
+        order: [['last_modified', 'DESC']],
+        raw: true,
+      })
+    );
 
     const results = searchResults.map(file => ({
       name: basename(file.file_path),
@@ -1287,13 +1296,15 @@ router.post('/folders', authenticateUploads, async (req, res) => {
     const File = getFileModel();
     const stats = await fs.stat(newFolderPath);
 
-    await File.create({
-      file_path: newFolderPath,
-      file_size: 0,
-      last_modified: stats.mtime,
-      is_directory: true,
-      checksum_status: 'complete',
-    });
+    await withDatabaseRetry(() =>
+      File.create({
+        file_path: newFolderPath,
+        file_size: 0,
+        last_modified: stats.mtime,
+        is_directory: true,
+        checksum_status: 'complete',
+      })
+    );
 
     logger.info(`Added folder to database: ${newFolderPath}`);
 
@@ -1349,13 +1360,15 @@ router.post('*splat/folders', authenticateUploads, async (req, res) => {
     const File = getFileModel();
     const stats = await fs.stat(newFolderPath);
 
-    await File.create({
-      file_path: newFolderPath,
-      file_size: 0,
-      last_modified: stats.mtime,
-      is_directory: true,
-      checksum_status: 'complete',
-    });
+    await withDatabaseRetry(() =>
+      File.create({
+        file_path: newFolderPath,
+        file_size: 0,
+        last_modified: stats.mtime,
+        is_directory: true,
+        checksum_status: 'complete',
+      })
+    );
 
     logger.info(`Added folder to database: ${newFolderPath}`);
 
@@ -1514,13 +1527,15 @@ router.post('*splat', authenticateUploads, async (req, res, next) => {
     const File = getFileModel();
     const stats = await fs.stat(newFolderPath);
 
-    await File.create({
-      file_path: newFolderPath,
-      file_size: 0,
-      last_modified: stats.mtime,
-      is_directory: true,
-      checksum_status: 'complete',
-    });
+    await withDatabaseRetry(() =>
+      File.create({
+        file_path: newFolderPath,
+        file_size: 0,
+        last_modified: stats.mtime,
+        is_directory: true,
+        checksum_status: 'complete',
+      })
+    );
 
     logger.info(`Added folder to database: ${newFolderPath}`);
 
@@ -1618,7 +1633,9 @@ router.post('*splat', authenticateUploads, upload.single('file'), async (req, re
       filename: req.file.filename,
     });
 
-    const existingFile = await File.findOne({ where: { file_path: req.file.path } });
+    const existingFile = await withDatabaseRetry(() =>
+      File.findOne({ where: { file_path: req.file.path } })
+    );
 
     logger.info('Duplicate check result', {
       existingFile: !!existingFile,
@@ -1728,13 +1745,15 @@ router.delete('*splat', authenticateDelete, async (req, res) => {
         await fs.rm(fullPath, { recursive: true, force: true });
 
         const File = getFileModel();
-        await File.destroy({
-          where: {
-            file_path: {
-              [Op.like]: `${fullPath}%`,
+        await withDatabaseRetry(() =>
+          File.destroy({
+            where: {
+              file_path: {
+                [Op.like]: `${fullPath}%`,
+              },
             },
-          },
-        });
+          })
+        );
 
         // sendFileDeleted imported at top of file
         sendFileDeleted(fullPath, true);
@@ -1755,7 +1774,7 @@ router.delete('*splat', authenticateDelete, async (req, res) => {
       await fs.unlink(fullPath);
 
       const File = getFileModel();
-      await File.destroy({ where: { file_path: fullPath } });
+      await withDatabaseRetry(() => File.destroy({ where: { file_path: fullPath } }));
 
       // sendFileDeleted imported at top of file
       sendFileDeleted(fullPath, false);
