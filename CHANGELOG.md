@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.0](https://github.com/STARTcloud/armor_private/compare/v1.11.0...v1.12.0) (2025-09-26)
+
+
+### Features
+
+* separate file detection and checksum processing into independent processes ([538b703](https://github.com/STARTcloud/armor_private/commit/538b7034a25a1c53b6ed070ff410fa0aef6a8004))
+
 ## [1.11.0](https://github.com/STARTcloud/armor_private/compare/v1.10.1...v1.11.0) (2025-09-26)
 
 
