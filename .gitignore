@@ -2,3 +2,9 @@ node_modules
 *.log
 *.db
 dev.config.yaml
+logs/
+*.key
+*.pem
+*.crt
+*.csr
+stress_test.js
