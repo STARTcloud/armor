@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.1](https://github.com/STARTcloud/armor_private/compare/v1.10.0...v1.10.1) (2025-09-26)
+
+
+### Bug Fixes
+
+* move checksum calculation outside database transactions to resolve SQLITE_BUSY errors ([8334e85](https://github.com/STARTcloud/armor_private/commit/8334e8501e52a8c7d2430c287ad7461bc2ac1458))
+
 ## [1.10.0](https://github.com/STARTcloud/armor_private/compare/v1.9.0...v1.10.0) (2025-09-26)
 
 
