@@ -1,7 +1,6 @@
 import chokidar from 'chokidar';
-import { promises as fs, createReadStream } from 'fs';
+import { promises as fs } from 'fs';
 import { join, dirname, basename } from 'path';
-import { createHash } from 'crypto';
 import { Op } from 'sequelize';
 import { getFileModel } from '../models/File.js';
 import { sendChecksumUpdate, sendFileDeleted, sendFileAdded } from '../routes/sse.js';
@@ -10,6 +9,7 @@ import configLoader from '../config/configLoader.js';
 import { withDatabaseRetry } from '../config/database.js';
 import cacheService from './cacheService.js';
 import databaseOperationService from './databaseOperationService.js';
+import ChecksumWorkerPool from './checksumWorker.js';
 
 class FileWatcherService {
   constructor(watchPath) {
@@ -20,14 +20,14 @@ class FileWatcherService {
     this.activeChecksums = new Set(); // Track active checksum operations
     this.checksumQueue = []; // Queue for checksum operations
     this.config = null; // Will be loaded from configLoader
+    this.checksumWorkerPool = null; // Worker pool for checksum calculation
   }
 
   async initialize() {
-    // Load configuration
     this.config = configLoader.getFileWatcherConfig();
+    this.checksumWorkerPool = new ChecksumWorkerPool(this.config.max_concurrent_checksums);
     logger.info(`FileWatcher config loaded`, this.config);
 
-    // Start checksum queue processor
     this.startChecksumProcessor();
 
     logger.info(`Starting initial directory scan of: ${this.watchPath}`);
@@ -267,7 +267,7 @@ class FileWatcherService {
       ignoreInitial: false, // Emit events for existing files
       followSymlinks: true, // Follow symlinks as discussed earlier
       ignorePermissionErrors: true, // Ignore EROFS and permission errors
-      usePolling: false, // Use efficient fs.watch (not polling)
+      usePolling: true, // Use polling for reliable unlink detection across filesystems
       alwaysStat: true, // Provide stats in event callbacks (more efficient)
       atomic: true, // Handle atomic editor writes
       awaitWriteFinish: {
@@ -364,14 +364,7 @@ class FileWatcherService {
   }
 
   calculateChecksum(filePath) {
-    return new Promise((resolve, reject) => {
-      const hash = createHash('sha256');
-      const stream = createReadStream(filePath);
-
-      stream.on('data', data => hash.update(data));
-      stream.on('end', () => resolve(hash.digest('hex')));
-      stream.on('error', reject);
-    });
+    return this.checksumWorkerPool.calculateChecksum(filePath);
   }
 
   // Start the checksum queue processor
@@ -402,6 +395,11 @@ class FileWatcherService {
 
     // Process queue every 1 second
     setInterval(processQueue, 1000);
+
+    setInterval(async () => {
+      await this.retryErrorFiles();
+    }, 30000); // Retry every 30 seconds
+
     logger.info(
       `Checksum processor started with max ${this.config.max_concurrent_checksums} concurrent operations`
     );
@@ -415,7 +413,43 @@ class FileWatcherService {
     }
   }
 
-  // Process checksum with timeout monitoring
+  async retryErrorFiles() {
+    try {
+      logger.info(`Starting retry check for error files`);
+      const File = getFileModel();
+      const errorFiles = await withDatabaseRetry(() =>
+        File.findAll({
+          where: { checksum_status: 'error' },
+          raw: true,
+        })
+      );
+
+      logger.info(`Found ${errorFiles.length} files with error status`);
+
+      for (const file of errorFiles) {
+        if (
+          !this.checksumQueue.includes(file.file_path) &&
+          !this.activeChecksums.has(file.file_path)
+        ) {
+          // Check if file still exists before requeuing
+          try {
+            await fs.access(file.file_path);
+            this.queueChecksumGeneration(file.file_path);
+            logger.info(`Retrying error file: ${file.file_path}`);
+          } catch {
+            await withDatabaseRetry(() => File.destroy({ where: { file_path: file.file_path } }));
+            logger.info(`Removed non-existent error file from database: ${file.file_path}`);
+          }
+        } else {
+          logger.info(`Skipping retry for ${file.file_path} (already queued or processing)`);
+        }
+      }
+      logger.info(`Completed retry check for error files`);
+    } catch (error) {
+      logger.error(`Error during retry of error files: ${error.message}`);
+    }
+  }
+
   async processChecksumWithTimeout(itemPath) {
     const startTime = Date.now();
 
@@ -465,7 +499,6 @@ class FileWatcherService {
 
       logger.info(`Generated checksum for ${itemPath}: ${checksum}`);
     } catch (error) {
-      // Mark as error using batched update
       logger.error(`Checksum generation failed for ${itemPath}: ${error.message}`, {
         stack: error.stack,
       });
@@ -770,12 +803,15 @@ class FileWatcherService {
     }, 1000); // Small delay to ensure file is fully written
   }
 
-  close() {
+  async close() {
     if (this.watcher) {
       this.watcher.close();
     }
 
-    // Clear all timers
+    if (this.checksumWorkerPool) {
+      await this.checksumWorkerPool.close();
+    }
+
     this.fileStabilityTimers.forEach(timer => clearTimeout(timer));
     this.fileStabilityTimers.clear();
     this.activeUploads.clear();
