@@ -7,7 +7,7 @@ import { getFileModel } from '../models/File.js';
 import { sendChecksumUpdate, sendFileDeleted, sendFileAdded } from '../routes/sse.js';
 import { fileWatcherLogger as logger } from '../config/logger.js';
 import configLoader from '../config/configLoader.js';
-import { getDatabase, withDatabaseRetry } from '../config/database.js';
+import { withDatabaseRetry } from '../config/database.js';
 import cacheService from './cacheService.js';
 import databaseOperationService from './databaseOperationService.js';
 
@@ -417,58 +417,44 @@ class FileWatcherService {
 
   // Process checksum with timeout monitoring
   async processChecksumWithTimeout(itemPath) {
-    const File = getFileModel();
-    const sequelize = getDatabase();
     const startTime = Date.now();
 
     try {
       logger.info(`Starting checksum generation for: ${itemPath}`);
 
-      let checksum;
       await withDatabaseRetry(() =>
-        sequelize.transaction(async t => {
-          await File.update(
-            { checksum_status: 'generating' },
-            { where: { file_path: itemPath }, transaction: t }
-          );
-
-          logger.info(`Starting checksum calculation for: ${itemPath}`);
-
-          const timeoutWarning = setTimeout(() => {
-            const elapsed = Math.round((Date.now() - startTime) / 1000);
-            logger.warn(
-              `Checksum taking longer than expected for ${itemPath} (${elapsed}s elapsed)`
-            );
-          }, this.config.checksum_timeout_ms);
-
-          checksum = await this.calculateChecksum(itemPath);
-          clearTimeout(timeoutWarning);
-
-          const elapsed = Math.round((Date.now() - startTime) / 1000);
-          logger.info(`Checksum calculation completed for: ${itemPath} (${elapsed}s)`);
-
-          logger.info(`Updating database with checksum for: ${itemPath}`);
-          const updateResult = await File.update(
-            {
-              checksum_sha256: checksum,
-              checksum_status: 'complete',
-              checksum_generated_at: new Date(),
-            },
-            {
-              where: { file_path: itemPath },
-              returning: true,
-              transaction: t,
-            }
-          );
-
-          const [, affectedRows] = updateResult;
-          if (affectedRows === 0) {
-            logger.error(`Database update failed for: ${itemPath} - no rows affected`);
-          } else {
-            logger.info(`Database updated with checksum for: ${itemPath} (${affectedRows} rows)`);
-          }
+        databaseOperationService.queueChecksumUpdate({
+          filePath: itemPath,
+          updateFields: { checksum_status: 'generating' },
         })
       );
+
+      logger.info(`Starting checksum calculation for: ${itemPath}`);
+
+      const timeoutWarning = setTimeout(() => {
+        const elapsed = Math.round((Date.now() - startTime) / 1000);
+        logger.warn(`Checksum taking longer than expected for ${itemPath} (${elapsed}s elapsed)`);
+      }, this.config.checksum_timeout_ms);
+
+      const checksum = await this.calculateChecksum(itemPath);
+      clearTimeout(timeoutWarning);
+
+      const elapsed = Math.round((Date.now() - startTime) / 1000);
+      logger.info(`Checksum calculation completed for: ${itemPath} (${elapsed}s)`);
+
+      logger.info(`Updating database with checksum for: ${itemPath}`);
+      await withDatabaseRetry(() =>
+        databaseOperationService.queueChecksumUpdate({
+          filePath: itemPath,
+          updateFields: {
+            checksum_sha256: checksum,
+            checksum_status: 'complete',
+            checksum_generated_at: new Date(),
+          },
+        })
+      );
+
+      logger.info(`Database updated with checksum for: ${itemPath}`);
 
       logger.info(`Getting file stats for SSE update: ${itemPath}`);
       const stats = await fs.stat(itemPath);
@@ -479,13 +465,16 @@ class FileWatcherService {
 
       logger.info(`Generated checksum for ${itemPath}: ${checksum}`);
     } catch (error) {
-      // Mark as error
+      // Mark as error using batched update
       logger.error(`Checksum generation failed for ${itemPath}: ${error.message}`, {
         stack: error.stack,
       });
       try {
         await withDatabaseRetry(() =>
-          File.update({ checksum_status: 'error' }, { where: { file_path: itemPath } })
+          databaseOperationService.queueChecksumUpdate({
+            filePath: itemPath,
+            updateFields: { checksum_status: 'error' },
+          })
         );
         logger.info(`Marked ${itemPath} as error in database`);
       } catch (dbError) {

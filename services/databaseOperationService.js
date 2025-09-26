@@ -18,6 +18,13 @@ class DatabaseOperationService {
     });
   }
 
+  queueChecksumUpdate(checksumData) {
+    return new Promise((resolve, reject) => {
+      this.batchQueue.push({ type: 'checksum_update', data: checksumData, resolve, reject });
+      this.scheduleBatchProcess();
+    });
+  }
+
   async processBatch() {
     if (this.isProcessing || this.batchQueue.length === 0) {
       return;
@@ -32,7 +39,15 @@ class DatabaseOperationService {
         const batch = this.batchQueue.splice(0, this.batchSize);
         const upsertPromises = batch.map(async operation => {
           try {
-            const result = await File.upsert(operation.data, { transaction: t });
+            let result;
+            if (operation.type === 'upsert') {
+              result = await File.upsert(operation.data, { transaction: t });
+            } else if (operation.type === 'checksum_update') {
+              result = await File.update(operation.data.updateFields, {
+                where: { file_path: operation.data.filePath },
+                transaction: t,
+              });
+            }
             operation.resolve(result);
           } catch (error) {
             operation.reject(error);
