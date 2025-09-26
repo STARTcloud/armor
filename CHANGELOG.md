@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.10.0](https://github.com/STARTcloud/armor_private/compare/v1.9.0...v1.10.0) (2025-09-26)
+
+
+### Features
+
+* implement database operation batching to fix SQLite locking issues ([0f4cf80](https://github.com/STARTcloud/armor_private/commit/0f4cf801575d9fc2193b514f1ae7d9d151a3e19c))
+* implement database operation batching to fix SQLite locking issues ([c5ca5d6](https://github.com/STARTcloud/armor_private/commit/c5ca5d662167f08da7c10ec7362a1ac91077450e))
+
+
+### Bug Fixes
+
+* complete SSE implementation for real-time file events ([6ce622a](https://github.com/STARTcloud/armor_private/commit/6ce622a23f9be7630620189095ff87f1146e0998))
+* resolve checksum update text matching issue in SSE implementation ([b0be103](https://github.com/STARTcloud/armor_private/commit/b0be1037b156c48008b86b146ca7ae415de833dc))
+
 ## [1.9.0](https://github.com/STARTcloud/armor_private/compare/v1.8.1...v1.9.0) (2025-09-26)
 
 
