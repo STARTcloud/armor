@@ -4,7 +4,7 @@ import { join, dirname, basename } from 'path';
 import { createHash } from 'crypto';
 import { Op } from 'sequelize';
 import { getFileModel } from '../models/File.js';
-import { sendChecksumUpdate, sendFileDeleted } from '../routes/sse.js';
+import { sendChecksumUpdate, sendFileDeleted, sendFileAdded } from '../routes/sse.js';
 import { fileWatcherLogger as logger } from '../config/logger.js';
 import configLoader from '../config/configLoader.js';
 import { getDatabase, withDatabaseRetry } from '../config/database.js';
@@ -230,15 +230,27 @@ class FileWatcherService {
         if (needsChecksum) {
           this.queueChecksumGeneration(itemPath);
           logger.info(
-            `${created ? 'Created' : 'Updated'} database record: ${itemPath} (checksum queued)`
+            `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (checksum queued)`
           );
         } else {
           logger.info(
-            `${created ? 'Created' : 'Updated'} database record: ${itemPath} (checksum valid, skipped)`
+            `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (checksum valid, skipped)`
           );
         }
+
+        if (!existingFile) {
+          logger.info(`About to send SSE file-added event for ${itemPath}`);
+          sendFileAdded(itemPath, { size: stats.size, mtime: stats.mtime });
+          logger.info(`SSE file-added event sent for ${itemPath}`);
+        }
       } else {
-        logger.info(`${created ? 'Created' : 'Updated'} database record: ${itemPath}`);
+        logger.info(`${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath}`);
+
+        if (!existingFile) {
+          logger.info(`About to send SSE file-added event for directory ${itemPath}`);
+          sendFileAdded(itemPath, { size: 0, mtime: stats.mtime });
+          logger.info(`SSE file-added event sent for directory ${itemPath}`);
+        }
       }
 
       return { created, itemPath };
@@ -286,6 +298,9 @@ class FileWatcherService {
       try {
         await withDatabaseRetry(() => File.destroy({ where: { file_path: filePath } }));
         logger.info(`Database record removed for deleted file: ${filePath}`);
+
+        sendFileDeleted(filePath);
+        logger.info(`SSE file deletion event sent for: ${filePath}`);
       } catch (error) {
         logger.error(
           `Failed to remove database record for deleted file ${filePath}: ${error.message}`
@@ -599,16 +614,37 @@ class FileWatcherService {
         if (needsChecksum) {
           this.queueChecksumGeneration(itemPath);
           logger.info(
-            `${created ? 'Created' : 'Updated'} database record: ${itemPath} (checksum queued)`
+            `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (checksum queued)`
           );
+
+          if (!existingFile) {
+            logger.info(`About to send SSE file-added event for: ${itemPath} (checksum queued)`);
+            sendFileAdded(itemPath, { size: stats.size, mtime: stats.mtime });
+            logger.info(`SSE file-added event sent for: ${itemPath} (checksum queued)`);
+          }
+
           return { created, itemPath, skipped: false };
         }
         logger.info(
-          `${created ? 'Created' : 'Updated'} database record: ${itemPath} (checksum valid, skipped)`
+          `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (checksum valid, skipped)`
         );
+
+        if (!existingFile) {
+          logger.info(`About to send SSE file-added event for: ${itemPath} (checksum skipped)`);
+          sendFileAdded(itemPath, { size: stats.size, mtime: stats.mtime });
+          logger.info(`SSE file-added event sent for: ${itemPath} (checksum skipped)`);
+        }
+
         return { created, itemPath, skipped: true };
       }
-      logger.info(`${created ? 'Created' : 'Updated'} database record: ${itemPath}`);
+      logger.info(`${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath}`);
+
+      if (!existingFile) {
+        logger.info(`About to send SSE file-added event for directory: ${itemPath}`);
+        sendFileAdded(itemPath, { size: 0, mtime: new Date() });
+        logger.info(`SSE file-added event sent for directory: ${itemPath}`);
+      }
+
       return { created, itemPath, skipped: false };
     } catch (error) {
       logger.error(`Error updating database for ${dirPath}/${itemName}: ${error.message}`);
@@ -659,19 +695,46 @@ class FileWatcherService {
         if (needsChecksum) {
           this.queueChecksumGeneration(itemPath);
           logger.info(
-            `${created ? 'Created' : 'Updated'} database record: ${itemPath} (using chokidar stats, checksum queued)`
+            `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (using chokidar stats, checksum queued)`
           );
+
+          if (!existingFile) {
+            logger.info(`About to send SSE file-added event for: ${itemPath}`);
+            sendFileAdded(itemPath, {
+              size: stats ? stats.size : 0,
+              mtime: stats ? stats.mtime : new Date(),
+            });
+            logger.info(`SSE file-added event sent for: ${itemPath}`);
+          }
+
           return { created, itemPath, skipped: false };
         }
         logger.info(
-          `${created ? 'Created' : 'Updated'} database record: ${itemPath} (using chokidar stats, checksum valid, skipped)`
+          `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (using chokidar stats, checksum valid, skipped)`
         );
+
+        if (!existingFile) {
+          logger.info(`About to send SSE file-added event for: ${itemPath} (checksum skipped)`);
+          sendFileAdded(itemPath, {
+            size: stats ? stats.size : 0,
+            mtime: stats ? stats.mtime : new Date(),
+          });
+          logger.info(`SSE file-added event sent for: ${itemPath} (checksum skipped)`);
+        }
+
         return { created, itemPath, skipped: true };
       }
 
       logger.info(
-        `${created ? 'Created' : 'Updated'} database record: ${itemPath} (using chokidar stats)`
+        `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (using chokidar stats)`
       );
+
+      if (!existingFile) {
+        logger.info(`About to send SSE file-added event for directory: ${itemPath}`);
+        sendFileAdded(itemPath, { size: 0, mtime: stats ? stats.mtime : new Date() });
+        logger.info(`SSE file-added event sent for directory: ${itemPath}`);
+      }
+
       return { created, itemPath, skipped: false };
     } catch (error) {
       logger.error(`Error updating database for ${dirPath}/${itemName}: ${error.message}`);

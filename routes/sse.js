@@ -104,6 +104,34 @@ export const sendFileDeleted = (filePath, isDirectory = false) => {
   logger.info('SSE: File deletion event sent successfully');
 };
 
+// Function to broadcast file addition events
+export const sendFileAdded = (filePath, fileStats = null) => {
+  logger.info('SSE: Sending file addition event', {
+    filePath,
+  });
+
+  const eventData = JSON.stringify({
+    type: 'file_added',
+    filePath,
+    size: fileStats?.size || null,
+    mtime: fileStats?.mtime || null,
+    timestamp: new Date().toISOString(),
+  });
+
+  // Send to all connected clients
+  clients.forEach(client => {
+    try {
+      client.response.write(`event: file-added\n`);
+      client.response.write(`data: ${eventData}\n\n`);
+    } catch (error) {
+      logger.error('Error sending SSE file addition message', { error: error.message });
+      clients = clients.filter(c => c.id !== client.id);
+    }
+  });
+
+  logger.info('SSE: File addition event sent successfully');
+};
+
 // Function to broadcast folder creation events
 export const sendFolderCreated = folderPath => {
   logger.info('SSE: Sending folder creation event', {
