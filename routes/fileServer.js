@@ -26,6 +26,8 @@ import {
 } from '../utils/htmlGenerator.js';
 import { logAccess, logger } from '../config/logger.js';
 import configLoader from '../config/configLoader.js';
+import { getFileModel } from '../models/File.js';
+import { sendFileDeleted, sendFileRenamed, sendFolderCreated } from './sse.js';
 
 // Helper function to create landing config
 const createLandingConfig = () => {
@@ -890,7 +892,6 @@ router.put('*splat', authenticateUploads, async (req, res, next) => {
     await fs.rename(oldFullPath, newFullPath);
 
     // Update database records
-    const { getFileModel } = await import('../models/File.js');
     const File = getFileModel();
 
     const stats = await fs.stat(newFullPath);
@@ -934,7 +935,7 @@ router.put('*splat', authenticateUploads, async (req, res, next) => {
     }
 
     // Send SSE event for real-time UI update
-    const { sendFileRenamed } = await import('./sse.js');
+    // sendFileRenamed imported at top of file
     sendFileRenamed(oldFullPath, newFullPath, stats.isDirectory());
 
     logAccess(req, 'RENAME_SUCCESS', `${oldName} → ${sanitizedNewName}`);
@@ -973,7 +974,6 @@ router.post('/search', authenticateDownloads, async (req, res) => {
     const pageLimit = Math.min(parseInt(limit), 1000);
     const offset = (pageNum - 1) * pageLimit;
 
-    const { getFileModel } = await import('../models/File.js');
     const File = getFileModel();
 
     const searchConditions = {
@@ -1118,7 +1118,6 @@ router.post('*splat/search', authenticateDownloads, async (req, res) => {
     const pageLimit = Math.min(parseInt(limit), 1000);
     const offset = (pageNum - 1) * pageLimit;
 
-    const { getFileModel } = await import('../models/File.js');
     const File = getFileModel();
 
     const searchConditions = {
@@ -1285,7 +1284,6 @@ router.post('/folders', authenticateUploads, async (req, res) => {
 
     await fs.mkdir(newFolderPath);
 
-    const { getFileModel } = await import('../models/File.js');
     const File = getFileModel();
     const stats = await fs.stat(newFolderPath);
 
@@ -1299,7 +1297,7 @@ router.post('/folders', authenticateUploads, async (req, res) => {
 
     logger.info(`Added folder to database: ${newFolderPath}`);
 
-    const { sendFolderCreated } = await import('./sse.js');
+    // sendFolderCreated imported at top of file
     sendFolderCreated(newFolderPath);
 
     logAccess(req, 'CREATE_FOLDER', `path: ${newFolderPath}`);
@@ -1348,7 +1346,6 @@ router.post('*splat/folders', authenticateUploads, async (req, res) => {
 
     await fs.mkdir(newFolderPath);
 
-    const { getFileModel } = await import('../models/File.js');
     const File = getFileModel();
     const stats = await fs.stat(newFolderPath);
 
@@ -1362,7 +1359,7 @@ router.post('*splat/folders', authenticateUploads, async (req, res) => {
 
     logger.info(`Added folder to database: ${newFolderPath}`);
 
-    const { sendFolderCreated } = await import('./sse.js');
+    // sendFolderCreated imported at top of file
     sendFolderCreated(newFolderPath);
 
     logAccess(req, 'CREATE_FOLDER', `path: ${newFolderPath}`);
@@ -1514,7 +1511,6 @@ router.post('*splat', authenticateUploads, async (req, res, next) => {
 
     await fs.mkdir(newFolderPath);
 
-    const { getFileModel } = await import('../models/File.js');
     const File = getFileModel();
     const stats = await fs.stat(newFolderPath);
 
@@ -1528,7 +1524,7 @@ router.post('*splat', authenticateUploads, async (req, res, next) => {
 
     logger.info(`Added folder to database: ${newFolderPath}`);
 
-    const { sendFolderCreated } = await import('./sse.js');
+    // sendFolderCreated imported at top of file
     sendFolderCreated(newFolderPath);
 
     logAccess(req, 'CREATE_FOLDER', `path: ${newFolderPath}`);
@@ -1615,7 +1611,6 @@ router.post('*splat', authenticateUploads, upload.single('file'), async (req, re
 
     req.fileWatcher.markUploadComplete(req.file.path);
 
-    const { getFileModel } = await import('../models/File.js');
     const File = getFileModel();
 
     logger.info('Upload duplicate check', {
@@ -1732,7 +1727,6 @@ router.delete('*splat', authenticateDelete, async (req, res) => {
       try {
         await fs.rm(fullPath, { recursive: true, force: true });
 
-        const { getFileModel } = await import('../models/File.js');
         const File = getFileModel();
         await File.destroy({
           where: {
@@ -1742,7 +1736,7 @@ router.delete('*splat', authenticateDelete, async (req, res) => {
           },
         });
 
-        const { sendFileDeleted } = await import('./sse.js');
+        // sendFileDeleted imported at top of file
         sendFileDeleted(fullPath, true);
 
         logAccess(req, 'DELETE_DIRECTORY', `path: ${fullPath} (recursive)`);
@@ -1760,11 +1754,10 @@ router.delete('*splat', authenticateDelete, async (req, res) => {
     } else {
       await fs.unlink(fullPath);
 
-      const { getFileModel } = await import('../models/File.js');
       const File = getFileModel();
       await File.destroy({ where: { file_path: fullPath } });
 
-      const { sendFileDeleted } = await import('./sse.js');
+      // sendFileDeleted imported at top of file
       sendFileDeleted(fullPath, false);
 
       logAccess(req, 'DELETE_FILE', `path: ${fullPath}, size: ${stats.size} bytes`);

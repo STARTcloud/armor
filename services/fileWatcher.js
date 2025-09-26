@@ -4,7 +4,7 @@ import { join, dirname, basename } from 'path';
 import { createHash } from 'crypto';
 import { Op } from 'sequelize';
 import { getFileModel } from '../models/File.js';
-import { sendChecksumUpdate } from '../routes/sse.js';
+import { sendChecksumUpdate, sendFileDeleted } from '../routes/sse.js';
 import { fileWatcherLogger as logger } from '../config/logger.js';
 import configLoader from '../config/configLoader.js';
 import { getDatabase } from '../config/database.js';
@@ -297,7 +297,7 @@ class FileWatcherService {
               [Op.like]: `${dirPath}%`,
             },
           },
-          attributes: ['file_path'],
+          attributes: ['file_path', 'is_directory'],
         });
 
         if (filesToDelete.length > 0) {
@@ -309,8 +309,27 @@ class FileWatcherService {
           logger.info(
             `Database records removed for deleted directory: ${dirPath} (${filesToDelete.length} records)`
           );
+
+          filesToDelete.forEach(file => {
+            if (!file.is_directory) {
+              logger.info(`Sending SSE notification for deleted file: ${file.file_path}`);
+              sendFileDeleted(file.file_path, false);
+            }
+          });
+
+          filesToDelete.forEach(file => {
+            if (file.is_directory && file.file_path !== dirPath) {
+              logger.info(`Sending SSE notification for deleted subdirectory: ${file.file_path}`);
+              sendFileDeleted(file.file_path, true);
+            }
+          });
+
+          logger.info(`Sending SSE notification for main directory: ${dirPath}`);
+          sendFileDeleted(dirPath, true);
         } else {
           logger.info(`No database records found for deleted directory: ${dirPath}`);
+          logger.info(`Sending SSE notification for main directory (no DB records): ${dirPath}`);
+          sendFileDeleted(dirPath, true);
         }
       } catch (error) {
         logger.error(
