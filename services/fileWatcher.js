@@ -301,8 +301,10 @@ class FileWatcherService {
         });
 
         if (filesToDelete.length > 0) {
-          logger.info(`DEBUG: Found ${filesToDelete.length} files to delete for directory: ${dirPath}`);
-          
+          logger.info(
+            `DEBUG: Found ${filesToDelete.length} files to delete for directory: ${dirPath}`
+          );
+
           const deletePromises = filesToDelete.map(file =>
             File.destroy({ where: { file_path: file.file_path } })
           );
