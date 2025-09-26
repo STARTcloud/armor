@@ -1,7 +1,6 @@
 import chokidar from 'chokidar';
-import { promises as fs, createReadStream } from 'fs';
+import { promises as fs } from 'fs';
 import { join, dirname, basename } from 'path';
-import { createHash } from 'crypto';
 import { Op } from 'sequelize';
 import { getFileModel } from '../models/File.js';
 import { sendChecksumUpdate, sendFileDeleted, sendFileAdded } from '../routes/sse.js';
@@ -10,6 +9,7 @@ import configLoader from '../config/configLoader.js';
 import { withDatabaseRetry } from '../config/database.js';
 import cacheService from './cacheService.js';
 import databaseOperationService from './databaseOperationService.js';
+import ChecksumWorkerPool from './checksumWorker.js';
 
 class FileWatcherService {
   constructor(watchPath) {
@@ -20,14 +20,14 @@ class FileWatcherService {
     this.activeChecksums = new Set(); // Track active checksum operations
     this.checksumQueue = []; // Queue for checksum operations
     this.config = null; // Will be loaded from configLoader
+    this.checksumWorkerPool = null; // Worker pool for checksum calculation
   }
 
   async initialize() {
-    // Load configuration
     this.config = configLoader.getFileWatcherConfig();
+    this.checksumWorkerPool = new ChecksumWorkerPool(this.config.max_concurrent_checksums);
     logger.info(`FileWatcher config loaded`, this.config);
 
-    // Start checksum queue processor
     this.startChecksumProcessor();
 
     logger.info(`Starting initial directory scan of: ${this.watchPath}`);
@@ -267,7 +267,7 @@ class FileWatcherService {
       ignoreInitial: false, // Emit events for existing files
       followSymlinks: true, // Follow symlinks as discussed earlier
       ignorePermissionErrors: true, // Ignore EROFS and permission errors
-      usePolling: false, // Use efficient fs.watch (not polling)
+      usePolling: true, // Use polling for reliable unlink detection across filesystems
       alwaysStat: true, // Provide stats in event callbacks (more efficient)
       atomic: true, // Handle atomic editor writes
       awaitWriteFinish: {
@@ -364,14 +364,7 @@ class FileWatcherService {
   }
 
   calculateChecksum(filePath) {
-    return new Promise((resolve, reject) => {
-      const hash = createHash('sha256');
-      const stream = createReadStream(filePath);
-
-      stream.on('data', data => hash.update(data));
-      stream.on('end', () => resolve(hash.digest('hex')));
-      stream.on('error', reject);
-    });
+    return this.checksumWorkerPool.calculateChecksum(filePath);
   }
 
   // Start the checksum queue processor
@@ -415,7 +408,6 @@ class FileWatcherService {
     }
   }
 
-  // Process checksum with timeout monitoring
   async processChecksumWithTimeout(itemPath) {
     const startTime = Date.now();
 
@@ -465,7 +457,6 @@ class FileWatcherService {
 
       logger.info(`Generated checksum for ${itemPath}: ${checksum}`);
     } catch (error) {
-      // Mark as error using batched update
       logger.error(`Checksum generation failed for ${itemPath}: ${error.message}`, {
         stack: error.stack,
       });
@@ -770,12 +761,15 @@ class FileWatcherService {
     }, 1000); // Small delay to ensure file is fully written
   }
 
-  close() {
+  async close() {
     if (this.watcher) {
       this.watcher.close();
     }
 
-    // Clear all timers
+    if (this.checksumWorkerPool) {
+      await this.checksumWorkerPool.close();
+    }
+
     this.fileStabilityTimers.forEach(timer => clearTimeout(timer));
     this.fileStabilityTimers.clear();
     this.activeUploads.clear();
