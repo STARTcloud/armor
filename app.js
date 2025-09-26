@@ -44,6 +44,9 @@ const startServer = async () => {
   const { default: maintenanceService } = await import('./services/maintenanceService.js');
   maintenanceService.start();
 
+  const { default: checksumService } = await import('./services/checksumService.js');
+  checksumService.start();
+
   app.use((req, res, next) => {
     req.fileWatcher = fileWatcher;
     res.locals.fileWatcher = fileWatcher;
