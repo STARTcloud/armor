@@ -7,8 +7,9 @@ import { getFileModel } from '../models/File.js';
 import { sendChecksumUpdate, sendFileDeleted } from '../routes/sse.js';
 import { fileWatcherLogger as logger } from '../config/logger.js';
 import configLoader from '../config/configLoader.js';
-import { getDatabase } from '../config/database.js';
+import { getDatabase, withDatabaseRetry } from '../config/database.js';
 import cacheService from './cacheService.js';
+import databaseOperationService from './databaseOperationService.js';
 
 class FileWatcherService {
   constructor(watchPath) {
@@ -62,14 +63,16 @@ class FileWatcherService {
 
       // BATCH LOAD existing files for this directory (HUGE performance improvement)
       const File = getFileModel();
-      const existingFiles = await File.findAll({
-        where: {
-          file_path: {
-            [Op.like]: `${dirPath}/%`,
+      const existingFiles = await withDatabaseRetry(() =>
+        File.findAll({
+          where: {
+            file_path: {
+              [Op.like]: `${dirPath}/%`,
+            },
           },
-        },
-        raw: true,
-      });
+          raw: true,
+        })
+      );
 
       // Create lookup map for O(1) access
       const existingFileMap = new Map();
@@ -195,15 +198,19 @@ class FileWatcherService {
       const File = getFileModel();
 
       // Check if file already exists in database
-      const existingFile = await File.findOne({ where: { file_path: itemPath } });
+      const existingFile = await withDatabaseRetry(() =>
+        File.findOne({ where: { file_path: itemPath } })
+      );
 
-      const [, created] = await File.upsert({
-        file_path: itemPath,
-        file_size: stats.size,
-        last_modified: stats.mtime,
-        is_directory: isDirectory,
-        checksum_status: isDirectory ? 'complete' : existingFile?.checksum_status || 'pending',
-      });
+      const [, created] = await withDatabaseRetry(() =>
+        databaseOperationService.queueFileUpsert({
+          file_path: itemPath,
+          file_size: stats.size,
+          last_modified: stats.mtime,
+          is_directory: isDirectory,
+          checksum_status: isDirectory ? 'complete' : existingFile?.checksum_status || 'pending',
+        })
+      );
 
       // Only queue checksum if:
       // 1. It's a new file (created = true)
@@ -277,7 +284,7 @@ class FileWatcherService {
       cacheService.invalidate(dirname(filePath));
       const File = getFileModel();
       try {
-        await File.destroy({ where: { file_path: filePath } });
+        await withDatabaseRetry(() => File.destroy({ where: { file_path: filePath } }));
         logger.info(`Database record removed for deleted file: ${filePath}`);
       } catch (error) {
         logger.error(
@@ -291,18 +298,20 @@ class FileWatcherService {
       cacheService.invalidate(dirname(dirPath));
       const File = getFileModel();
       try {
-        const filesToDelete = await File.findAll({
-          where: {
-            file_path: {
-              [Op.like]: `${dirPath}%`,
+        const filesToDelete = await withDatabaseRetry(() =>
+          File.findAll({
+            where: {
+              file_path: {
+                [Op.like]: `${dirPath}%`,
+              },
             },
-          },
-          attributes: ['file_path', 'is_directory'],
-        });
+            attributes: ['file_path', 'is_directory'],
+          })
+        );
 
         if (filesToDelete.length > 0) {
           const deletePromises = filesToDelete.map(file =>
-            File.destroy({ where: { file_path: file.file_path } })
+            withDatabaseRetry(() => File.destroy({ where: { file_path: file.file_path } }))
           );
 
           await Promise.all(deletePromises);
@@ -401,46 +410,50 @@ class FileWatcherService {
       logger.info(`Starting checksum generation for: ${itemPath}`);
 
       let checksum;
-      await sequelize.transaction(async t => {
-        await File.update(
-          { checksum_status: 'generating' },
-          { where: { file_path: itemPath }, transaction: t }
-        );
+      await withDatabaseRetry(() =>
+        sequelize.transaction(async t => {
+          await File.update(
+            { checksum_status: 'generating' },
+            { where: { file_path: itemPath }, transaction: t }
+          );
 
-        logger.info(`Starting checksum calculation for: ${itemPath}`);
+          logger.info(`Starting checksum calculation for: ${itemPath}`);
 
-        const timeoutWarning = setTimeout(() => {
+          const timeoutWarning = setTimeout(() => {
+            const elapsed = Math.round((Date.now() - startTime) / 1000);
+            logger.warn(
+              `Checksum taking longer than expected for ${itemPath} (${elapsed}s elapsed)`
+            );
+          }, this.config.checksum_timeout_ms);
+
+          checksum = await this.calculateChecksum(itemPath);
+          clearTimeout(timeoutWarning);
+
           const elapsed = Math.round((Date.now() - startTime) / 1000);
-          logger.warn(`Checksum taking longer than expected for ${itemPath} (${elapsed}s elapsed)`);
-        }, this.config.checksum_timeout_ms);
+          logger.info(`Checksum calculation completed for: ${itemPath} (${elapsed}s)`);
 
-        checksum = await this.calculateChecksum(itemPath);
-        clearTimeout(timeoutWarning);
+          logger.info(`Updating database with checksum for: ${itemPath}`);
+          const updateResult = await File.update(
+            {
+              checksum_sha256: checksum,
+              checksum_status: 'complete',
+              checksum_generated_at: new Date(),
+            },
+            {
+              where: { file_path: itemPath },
+              returning: true,
+              transaction: t,
+            }
+          );
 
-        const elapsed = Math.round((Date.now() - startTime) / 1000);
-        logger.info(`Checksum calculation completed for: ${itemPath} (${elapsed}s)`);
-
-        logger.info(`Updating database with checksum for: ${itemPath}`);
-        const updateResult = await File.update(
-          {
-            checksum_sha256: checksum,
-            checksum_status: 'complete',
-            checksum_generated_at: new Date(),
-          },
-          {
-            where: { file_path: itemPath },
-            returning: true,
-            transaction: t,
+          const [, affectedRows] = updateResult;
+          if (affectedRows === 0) {
+            logger.error(`Database update failed for: ${itemPath} - no rows affected`);
+          } else {
+            logger.info(`Database updated with checksum for: ${itemPath} (${affectedRows} rows)`);
           }
-        );
-
-        const [, affectedRows] = updateResult;
-        if (affectedRows === 0) {
-          logger.error(`Database update failed for: ${itemPath} - no rows affected`);
-        } else {
-          logger.info(`Database updated with checksum for: ${itemPath} (${affectedRows} rows)`);
-        }
-      });
+        })
+      );
 
       logger.info(`Getting file stats for SSE update: ${itemPath}`);
       const stats = await fs.stat(itemPath);
@@ -456,7 +469,9 @@ class FileWatcherService {
         stack: error.stack,
       });
       try {
-        await File.update({ checksum_status: 'error' }, { where: { file_path: itemPath } });
+        await withDatabaseRetry(() =>
+          File.update({ checksum_status: 'error' }, { where: { file_path: itemPath } })
+        );
         logger.info(`Marked ${itemPath} as error in database`);
       } catch (dbError) {
         logger.error(`Failed to mark ${itemPath} as error: ${dbError.message}`);
@@ -476,14 +491,16 @@ class FileWatcherService {
       }
 
       const File = getFileModel();
-      const files = await File.findAll({
-        where: {
-          file_path: {
-            [Op.like]: `${cleanDirPath}/%`,
+      const files = await withDatabaseRetry(() =>
+        File.findAll({
+          where: {
+            file_path: {
+              [Op.like]: `${cleanDirPath}/%`,
+            },
           },
-        },
-        raw: true,
-      });
+          raw: true,
+        })
+      );
 
       const directChildren = files.filter(file => {
         const relativePath = file.file_path.replace(`${cleanDirPath}/`, '');
@@ -554,15 +571,15 @@ class FileWatcherService {
       const stats = await fs.stat(itemPath);
       const isDirectory = stats.isDirectory();
 
-      const File = getFileModel();
-
-      const [, created] = await File.upsert({
-        file_path: itemPath,
-        file_size: stats.size,
-        last_modified: stats.mtime,
-        is_directory: isDirectory,
-        checksum_status: isDirectory ? 'complete' : existingFile?.checksum_status || 'pending',
-      });
+      const [, created] = await withDatabaseRetry(() =>
+        databaseOperationService.queueFileUpsert({
+          file_path: itemPath,
+          file_size: stats.size,
+          last_modified: stats.mtime,
+          is_directory: isDirectory,
+          checksum_status: isDirectory ? 'complete' : existingFile?.checksum_status || 'pending',
+        })
+      );
 
       // Only queue checksum if:
       // 1. It's a new file (created = true)
@@ -607,18 +624,22 @@ class FileWatcherService {
 
       const File = getFileModel();
 
-      const existingFile = await File.findOne({
-        where: { file_path: itemPath },
-        raw: true,
-      });
+      const existingFile = await withDatabaseRetry(() =>
+        File.findOne({
+          where: { file_path: itemPath },
+          raw: true,
+        })
+      );
 
-      const [, created] = await File.upsert({
-        file_path: itemPath,
-        file_size: stats ? stats.size : 0,
-        last_modified: stats ? stats.mtime : new Date(),
-        is_directory: isDirectory,
-        checksum_status: isDirectory ? 'complete' : existingFile?.checksum_status || 'pending',
-      });
+      const [, created] = await withDatabaseRetry(() =>
+        databaseOperationService.queueFileUpsert({
+          file_path: itemPath,
+          file_size: stats ? stats.size : 0,
+          last_modified: stats ? stats.mtime : new Date(),
+          is_directory: isDirectory,
+          checksum_status: isDirectory ? 'complete' : existingFile?.checksum_status || 'pending',
+        })
+      );
 
       // Only queue checksum if:
       // 1. It's a new file (created = true)
