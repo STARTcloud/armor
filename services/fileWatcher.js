@@ -301,10 +301,6 @@ class FileWatcherService {
         });
 
         if (filesToDelete.length > 0) {
-          logger.info(
-            `DEBUG: Found ${filesToDelete.length} files to delete for directory: ${dirPath}`
-          );
-
           const deletePromises = filesToDelete.map(file =>
             File.destroy({ where: { file_path: file.file_path } })
           );
@@ -314,36 +310,25 @@ class FileWatcherService {
             `Database records removed for deleted directory: ${dirPath} (${filesToDelete.length} records)`
           );
 
-          logger.info(`DEBUG: Database cleanup completed, now processing SSE notifications`);
-          logger.info(
-            `DEBUG: About to process ${filesToDelete.length} files for SSE notifications`
-          );
-
           filesToDelete.forEach(file => {
             if (!file.is_directory) {
-              logger.info(`DEBUG: Processing non-directory file: ${file.file_path}`);
-              logger.info(`Sending SSE notification for deleted file: ${file.file_path}`);
+              logger.info(`SSE: Sending file deletion event for: ${file.file_path}`);
               sendFileDeleted(file.file_path, false);
-              logger.info(`DEBUG: SSE notification sent for file: ${file.file_path}`);
             }
           });
 
           filesToDelete.forEach(file => {
             if (file.is_directory && file.file_path !== dirPath) {
-              logger.info(`DEBUG: Processing subdirectory: ${file.file_path}`);
-              logger.info(`Sending SSE notification for deleted subdirectory: ${file.file_path}`);
+              logger.info(`SSE: Sending directory deletion event for: ${file.file_path}`);
               sendFileDeleted(file.file_path, true);
-              logger.info(`DEBUG: SSE notification sent for subdirectory: ${file.file_path}`);
             }
           });
 
-          logger.info(`DEBUG: About to send SSE notification for main directory: ${dirPath}`);
-          logger.info(`Sending SSE notification for main directory: ${dirPath}`);
+          logger.info(`SSE: Sending directory deletion event for: ${dirPath}`);
           sendFileDeleted(dirPath, true);
-          logger.info(`DEBUG: SSE notification sent for main directory: ${dirPath}`);
         } else {
           logger.info(`No database records found for deleted directory: ${dirPath}`);
-          logger.info(`Sending SSE notification for main directory (no DB records): ${dirPath}`);
+          logger.info(`SSE: Sending directory deletion event for: ${dirPath}`);
           sendFileDeleted(dirPath, true);
         }
       } catch (error) {
