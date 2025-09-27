@@ -31,6 +31,10 @@ FileNameLink.propTypes = {
 };
 
 const ChecksumDisplay = ({ file, onCopyChecksum }) => {
+  if (file.isDirectory) {
+    return <span className="text-muted">-</span>;
+  }
+
   if (file.checksum) {
     return (
       <div className="d-flex align-items-center">
@@ -46,10 +50,6 @@ const ChecksumDisplay = ({ file, onCopyChecksum }) => {
         </button>
       </div>
     );
-  }
-
-  if (file.isDirectory) {
-    return <span className="text-muted">-</span>;
   }
 
   return (
@@ -108,7 +108,7 @@ const FileRow = ({
 
   const handleCopyLink = async () => {
     try {
-      const url = `${window.location.origin}/api/files${file.path}`;
+      const url = `${window.location.origin}${file.path}`;
       await navigator.clipboard.writeText(url);
     } catch (error) {
       console.error("Failed to copy link:", error);
@@ -117,7 +117,7 @@ const FileRow = ({
 
   const getFileIcon = () => {
     if (file.isDirectory) {
-      return "bi-folder-fill text-warning";
+      return "bi-folder text-light";
     }
 
     const ext = file.name?.split(".").pop()?.toLowerCase();
@@ -166,7 +166,7 @@ const FileRow = ({
         currentPath === "/" ? `/${file.name}` : `${currentPath}/${file.name}`;
       return `/browse${newPath}`;
     }
-    return `/api/files${file.path}`;
+    return file.path;
   };
 
   return (
@@ -196,6 +196,7 @@ const FileRow = ({
           )}
         </div>
       </td>
+      <td className="text-muted">{file.isDirectory ? "Folder" : "File"}</td>
       <td className="text-muted">
         {file.isDirectory ? "-" : formatSize(file.size)}
       </td>

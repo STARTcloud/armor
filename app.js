@@ -563,6 +563,9 @@ const startServer = async () => {
     logger.info('API documentation enabled at /api-docs');
   }
 
+  app.use('/api/files', fileServerRoutes);
+  app.use('/', fileServerRoutes);
+
   app.get('/*splat', (req, res, next) => {
     if (
       req.path.startsWith('/api/') ||
@@ -581,8 +584,6 @@ const startServer = async () => {
     }
     return next();
   });
-
-  app.use('/', fileServerRoutes);
 
   app.use(errorHandler);
 

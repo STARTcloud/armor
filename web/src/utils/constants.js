@@ -6,6 +6,7 @@ export const API_ENDPOINTS = {
     METHODS: "/auth/methods",
   },
   FILES: {
+    BASE: "/api/files",
     SEARCH_ROOT: "/search",
     SEARCH_PATH: "/search",
   },

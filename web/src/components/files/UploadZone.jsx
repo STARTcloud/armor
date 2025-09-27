@@ -76,7 +76,8 @@ const UploadZone = ({ currentPath, onUploadComplete }) => {
       );
     });
 
-    const uploadPath = currentPath === "/" ? "" : currentPath;
+    const uploadPath =
+      currentPath === "/" ? "/api/files/" : `/api/files${currentPath}`;
     xhr.open("POST", uploadPath);
     xhr.send(formData);
   };
@@ -135,84 +136,70 @@ const UploadZone = ({ currentPath, onUploadComplete }) => {
   };
 
   return (
-    <div className="card bg-dark border-secondary">
-      <div className="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
-        <h6 className="mb-0 text-light">
-          <i className="bi bi-cloud-upload me-2" />
-          Upload Files
-        </h6>
-        {uploads.some((u) => u.status === "completed") && (
-          <button
-            className="btn btn-sm btn-outline-secondary"
-            onClick={clearCompleted}
-          >
-            Clear Completed
-          </button>
-        )}
-      </div>
-      <div className="card-body">
-        {/* Drop Zone */}
-        <div
-          className={`border-2 border-dashed rounded p-4 text-center mb-3 ${
-            isDragOver
-              ? "border-success bg-success bg-opacity-10"
-              : "border-secondary"
-          }`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              fileInputRef.current?.click();
-            }
-          }}
-          role="button"
-          tabIndex={0}
-          style={{ cursor: "pointer" }}
-        >
-          <i
-            className={`bi bi-cloud-upload display-4 mb-3 ${
-              isDragOver ? "text-success" : "text-muted"
-            }`}
-          />
-          <h6 className="text-light mb-2">
-            {isDragOver ? "Drop files here" : "Drag & drop files here"}
-          </h6>
-          <p className="text-muted mb-0">
-            or <span className="text-primary">click to browse</span>
-          </p>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            onChange={handleFileSelect}
-            style={{ display: "none" }}
-          />
+    <div className="mb-4">
+      {/* Drop Zone */}
+      <div
+        className={`upload-drop-zone ${isDragOver ? "upload-drop-zone--over" : ""}`}
+        style={{ display: "block" }}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            fileInputRef.current?.click();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+      >
+        <div className="upload-drop-zone__prompt">
+          <i className="bi bi-cloud-upload display-4" />
+          <div>{isDragOver ? "Drop files here" : "Drag & drop files here"}</div>
+          <div>
+            or <span>click to browse</span>
+          </div>
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          onChange={handleFileSelect}
+          className="upload-drop-zone__input"
+        />
+      </div>
 
-        {/* Upload Progress */}
-        {uploads.length > 0 && (
-          <div className="upload-list">
-            <h6 className="text-light mb-3">
+      {/* Upload Progress */}
+      {uploads.length > 0 && (
+        <div className="upload-list">
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h6 className="text-light mb-0">
               Upload Progress (
               {uploads.filter((u) => u.status === "completed").length}/
               {uploads.length})
             </h6>
-            <div className="list-group list-group-flush">
-              {uploads.map((upload) => (
-                <UploadProgress
-                  key={upload.id}
-                  upload={upload}
-                  onRemove={removeUpload}
-                  onRetry={retryUpload}
-                />
-              ))}
-            </div>
+            {uploads.some((u) => u.status === "completed") && (
+              <button
+                className="btn btn-sm btn-outline-secondary"
+                onClick={clearCompleted}
+              >
+                Clear Completed
+              </button>
+            )}
           </div>
-        )}
-      </div>
+          <div className="list-group list-group-flush">
+            {uploads.map((upload) => (
+              <UploadProgress
+                key={upload.id}
+                upload={upload}
+                onRemove={removeUpload}
+                onRetry={retryUpload}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

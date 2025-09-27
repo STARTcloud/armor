@@ -102,6 +102,7 @@ const FileTable = ({ files, currentPath, onDelete, onRename }) => {
               >
                 Name <i className={`bi ${getSortIcon("name")} ms-1`} />
               </th>
+              <th scope="col">Type</th>
               <th
                 scope="col"
                 className="cursor-pointer user-select-none"

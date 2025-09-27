@@ -31,18 +31,7 @@ const Header = () => {
       <div className="container-fluid">
         <div className="row align-items-center py-3">
           <div className="col">
-            <div className="d-flex align-items-center">
-              <img 
-                src="https://raw.githubusercontent.com/STARTcloud/startcloud_roles/refs/heads/main/roles/startcloud_theme/files/prominic.png"
-                alt="StartCloud"
-                height="32"
-                className="me-2"
-              />
-              <h1 className="h4 mb-0 text-light">Prominic Armor</h1>
-              <small className="text-muted ms-2">
-                ARMOR Reliably Manages Online Resources
-              </small>
-            </div>
+            <Breadcrumbs />
           </div>
           <div className="col-auto">
             <div className="dropdown">
@@ -52,6 +41,7 @@ const Header = () => {
                 id="userDropdown"
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
+                data-bs-auto-close="true"
               >
                 <i className="bi bi-person-circle me-1" />
                 {getUserDisplayName(user)}
@@ -88,13 +78,6 @@ const Header = () => {
                 </li>
               </ul>
             </div>
-          </div>
-        </div>
-
-        {/* Breadcrumbs */}
-        <div className="row">
-          <div className="col">
-            <Breadcrumbs />
           </div>
         </div>
       </div>

@@ -17,7 +17,9 @@ const useFileOperations = ({ onSuccess, onError, onConfirmDelete }) => {
 
     try {
       setLoading(true);
-      await api.delete(filePath);
+      const apiPath =
+        filePath === "/" ? "/api/files/" : `/api/files${filePath}`;
+      await api.delete(apiPath);
       onSuccess?.();
     } catch (error) {
       console.error("Delete failed:", error);
@@ -30,7 +32,11 @@ const useFileOperations = ({ onSuccess, onError, onConfirmDelete }) => {
   const renameFile = async (filePath, newName) => {
     try {
       setLoading(true);
-      await api.put(`${filePath}?action=rename`, { newName });
+      const apiPath =
+        filePath === "/" ? "/api/files/" : `/api/files${filePath}`;
+      await api.put(`${apiPath}?action=rename`, {
+        newName,
+      });
       onSuccess?.();
     } catch (error) {
       console.error("Rename failed:", error);
@@ -44,8 +50,9 @@ const useFileOperations = ({ onSuccess, onError, onConfirmDelete }) => {
   const createFolder = async (currentPath, folderName) => {
     try {
       setLoading(true);
-      const targetPath = currentPath === "/" ? "" : currentPath;
-      await api.post(`${targetPath}?action=create-folder`, { folderName });
+      const apiPath =
+        currentPath === "/" ? "/api/files/" : `/api/files${currentPath}`;
+      await api.post(`${apiPath}?action=create-folder`, { folderName });
       onSuccess?.();
     } catch (error) {
       console.error("Create folder failed:", error);

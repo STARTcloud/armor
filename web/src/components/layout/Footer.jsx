@@ -1,20 +1,22 @@
 const Footer = () => (
-  <footer className="bg-dark border-top border-secondary py-3 mt-auto">
-    <div className="container-fluid">
-      <div className="row">
-        <div className="col text-center">
-          <small className="text-muted">
-            Powered by{" "}
-            <a
-              href="https://startcloud.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-decoration-none text-light"
-            >
-              STARTcloud
-            </a>
-          </small>
-        </div>
+  <footer className="py-4 border-top border-secondary">
+    <div className="container text-center">
+      <div className="d-flex align-items-center justify-content-center">
+        <span className="text-muted me-2">Powered by</span>
+        <a
+          href="https://startcloud.com"
+          target="_blank"
+          className="text-decoration-none d-flex align-items-center"
+          rel="noreferrer"
+        >
+          <img
+            src="https://startcloud.com/assets/images/logos/startcloud-logo40.png"
+            alt="STARTcloud"
+            height="20"
+            className="me-2"
+          />
+          <span className="text-light">STARTcloud</span>
+        </a>
       </div>
     </div>
   </footer>

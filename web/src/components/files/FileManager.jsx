@@ -39,10 +39,17 @@ const FileManager = () => {
       setLoading(true);
       setError("");
 
-      const response = await api.get(currentPath === '/' ? '' : currentPath);
+      console.log("Loading files for currentPath:", currentPath);
+      const apiPath =
+        currentPath === "/" ? "/api/files/" : `/api/files${currentPath}`;
+      console.log("Making API call to:", apiPath);
+
+      const response = await api.get(apiPath);
+      console.log("API response:", response);
       setFiles(response.data.files || []);
     } catch (err) {
       console.error("Failed to load files:", err);
+      console.error("Error details:", err.response?.data, err.response?.status);
       setError("Failed to load directory contents");
     } finally {
       setLoading(false);
@@ -117,11 +124,14 @@ const FileManager = () => {
 
     try {
       setSearchQuery(query);
-      const searchEndpoint = currentPath === '/' ? '/search' : `${currentPath}/search`;
+      const searchEndpoint =
+        currentPath === "/"
+          ? "/api/files/search"
+          : `/api/files${currentPath}/search`;
       const response = await api.post(searchEndpoint, {
-        query: query,
+        query,
         page: 1,
-        limit: 100
+        limit: 100,
       });
       setSearchResults(response.data);
     } catch (err) {
@@ -173,8 +183,34 @@ const FileManager = () => {
         </div>
       )}
 
+      {/* Upload Zone */}
+      {showUpload && (
+        <UploadZone
+          currentPath={currentPath}
+          onUploadComplete={() => loadFiles()}
+        />
+      )}
+
       {/* Action Bar */}
       <div className="row mb-4">
+        <div className="col-md-6">
+          <button
+            className="btn btn-outline-primary me-2"
+            onClick={() => setShowCreateFolder(true)}
+            title="Create New Folder"
+          >
+            <i className="bi bi-folder-plus" />
+          </button>
+          <button
+            className="btn btn-outline-success"
+            onClick={() => setShowUpload(!showUpload)}
+            title={showUpload ? "Hide Upload Section" : "Show Upload Section"}
+          >
+            <i
+              className={`bi ${showUpload ? "bi-cloud-upload-fill" : "bi-cloud-upload"}`}
+            />
+          </button>
+        </div>
         <div className="col-md-6">
           <SearchBar
             onSearch={handleSearch}
@@ -182,38 +218,7 @@ const FileManager = () => {
             value={searchQuery}
           />
         </div>
-        <div className="col-md-6 text-end">
-          <button
-            className="btn btn-outline-success me-2"
-            onClick={() => setShowUpload(!showUpload)}
-            title={showUpload ? "Hide Upload Section" : "Show Upload Section"}
-          >
-            <i
-              className={`bi ${showUpload ? "bi-cloud-upload-fill" : "bi-cloud-upload"}`}
-            />
-            {showUpload ? " Hide Upload" : " Upload Files"}
-          </button>
-          <button
-            className="btn btn-outline-primary"
-            onClick={() => setShowCreateFolder(true)}
-          >
-            <i className="bi bi-folder-plus" />
-            New Folder
-          </button>
-        </div>
       </div>
-
-      {/* Upload Zone */}
-      {showUpload && (
-        <div className="row mb-4">
-          <div className="col">
-            <UploadZone
-              currentPath={currentPath}
-              onUploadComplete={() => loadFiles()}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Search Results or File Table */}
       <div className="row">
