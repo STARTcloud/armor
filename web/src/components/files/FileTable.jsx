@@ -98,7 +98,7 @@ const FileTable = ({
         <table className="table table-dark table-striped table-hover mb-0">
           <thead>
             <tr>
-              <th scope="col" width="40">
+              <th scope="col" style={{ width: "5%" }}>
                 <input
                   type="checkbox"
                   className="form-check-input"

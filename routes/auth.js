@@ -116,12 +116,29 @@ router.get('/auth/methods', (req, res) => {
     methods.push(...oidcMethods);
 
     const uiConfig = configLoader.getConfig();
+
+    let userInfo = null;
+    if (req.user || req.oidcUser) {
+      const user = req.user || req.oidcUser;
+      userInfo = {
+        permissions: getUserPermissions(user),
+      };
+    }
+
     return res.json({
       success: true,
       methods,
       ui: {
-        login_primary_color: uiConfig.login_primary_color || '#198754',
+        login_primary_color: uiConfig.server?.login_primary_color || '#198754',
+        landing_title: uiConfig.server?.landing_title,
+        landing_subtitle: uiConfig.server?.landing_subtitle,
+        landing_description: uiConfig.server?.landing_description,
+        landing_icon_class: uiConfig.server?.landing_icon_class,
+        landing_icon_url: uiConfig.server?.landing_icon_url,
+        landing_primary_color: uiConfig.server?.landing_primary_color,
+        support_email: uiConfig.server?.support_email,
       },
+      user: userInfo,
     });
   } catch (error) {
     logger.error('Auth methods error', { error: error.message });

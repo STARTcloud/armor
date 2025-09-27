@@ -32,7 +32,6 @@ const FileManager = () => {
   };
 
   const currentPath = getCurrentPath();
-  const viewIndex = searchParams.get("view") === "index";
 
   const loadFiles = useCallback(async () => {
     try {
@@ -289,8 +288,7 @@ const FileManager = () => {
                 onClick={handleDeleteSelected}
                 title={`Delete ${selectedFiles.length} selected files`}
               >
-                <i className="bi bi-trash" /> Delete Selected (
-                {selectedFiles.length})
+                <i className="bi bi-trash" />
               </button>
               <button
                 type="button"
@@ -298,7 +296,7 @@ const FileManager = () => {
                 onClick={clearSelection}
                 title="Clear selection"
               >
-                <i className="bi bi-x-circle" /> Clear Selection
+                <i className="bi bi-x-circle" /> Clear
               </button>
             </>
           )}

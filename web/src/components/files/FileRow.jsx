@@ -219,7 +219,7 @@ const FileRow = ({
 
   return (
     <tr className={isSelected ? "table-active" : ""}>
-      <td>
+      <td style={{ width: "5%", padding: "8px" }}>
         <input
           type="checkbox"
           className="form-check-input"
