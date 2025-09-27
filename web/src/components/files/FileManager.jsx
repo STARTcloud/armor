@@ -55,34 +55,45 @@ const FileManager = () => {
 
   useSSE({
     onFileAdded: (data) => {
-      const fileDirectory = data.filePath.substring(0, data.filePath.lastIndexOf('/')) || '/';
-      if (fileDirectory === currentPath || data.filePath.startsWith(currentPath)) {
+      const webPath = data.filePath.replace("/local/www", "") || "/";
+      const fileDirectory =
+        webPath.substring(0, webPath.lastIndexOf("/")) || "/";
+      if (fileDirectory === currentPath || webPath.startsWith(currentPath)) {
         loadFiles();
       }
     },
     onFileDeleted: (data) => {
-      const fileDirectory = data.filePath.substring(0, data.filePath.lastIndexOf('/')) || '/';
-      if (fileDirectory === currentPath || data.filePath.startsWith(currentPath)) {
+      const webPath = data.filePath.replace("/local/www", "") || "/";
+      const fileDirectory =
+        webPath.substring(0, webPath.lastIndexOf("/")) || "/";
+      if (fileDirectory === currentPath || webPath.startsWith(currentPath)) {
         loadFiles();
       }
     },
     onFileRenamed: (data) => {
-      const oldDirectory = data.oldPath.substring(0, data.oldPath.lastIndexOf('/')) || '/';
-      const newDirectory = data.newPath.substring(0, data.newPath.lastIndexOf('/')) || '/';
+      const oldWebPath = data.oldPath.replace("/local/www", "") || "/";
+      const newWebPath = data.newPath.replace("/local/www", "") || "/";
+      const oldDirectory =
+        oldWebPath.substring(0, oldWebPath.lastIndexOf("/")) || "/";
+      const newDirectory =
+        newWebPath.substring(0, newWebPath.lastIndexOf("/")) || "/";
       if (oldDirectory === currentPath || newDirectory === currentPath) {
         loadFiles();
       }
     },
     onFolderCreated: (data) => {
-      const folderDirectory = data.folderPath.substring(0, data.folderPath.lastIndexOf('/')) || '/';
+      const webPath = data.folderPath.replace("/local/www", "") || "/";
+      const folderDirectory =
+        webPath.substring(0, webPath.lastIndexOf("/")) || "/";
       if (folderDirectory === currentPath) {
         loadFiles();
       }
     },
     onChecksumUpdate: (data) => {
+      const webPath = data.filePath.replace("/local/www", "") || "/";
       setFiles((prevFiles) =>
         prevFiles.map((file) =>
-          file.path === data.filePath ? { ...file, checksum: data.checksum } : file
+          file.path === webPath ? { ...file, checksum: data.checksum } : file
         )
       );
     },
