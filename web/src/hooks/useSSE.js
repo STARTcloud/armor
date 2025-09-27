@@ -12,7 +12,7 @@ const useSSE = ({
   useEffect(() => {
     const connectSSE = () => {
       try {
-        eventSourceRef.current = new EventSource("/api/sse/events");
+        eventSourceRef.current = new EventSource("/api/events");
 
         eventSourceRef.current.onopen = () => {
           console.log("SSE connection opened");

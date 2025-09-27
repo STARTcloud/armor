@@ -8,7 +8,7 @@ const router = express.Router();
 let clients = [];
 
 // SSE endpoint - exactly like DigitalOcean article with minimal middleware
-router.get('/events', authenticateDownloads, (req, res) => {
+router.get('/', authenticateDownloads, (req, res) => {
   // Exactly like DigitalOcean article - set headers first
   const headers = {
     'Content-Type': 'text/event-stream',

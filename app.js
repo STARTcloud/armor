@@ -86,7 +86,7 @@ const startServer = async () => {
     })
   );
   app.use((req, res, next) => {
-    if (req.path === '/events') {
+    if (req.path === '/api/events') {
       logger.debug('Skipping compression for SSE endpoint', { path: req.path });
       next();
     } else {
@@ -116,7 +116,7 @@ const startServer = async () => {
 
   app.use('/', authRoutes);
 
-  app.use('/api/sse', sseRoutes);
+  app.use('/api/events', sseRoutes);
 
   app.use('/api/api-keys', apiKeyRoutes);
 
@@ -564,7 +564,6 @@ const startServer = async () => {
   }
 
   app.use('/api/files', fileServerRoutes);
-  app.use('/', fileServerRoutes);
 
   app.get('/*splat', (req, res, next) => {
     if (
@@ -584,6 +583,8 @@ const startServer = async () => {
     }
     return next();
   });
+
+  app.use('/', fileServerRoutes);
 
   app.use(errorHandler);
 

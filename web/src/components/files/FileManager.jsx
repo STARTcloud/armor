@@ -55,29 +55,34 @@ const FileManager = () => {
 
   useSSE({
     onFileAdded: (data) => {
-      if (data.directory === currentPath) {
+      const fileDirectory = data.filePath.substring(0, data.filePath.lastIndexOf('/')) || '/';
+      if (fileDirectory === currentPath || data.filePath.startsWith(currentPath)) {
         loadFiles();
       }
     },
     onFileDeleted: (data) => {
-      if (data.directory === currentPath) {
+      const fileDirectory = data.filePath.substring(0, data.filePath.lastIndexOf('/')) || '/';
+      if (fileDirectory === currentPath || data.filePath.startsWith(currentPath)) {
         loadFiles();
       }
     },
     onFileRenamed: (data) => {
-      if (data.directory === currentPath) {
+      const oldDirectory = data.oldPath.substring(0, data.oldPath.lastIndexOf('/')) || '/';
+      const newDirectory = data.newPath.substring(0, data.newPath.lastIndexOf('/')) || '/';
+      if (oldDirectory === currentPath || newDirectory === currentPath) {
         loadFiles();
       }
     },
     onFolderCreated: (data) => {
-      if (data.directory === currentPath) {
+      const folderDirectory = data.folderPath.substring(0, data.folderPath.lastIndexOf('/')) || '/';
+      if (folderDirectory === currentPath) {
         loadFiles();
       }
     },
     onChecksumUpdate: (data) => {
       setFiles((prevFiles) =>
         prevFiles.map((file) =>
-          file.path === data.path ? { ...file, checksum: data.checksum } : file
+          file.path === data.filePath ? { ...file, checksum: data.checksum } : file
         )
       );
     },
