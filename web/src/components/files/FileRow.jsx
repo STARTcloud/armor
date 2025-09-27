@@ -151,7 +151,7 @@ const FileRow = ({
   };
 
   const handleIconClick = async (e) => {
-    if (!isLongPress && !file.isDirectory) {
+    if (!isLongPress) {
       e.preventDefault();
       await handleCopyLink();
     }
@@ -217,7 +217,7 @@ const FileRow = ({
         <div className="d-flex align-items-center">
           <i
             className={`bi ${getFileIcon()} me-2`}
-            style={{ cursor: file.isDirectory ? "default" : "pointer" }}
+            style={{ cursor: "pointer" }}
             onMouseDown={handleIconMouseDown}
             onMouseUp={handleIconMouseUp}
             onMouseLeave={handleIconMouseUp}
@@ -228,13 +228,17 @@ const FileRow = ({
                 handleIconClick(e);
               }
             }}
-            role={file.isDirectory ? "presentation" : "button"}
-            tabIndex={file.isDirectory ? -1 : 0}
+            role="button"
+            tabIndex={0}
             aria-label={
-              file.isDirectory ? "" : "Click to copy link, hold to download"
+              file.isDirectory
+                ? "Click to copy link"
+                : "Click to copy link, hold to download"
             }
             title={
-              file.isDirectory ? "" : "Click to copy link, hold to download"
+              file.isDirectory
+                ? "Click to copy link"
+                : "Click to copy link, hold to download"
             }
           />
           {isRenaming ? (
@@ -271,15 +275,13 @@ const FileRow = ({
       </td>
       <td>
         <div className="btn-group btn-group-sm" role="group">
-          {!file.isDirectory && (
-            <button
-              className="btn btn-outline-info"
-              onClick={handleCopyLink}
-              title="Copy download link"
-            >
-              <i className="bi bi-link-45deg" />
-            </button>
-          )}
+          <button
+            className="btn btn-outline-info"
+            onClick={handleCopyLink}
+            title={file.isDirectory ? "Copy folder link" : "Copy download link"}
+          >
+            <i className="bi bi-link-45deg" />
+          </button>
           <button
             className="btn btn-outline-warning"
             onClick={() => {

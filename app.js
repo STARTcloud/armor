@@ -563,8 +563,15 @@ const startServer = async () => {
     logger.info('API documentation enabled at /api-docs');
   }
 
+  // API routes for file operations (upload, delete, etc.)
   app.use('/api/files', fileServerRoutes);
 
+  // File server routes for directory listings and custom index.html serving
+  // CRITICAL: This must come BEFORE the React app catch-all to allow custom index.html files
+  app.use('/', fileServerRoutes);
+
+  // React app catch-all for client-side routing
+  // Only serves React app for non-API, non-file paths that don't have custom index.html
   app.get('/*splat', (req, res, next) => {
     if (
       req.path.startsWith('/api/') ||
@@ -576,18 +583,12 @@ const startServer = async () => {
       return next();
     }
 
-    if (req.path.endsWith('/') || req.path === '' || req.path === '/') {
-      return next();
-    }
-
     const distPath = 'web/dist';
     if (existsSync(distPath)) {
       return res.sendFile(path.resolve(distPath, 'index.html'));
     }
     return next();
   });
-
-  app.use('/', fileServerRoutes);
 
   app.use(errorHandler);
 

@@ -52,7 +52,7 @@ const useFileOperations = ({ onSuccess, onError, onConfirmDelete }) => {
       setLoading(true);
       const apiPath =
         currentPath === "/" ? "/api/files/" : `/api/files${currentPath}`;
-      await api.post(`${apiPath}?action=create-folder`, { folderName });
+      await api.post(`${apiPath}/folders`, { folderName });
       onSuccess?.();
     } catch (error) {
       console.error("Create folder failed:", error);

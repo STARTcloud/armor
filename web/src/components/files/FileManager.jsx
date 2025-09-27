@@ -58,8 +58,19 @@ const FileManager = () => {
       const webPath = data.filePath.replace("/local/www", "") || "/";
       const fileDirectory =
         webPath.substring(0, webPath.lastIndexOf("/")) || "/";
+      console.log(
+        "SSE onFileAdded - currentPath:",
+        currentPath,
+        "fileDirectory:",
+        fileDirectory,
+        "webPath:",
+        webPath
+      ); // (important-comment)
       if (fileDirectory === currentPath || webPath.startsWith(currentPath)) {
+        console.log("SSE onFileAdded - MATCH! Calling loadFiles()"); // (important-comment)
         loadFiles();
+      } else {
+        console.log("SSE onFileAdded - NO MATCH, ignoring event"); // (important-comment)
       }
     },
     onFileDeleted: (data) => {
@@ -128,6 +139,7 @@ const FileManager = () => {
   });
 
   useEffect(() => {
+    console.log("FileManager useEffect - currentPath changed to:", currentPath); // (important-comment)
     loadFiles();
     setSearchResults(null);
     setSearchQuery("");
