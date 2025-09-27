@@ -1,14 +1,14 @@
 import { getFileModel } from '../models/File.js';
 
 class DatabaseOperationService {
-  queueFileUpsert(fileData) {
+  async queueFileUpsert(fileData) {
     const File = getFileModel();
-    return File.upsert(fileData);
+    return await File.upsert(fileData);
   }
 
-  queueChecksumUpdate(checksumData) {
+  async queueChecksumUpdate(checksumData) {
     const File = getFileModel();
-    return File.update(checksumData.updateFields, {
+    return await File.update(checksumData.updateFields, {
       where: { file_path: checksumData.filePath },
     });
   }

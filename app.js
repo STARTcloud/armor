@@ -116,7 +116,7 @@ const startServer = async () => {
 
   app.use('/', authRoutes);
 
-  app.use('/', sseRoutes);
+  app.use('/api/sse', sseRoutes);
 
   app.use('/api/api-keys', apiKeyRoutes);
 
