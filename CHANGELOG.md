@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.0](https://github.com/STARTcloud/armor_private/compare/v1.12.0...v1.13.0) (2025-09-27)
+
+
+### Features
+
+* implement corrected file watcher and checksum architecture ([b62af95](https://github.com/STARTcloud/armor_private/commit/b62af95a8f1c159330afd7be45b1dc168176e2ab))
+
 ## [1.12.0](https://github.com/STARTcloud/armor_private/compare/v1.11.0...v1.12.0) (2025-09-26)
 
 
