@@ -19,6 +19,8 @@ const ApiKeysPage = () => {
   const [userPermissions, setUserPermissions] = useState([]);
   const [sortField, setSortField] = useState("created_at");
   const [sortDirection, setSortDirection] = useState("desc");
+  const [selectedKeys, setSelectedKeys] = useState([]);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [createForm, setCreateForm] = useState({
     name: "",
     permissions: {
@@ -110,6 +112,48 @@ const ApiKeysPage = () => {
   const handleDeleteKey = (keyId) => {
     setKeyToDelete(keyId);
     setShowDeleteConfirm(true);
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedKeys.length > 0) {
+      setShowBulkDeleteConfirm(true);
+    }
+  };
+
+  const confirmBulkDelete = async () => {
+    try {
+      await Promise.all(
+        selectedKeys.map((keyId) => api.delete(`/api/api-keys/${keyId}`))
+      );
+      await loadApiKeys();
+      setSelectedKeys([]);
+      setShowBulkDeleteConfirm(false);
+    } catch (deleteError) {
+      console.error("Failed to delete API keys:", deleteError);
+      setError("Failed to delete some API keys");
+      setShowBulkDeleteConfirm(false);
+    }
+  };
+
+  const cancelBulkDelete = () => {
+    setShowBulkDeleteConfirm(false);
+  };
+
+  const handleSelectionChange = (keyId, isSelected) => {
+    if (isSelected) {
+      setSelectedKeys([...selectedKeys, keyId]);
+    } else {
+      setSelectedKeys(selectedKeys.filter((id) => id !== keyId));
+    }
+  };
+
+  const handleSelectAll = (selectAll) => {
+    if (selectAll) {
+      const allKeyIds = sortedKeys.map((key) => key.id);
+      setSelectedKeys(allKeyIds);
+    } else {
+      setSelectedKeys([]);
+    }
   };
 
   const confirmDeleteKey = async () => {
@@ -273,14 +317,27 @@ const ApiKeysPage = () => {
   return (
     <div className="container-fluid py-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
-        <button
-          type="button"
-          className="btn btn-success"
-          onClick={() => setShowCreateModal(true)}
-          title="Generate New API Key"
-        >
-          <i className="bi bi-key" />
-        </button>
+        <div className="d-flex gap-2">
+          <button
+            type="button"
+            className="btn btn-success"
+            onClick={() => setShowCreateModal(true)}
+            title="Generate New API Key"
+          >
+            <i className="bi bi-key" />
+          </button>
+          {selectedKeys.length > 0 && (
+            <button
+              type="button"
+              className="btn btn-outline-danger"
+              onClick={handleBulkDelete}
+              title={`Delete ${selectedKeys.length} selected API key${selectedKeys.length > 1 ? 's' : ''}`}
+            >
+              <i className="bi bi-trash me-1" />
+              ({selectedKeys.length})
+            </button>
+          )}
+        </div>
         <SearchBar
           onSearch={handleSearch}
           onClear={handleClearSearch}
@@ -316,6 +373,20 @@ const ApiKeysPage = () => {
           <table className="table table-dark table-striped">
             <thead>
               <tr>
+                <th style={{ width: "5%" }}>
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    checked={sortedKeys.length > 0 && selectedKeys.length === sortedKeys.length}
+                    ref={(input) => {
+                      if (input) {
+                        input.indeterminate = selectedKeys.length > 0 && selectedKeys.length < sortedKeys.length;
+                      }
+                    }}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    title="Select all API keys"
+                  />
+                </th>
                 <th
                   style={{ cursor: "pointer" }}
                   onClick={() => handleSort("name")}
@@ -393,6 +464,15 @@ const ApiKeysPage = () => {
                     style={expired ? { opacity: 0.6 } : {}}
                   >
                     <td>
+                      <input
+                        type="checkbox"
+                        className="form-check-input"
+                        checked={selectedKeys.includes(key.id)}
+                        onChange={(e) => handleSelectionChange(key.id, e.target.checked)}
+                        title={`Select ${key.name}`}
+                      />
+                    </td>
+                    <td>
                       {key.name}
                       {expired && (
                         <span className="badge bg-danger ms-2">Expired</span>
@@ -443,7 +523,7 @@ const ApiKeysPage = () => {
                         (permission) => (
                           <span
                             key={permission}
-                            className="badge bg-secondary me-1"
+                            className={`badge me-1 permission-${permission}`}
                           >
                             {permission}
                           </span>
@@ -755,6 +835,18 @@ const ApiKeysPage = () => {
         variant="danger"
         onConfirm={confirmDeleteKey}
         onCancel={cancelDeleteKey}
+      />
+
+      {/* Bulk Delete Confirmation Modal */}
+      <ConfirmModal
+        show={showBulkDeleteConfirm}
+        title="Delete Multiple API Keys"
+        message={`Are you sure you want to delete ${selectedKeys.length} API key${selectedKeys.length > 1 ? 's' : ''}? This action cannot be undone.`}
+        confirmText={`Delete ${selectedKeys.length} Key${selectedKeys.length > 1 ? 's' : ''}`}
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={confirmBulkDelete}
+        onCancel={cancelBulkDelete}
       />
     </div>
   );
