@@ -67,7 +67,7 @@ const SearchResults = ({ results, query, onClear }) => {
 
   const getFileIcon = (file) => {
     if (file.isDirectory) {
-      return "bi-folder-fill text-warning";
+      return "bi-folder2 text-light";
     }
 
     const ext = file.name?.split(".").pop()?.toLowerCase();
@@ -152,7 +152,7 @@ const SearchResults = ({ results, query, onClear }) => {
 
   if (!results || !results.success) {
     return (
-      <div className="card bg-dark border-secondary">
+      <div className="card bg-dark border-0">
         <div className="card-body text-center py-5">
           <i className="bi bi-exclamation-triangle display-4 text-warning mb-3" />
           <h5 className="text-light">Search Failed</h5>
@@ -172,7 +172,7 @@ const SearchResults = ({ results, query, onClear }) => {
 
   if (files.length === 0) {
     return (
-      <div className="card bg-dark border-secondary">
+      <div className="card bg-dark border-0">
         <div className="card-body text-center py-5">
           <i className="bi bi-search display-4 text-muted mb-3" />
           <h5 className="text-light">No Results Found</h5>
@@ -190,8 +190,8 @@ const SearchResults = ({ results, query, onClear }) => {
   }
 
   return (
-    <div className="card bg-dark border-secondary">
-      <div className="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
+    <div className="card bg-dark border-0">
+      <div className="card-header bg-dark border-0 d-flex justify-content-between align-items-center">
         <h5 className="mb-0 text-light">
           <i className="bi bi-search me-2" />
           Search Results for &quot;{query}&quot; ({totalResults} found)
@@ -244,7 +244,7 @@ const SearchResults = ({ results, query, onClear }) => {
                 <td className="text-muted">
                   {file.isDirectory ? "-" : formatSize(file.size)}
                 </td>
-                <td className="text-muted">{formatDate(file.modified)}</td>
+                <td className="text-muted">{formatDate(file.mtime)}</td>
                 <td>
                   <SearchChecksumDisplay
                     file={file}

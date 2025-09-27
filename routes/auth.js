@@ -115,9 +115,13 @@ router.get('/auth/methods', (req, res) => {
 
     methods.push(...oidcMethods);
 
+    const uiConfig = configLoader.getConfig();
     return res.json({
       success: true,
       methods,
+      ui: {
+        login_primary_color: uiConfig.login_primary_color || '#198754',
+      },
     });
   } catch (error) {
     logger.error('Auth methods error', { error: error.message });

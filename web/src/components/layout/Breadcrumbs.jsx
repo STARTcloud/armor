@@ -1,26 +1,40 @@
 import { useLocation, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import api from "../../utils/api";
 
 const Breadcrumbs = () => {
   const location = useLocation();
+  const [primaryColor, setPrimaryColor] = useState("#198754");
+
+  useEffect(() => {
+    const fetchUIConfig = async () => {
+      try {
+        const response = await api.get("/auth/methods");
+        if (response.data.success && response.data.ui?.login_primary_color) {
+          setPrimaryColor(response.data.ui.login_primary_color);
+        }
+      } catch (error) {
+        console.error("Failed to fetch UI config:", error);
+      }
+    };
+
+    fetchUIConfig();
+  }, []);
 
   const generateBreadcrumbs = (pathname) => {
-    const relativePath = pathname.startsWith("/browse")
-      ? pathname.substring(7)
-      : pathname;
-
-    if (!relativePath || relativePath === "/") {
-      return [{ name: "Home", path: "/" }];
+    if (!pathname || pathname === "/") {
+      return [{ name: "Armor", path: "/" }];
     }
 
-    const parts = relativePath.split("/").filter(Boolean);
-    const breadcrumbs = [{ name: "Home", path: "/" }];
+    const parts = pathname.split("/").filter(Boolean);
+    const breadcrumbs = [{ name: "Armor", path: "/" }];
 
     let currentPath = "";
     parts.forEach((part) => {
       currentPath += `/${part}`;
       breadcrumbs.push({
         name: decodeURIComponent(part),
-        path: `/browse${currentPath}`,
+        path: currentPath,
       });
     });
 
@@ -40,22 +54,24 @@ const Breadcrumbs = () => {
             {index === breadcrumbs.length - 1 ? (
               <span className="text-light">
                 {index === 0 ? (
-                  <i className="bi bi-shield-check me-1 text-warning" />
+                  <i 
+                    className="bi bi-shield-check me-1" 
+                    style={{ color: primaryColor }}
+                  />
                 ) : (
-                  <i className="bi bi-folder-fill me-1 text-warning" />
+                  <i className="bi bi-folder2 me-1 text-light" />
                 )}
                 {crumb.name}
               </span>
             ) : (
-              <Link
-                to={crumb.path}
-                className="text-decoration-none"
-                style={{ color: "#198754" }}
-              >
+              <Link to={crumb.path} className="text-decoration-none text-light">
                 {index === 0 ? (
-                  <i className="bi bi-shield-check me-1" />
+                  <i 
+                    className="bi bi-shield-check me-1" 
+                    style={{ color: primaryColor }}
+                  />
                 ) : (
-                  <i className="bi bi-folder me-1" />
+                  <i className="bi bi-folder2 me-1 text-light" />
                 )}
                 {crumb.name}
               </Link>
