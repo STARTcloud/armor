@@ -11,7 +11,7 @@ import {
   authenticateDelete,
   authenticateApiKeyAccess,
 } from '../middleware/auth.middleware.js';
-import { isAllowedDirectory, isStaticDirectory, getStaticContent } from '../utils/auth.js';
+import { isAllowedDirectory, getStaticContent } from '../utils/auth.js';
 import { getDirectoryItems } from '../utils/fileUtils.js';
 import { logAccess, logger, accessLogger, databaseLogger } from '../config/logger.js';
 import configLoader from '../config/configLoader.js';
@@ -58,21 +58,10 @@ const handleLandingPageResponse = (req, res, _uploadCredentials) => {
 const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
   const uploadCredentials = auth(req);
   const isAllowed = isAllowedDirectory(fullPath, SERVED_DIR);
-  const isStatic = isStaticDirectory(fullPath, SERVED_DIR);
 
   if (!isAllowed) {
     logAccess(req, 'ACCESS_DENIED', 'directory not in allowed list');
     return res.redirect('/');
-  }
-
-  if (isStatic) {
-    const staticContent = await getStaticContent(fullPath);
-    if (staticContent) {
-      const baseUrl = requestPath.endsWith('/') ? requestPath : `${requestPath}/`;
-      const contentWithBase = staticContent.replace('</head>', `<base href="${baseUrl}"></head>`);
-      logAccess(req, 'STATIC_PAGE', 'serving static index.html');
-      return res.send(contentWithBase);
-    }
   }
 
   const serverConfig = configLoader.getServerConfig();
@@ -96,19 +85,16 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
     return handleJsonDirectoryResponse(req, res, fullPath, relativePath);
   }
 
-  if (shouldShowLandingPage(isRoot, serverConfig, isAdmin, viewIndex, req.query)) {
-    return handleLandingPageResponse(req, res, uploadCredentials);
+  const staticContent = await getStaticContent(fullPath);
+  if (staticContent) {
+    const baseUrl = requestPath.endsWith('/') ? requestPath : `${requestPath}/`;
+    const contentWithBase = staticContent.replace('</head>', `<base href="${baseUrl}"></head>`);
+    logAccess(req, 'STATIC_PAGE', 'serving static index.html');
+    return res.send(contentWithBase);
   }
 
-  // Check for static content (index.html) in the directory
-  if (isStatic) {
-    const staticContent = await getStaticContent(fullPath);
-    if (staticContent) {
-      const baseUrl = requestPath.endsWith('/') ? requestPath : `${requestPath}/`;
-      const contentWithBase = staticContent.replace('</head>', `<base href="${baseUrl}"></head>`);
-      logAccess(req, 'STATIC_PAGE', 'serving static index.html');
-      return res.send(contentWithBase);
-    }
+  if (shouldShowLandingPage(isRoot, serverConfig, isAdmin, viewIndex, req.query)) {
+    return handleLandingPageResponse(req, res, uploadCredentials);
   }
 
   // Serve React app for directory listing
@@ -240,7 +226,10 @@ router.get('*splat', authenticateDownloads, async (req, res) => {
 
     if (stats.isDirectory()) {
       if (!requestPath.endsWith('/')) {
-        return res.redirect(301, `${requestPath}/`);
+        const redirectPath = req.originalUrl.endsWith('/')
+          ? req.originalUrl
+          : `${req.originalUrl}/`;
+        return res.redirect(301, redirectPath);
       }
       return handleDirectoryListing(req, res, fullPath, requestPath);
     }

@@ -569,11 +569,14 @@ const startServer = async () => {
     if (
       req.path.startsWith('/api/') ||
       req.path.startsWith('/auth/') ||
-      req.path.startsWith('/events') ||
       req.path.startsWith('/static/') ||
       req.path.startsWith('/swagger/') ||
       req.path.startsWith('/api-docs')
     ) {
+      return next();
+    }
+
+    if (req.path.endsWith('/') || req.path === '' || req.path === '/') {
       return next();
     }
 
