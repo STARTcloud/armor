@@ -1,5 +1,6 @@
-import { useAuth } from "../auth/AuthContext";
 import { useLocation } from "react-router-dom";
+
+import { useAuth } from "../auth/AuthContext";
 
 import Breadcrumbs from "./Breadcrumbs";
 
@@ -52,14 +53,18 @@ const Header = () => {
                 className="dropdown-menu dropdown-menu-end bg-dark border-secondary"
                 aria-labelledby="userDropdown"
               >
-                {location.pathname !== "/" && !location.pathname.includes("view=index") && (
-                  <li>
-                    <a className="dropdown-item text-light" href="/?view=index">
-                      <i className="bi bi-shield me-2" />
-                      Dashboard
-                    </a>
-                  </li>
-                )}
+                {location.pathname !== "/" &&
+                  !location.pathname.includes("view=index") && (
+                    <li>
+                      <a
+                        className="dropdown-item text-light"
+                        href="/?view=index"
+                      >
+                        <i className="bi bi-shield me-2" />
+                        Dashboard
+                      </a>
+                    </li>
+                  )}
                 {location.pathname !== "/api-keys" && (
                   <li>
                     <a className="dropdown-item text-light" href="/api-keys">

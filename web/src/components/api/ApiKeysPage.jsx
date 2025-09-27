@@ -149,7 +149,8 @@ const ApiKeysPage = () => {
 
   const handleSelectAll = (selectAll) => {
     if (selectAll) {
-      const allKeyIds = sortedKeys.map((key) => key.id);
+      const currentKeys = searchQuery ? filteredKeys : apiKeys;
+      const allKeyIds = currentKeys.map((key) => key.id);
       setSelectedKeys(allKeyIds);
     } else {
       setSelectedKeys([]);
@@ -331,10 +332,9 @@ const ApiKeysPage = () => {
               type="button"
               className="btn btn-outline-danger"
               onClick={handleBulkDelete}
-              title={`Delete ${selectedKeys.length} selected API key${selectedKeys.length > 1 ? 's' : ''}`}
+              title={`Delete ${selectedKeys.length} selected API key${selectedKeys.length > 1 ? "s" : ""}`}
             >
-              <i className="bi bi-trash me-1" />
-              ({selectedKeys.length})
+              <i className="bi bi-trash me-1" />({selectedKeys.length})
             </button>
           )}
         </div>
@@ -377,10 +377,15 @@ const ApiKeysPage = () => {
                   <input
                     type="checkbox"
                     className="form-check-input"
-                    checked={sortedKeys.length > 0 && selectedKeys.length === sortedKeys.length}
+                    checked={
+                      sortedKeys.length > 0 &&
+                      selectedKeys.length === sortedKeys.length
+                    }
                     ref={(input) => {
                       if (input) {
-                        input.indeterminate = selectedKeys.length > 0 && selectedKeys.length < sortedKeys.length;
+                        input.indeterminate =
+                          selectedKeys.length > 0 &&
+                          selectedKeys.length < sortedKeys.length;
                       }
                     }}
                     onChange={(e) => handleSelectAll(e.target.checked)}
@@ -468,7 +473,9 @@ const ApiKeysPage = () => {
                         type="checkbox"
                         className="form-check-input"
                         checked={selectedKeys.includes(key.id)}
-                        onChange={(e) => handleSelectionChange(key.id, e.target.checked)}
+                        onChange={(e) =>
+                          handleSelectionChange(key.id, e.target.checked)
+                        }
                         title={`Select ${key.name}`}
                       />
                     </td>
@@ -841,8 +848,8 @@ const ApiKeysPage = () => {
       <ConfirmModal
         show={showBulkDeleteConfirm}
         title="Delete Multiple API Keys"
-        message={`Are you sure you want to delete ${selectedKeys.length} API key${selectedKeys.length > 1 ? 's' : ''}? This action cannot be undone.`}
-        confirmText={`Delete ${selectedKeys.length} Key${selectedKeys.length > 1 ? 's' : ''}`}
+        message={`Are you sure you want to delete ${selectedKeys.length} API key${selectedKeys.length > 1 ? "s" : ""}? This action cannot be undone.`}
+        confirmText={`Delete ${selectedKeys.length} Key${selectedKeys.length > 1 ? "s" : ""}`}
         cancelText="Cancel"
         variant="danger"
         onConfirm={confirmBulkDelete}
