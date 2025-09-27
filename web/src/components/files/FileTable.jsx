@@ -24,8 +24,8 @@ const FileTable = ({ files, currentPath, onDelete, onRename }) => {
       aValue = a.isDirectory ? -1 : a.size || 0;
       bValue = b.isDirectory ? -1 : b.size || 0;
     } else if (sortField === "modified") {
-      aValue = new Date(a.modified || 0);
-      bValue = new Date(b.modified || 0);
+      aValue = new Date(a.mtime || 0);
+      bValue = new Date(b.mtime || 0);
     } else if (sortField === "name") {
       if (a.isDirectory && !b.isDirectory) {
         return -1;
@@ -69,30 +69,18 @@ const FileTable = ({ files, currentPath, onDelete, onRename }) => {
     return new Date(dateString).toLocaleString();
   };
 
-  if (!files || files.length === 0) {
-    return (
-      <div className="card bg-dark border-secondary">
-        <div className="card-body text-center py-5">
-          <i className="bi bi-folder2-open display-4 text-muted mb-3" />
-          <h5 className="text-muted">This directory is empty</h5>
-          <p className="text-muted">
-            Upload files or create folders to get started.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const isEmpty = !files || files.length === 0;
 
   return (
     <div className="card bg-dark border-secondary">
       <div className="card-header bg-dark border-secondary">
         <h5 className="mb-0 text-light">
           <i className="bi bi-folder-fill me-2" />
-          Directory Contents ({files.length} items)
+          Directory Contents ({files?.length || 0} items)
         </h5>
       </div>
       <div className="table-responsive">
-        <table className="table table-dark table-hover mb-0">
+        <table className="table table-dark table-striped table-hover mb-0">
           <thead>
             <tr>
               <th
@@ -124,17 +112,29 @@ const FileTable = ({ files, currentPath, onDelete, onRename }) => {
             </tr>
           </thead>
           <tbody>
-            {sortedFiles.map((file, index) => (
-              <FileRow
-                key={file.path || index}
-                file={file}
-                currentPath={currentPath}
-                onDelete={onDelete}
-                onRename={onRename}
-                formatSize={formatSize}
-                formatDate={formatDate}
-              />
-            ))}
+            {isEmpty ? (
+              <tr>
+                <td colSpan="6" className="text-center py-5">
+                  <i className="bi bi-folder2-open display-4 text-muted mb-3 d-block" />
+                  <h5 className="text-muted">This directory is empty</h5>
+                  <p className="text-muted">
+                    Upload files or create folders to get started.
+                  </p>
+                </td>
+              </tr>
+            ) : (
+              sortedFiles.map((file, index) => (
+                <FileRow
+                  key={file.path || index}
+                  file={file}
+                  currentPath={currentPath}
+                  onDelete={onDelete}
+                  onRename={onRename}
+                  formatSize={formatSize}
+                  formatDate={formatDate}
+                />
+              ))
+            )}
           </tbody>
         </table>
       </div>

@@ -100,9 +100,20 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
     return handleLandingPageResponse(req, res, uploadCredentials);
   }
 
-  // Redirect to React app for directory listing
-  const targetPath = relativePath === '/' ? '/browse/' : `/browse${relativePath}`;
-  return res.redirect(targetPath);
+  // Check for static content (index.html) in the directory
+  if (isStatic) {
+    const staticContent = await getStaticContent(fullPath);
+    if (staticContent) {
+      const baseUrl = requestPath.endsWith('/') ? requestPath : `${requestPath}/`;
+      const contentWithBase = staticContent.replace('</head>', `<base href="${baseUrl}"></head>`);
+      logAccess(req, 'STATIC_PAGE', 'serving static index.html');
+      return res.send(contentWithBase);
+    }
+  }
+
+  // Serve React app for directory listing
+  const indexPath = join(process.cwd(), 'web', 'dist', 'index.html');
+  return res.sendFile(indexPath);
 };
 
 /**
@@ -756,7 +767,11 @@ router.get('*splat', authenticateDownloads, async (req, res) => {
       await fs.access(fullPath);
     } catch {
       logAccess(req, 'NOT_FOUND', fullPath);
-      return res.redirect('/');
+      if (req.headers.accept && req.headers.accept.includes('application/json')) {
+        return res.status(404).json({ error: 'File not found' });
+      }
+      const indexPath = join(process.cwd(), 'web', 'dist', 'index.html');
+      return res.sendFile(indexPath);
     }
 
     const stats = await fs.stat(fullPath);
