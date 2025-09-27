@@ -77,11 +77,17 @@ const FileRow = ({
   onRename,
   formatSize,
   formatDate,
+  isSelected,
+  onSelectionChange,
 }) => {
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState(file.name || "");
   const [pressTimer, setPressTimer] = useState(null);
   const [isLongPress, setIsLongPress] = useState(false);
+
+  const handleSelectionChange = (e) => {
+    onSelectionChange(file.path, e.target.checked);
+  };
 
   const handleRename = async (e) => {
     e.preventDefault();
@@ -212,7 +218,16 @@ const FileRow = ({
   };
 
   return (
-    <tr>
+    <tr className={isSelected ? "table-active" : ""}>
+      <td>
+        <input
+          type="checkbox"
+          className="form-check-input"
+          checked={isSelected}
+          onChange={handleSelectionChange}
+          title="Select file"
+        />
+      </td>
       <td>
         <div className="d-flex align-items-center">
           <i
@@ -319,6 +334,8 @@ FileRow.propTypes = {
   onRename: PropTypes.func.isRequired,
   formatSize: PropTypes.func.isRequired,
   formatDate: PropTypes.func.isRequired,
+  isSelected: PropTypes.bool.isRequired,
+  onSelectionChange: PropTypes.func.isRequired,
 };
 
 export default FileRow;

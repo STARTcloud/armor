@@ -3,7 +3,15 @@ import { useState } from "react";
 
 import FileRow from "./FileRow";
 
-const FileTable = ({ files, currentPath, onDelete, onRename }) => {
+const FileTable = ({
+  files,
+  currentPath,
+  onDelete,
+  onRename,
+  selectedFiles,
+  onSelectionChange,
+  onSelectAll,
+}) => {
   const [sortField, setSortField] = useState("name");
   const [sortDirection, setSortDirection] = useState("asc");
 
@@ -70,6 +78,13 @@ const FileTable = ({ files, currentPath, onDelete, onRename }) => {
   };
 
   const isEmpty = !files || files.length === 0;
+  const allSelected = files.length > 0 && selectedFiles.length === files.length;
+  const someSelected =
+    selectedFiles.length > 0 && selectedFiles.length < files.length;
+
+  const handleSelectAllChange = (e) => {
+    onSelectAll(e.target.checked);
+  };
 
   return (
     <div className="card bg-dark border-secondary">
@@ -83,6 +98,20 @@ const FileTable = ({ files, currentPath, onDelete, onRename }) => {
         <table className="table table-dark table-striped table-hover mb-0">
           <thead>
             <tr>
+              <th scope="col" width="40">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  checked={allSelected}
+                  ref={(input) => {
+                    if (input) {
+                      input.indeterminate = someSelected;
+                    }
+                  }}
+                  onChange={handleSelectAllChange}
+                  title="Select all files"
+                />
+              </th>
               <th
                 scope="col"
                 className="cursor-pointer user-select-none"
@@ -114,7 +143,7 @@ const FileTable = ({ files, currentPath, onDelete, onRename }) => {
           <tbody>
             {isEmpty ? (
               <tr>
-                <td colSpan="6" className="text-center py-5">
+                <td colSpan="7" className="text-center py-5">
                   <i className="bi bi-folder2-open display-4 text-muted mb-3 d-block" />
                   <h5 className="text-muted">This directory is empty</h5>
                   <p className="text-muted">
@@ -132,6 +161,8 @@ const FileTable = ({ files, currentPath, onDelete, onRename }) => {
                   onRename={onRename}
                   formatSize={formatSize}
                   formatDate={formatDate}
+                  isSelected={selectedFiles.includes(file.path)}
+                  onSelectionChange={onSelectionChange}
                 />
               ))
             )}
@@ -147,6 +178,9 @@ FileTable.propTypes = {
   currentPath: PropTypes.string.isRequired,
   onDelete: PropTypes.func.isRequired,
   onRename: PropTypes.func.isRequired,
+  selectedFiles: PropTypes.arrayOf(PropTypes.string).isRequired,
+  onSelectionChange: PropTypes.func.isRequired,
+  onSelectAll: PropTypes.func.isRequired,
 };
 
 export default FileTable;

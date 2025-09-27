@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 
 import useFileOperations from "../../hooks/useFileOperations";
 import useSSE from "../../hooks/useSSE";
@@ -14,6 +14,7 @@ import UploadZone from "./UploadZone";
 
 const FileManager = () => {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -23,6 +24,7 @@ const FileManager = () => {
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [fileToDelete, setFileToDelete] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
 
   const getCurrentPath = () => {
     const { pathname } = location;
@@ -30,6 +32,7 @@ const FileManager = () => {
   };
 
   const currentPath = getCurrentPath();
+  const viewIndex = searchParams.get("view") === "index";
 
   const loadFiles = useCallback(async () => {
     try {
@@ -132,17 +135,22 @@ const FileManager = () => {
     }
   };
 
-  const { deleteFile, renameFile, createFolder } = useFileOperations({
-    onSuccess: () => loadFiles(),
-    onError: (err) => setError(err),
-    onConfirmDelete: handleConfirmDelete,
-  });
+  const { deleteFile, renameFile, createFolder, deleteMultipleFiles } =
+    useFileOperations({
+      onSuccess: () => {
+        loadFiles();
+        setSelectedFiles([]);
+      },
+      onError: (err) => setError(err),
+      onConfirmDelete: handleConfirmDelete,
+    });
 
   useEffect(() => {
     console.log("FileManager useEffect - currentPath changed to:", currentPath); // (important-comment)
     loadFiles();
     setSearchResults(null);
     setSearchQuery("");
+    setSelectedFiles([]);
   }, [currentPath, loadFiles]);
 
   const handleSearch = async (query) => {
@@ -182,6 +190,39 @@ const FileManager = () => {
     } catch (err) {
       setError(err.message);
     }
+  };
+
+  const handleSelectionChange = (filePath, isSelected) => {
+    setSelectedFiles((prev) => {
+      if (isSelected) {
+        return [...prev, filePath];
+      }
+      return prev.filter((path) => path !== filePath);
+    });
+  };
+
+  const handleSelectAll = (isSelected) => {
+    if (isSelected) {
+      setSelectedFiles(files.map((file) => file.path));
+    } else {
+      setSelectedFiles([]);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedFiles.length === 0) {
+      return;
+    }
+
+    try {
+      await deleteMultipleFiles(selectedFiles);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedFiles([]);
   };
 
   if (loading) {
@@ -240,6 +281,27 @@ const FileManager = () => {
           >
             <i className="bi bi-cloud-upload" />
           </button>
+          {selectedFiles.length > 0 && (
+            <>
+              <button
+                type="button"
+                className="btn btn-outline-danger"
+                onClick={handleDeleteSelected}
+                title={`Delete ${selectedFiles.length} selected files`}
+              >
+                <i className="bi bi-trash" /> Delete Selected (
+                {selectedFiles.length})
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={clearSelection}
+                title="Clear selection"
+              >
+                <i className="bi bi-x-circle" /> Clear Selection
+              </button>
+            </>
+          )}
         </div>
         <div className="d-flex align-items-center gap-2">
           <SearchBar
@@ -265,6 +327,9 @@ const FileManager = () => {
               currentPath={currentPath}
               onDelete={deleteFile}
               onRename={renameFile}
+              selectedFiles={selectedFiles}
+              onSelectionChange={handleSelectionChange}
+              onSelectAll={handleSelectAll}
             />
           )}
         </div>

@@ -63,10 +63,40 @@ const useFileOperations = ({ onSuccess, onError, onConfirmDelete }) => {
     }
   };
 
+  const deleteMultipleFiles = async (filePaths) => {
+    if (onConfirmDelete) {
+      const fileCount = filePaths.length;
+      const confirmed = await onConfirmDelete(
+        `Are you sure you want to delete ${fileCount} selected item${fileCount > 1 ? "s" : ""}?`
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    try {
+      setLoading(true);
+      await Promise.all(
+        filePaths.map((filePath) => {
+          const apiPath =
+            filePath === "/" ? "/api/files/" : `/api/files${filePath}`;
+          return api.delete(apiPath);
+        })
+      );
+      onSuccess?.();
+    } catch (error) {
+      console.error("Delete multiple files failed:", error);
+      onError?.(error.response?.data?.message || "Delete failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     deleteFile,
     renameFile,
     createFolder,
+    deleteMultipleFiles,
     loading,
   };
 };
