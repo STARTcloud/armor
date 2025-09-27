@@ -12,6 +12,9 @@ const getStyles = (primaryColor) => ({
     textAlign: "center",
     maxWidth: "500px",
     padding: "3rem",
+    backgroundColor: "#343a40",
+    border: "1px solid #495057",
+    borderRadius: "0.5rem",
   },
   shieldIcon: {
     fontSize: "4rem",
@@ -146,7 +149,12 @@ const LandingPage = () => {
           <div className="mt-4">
             <a
               href={`mailto:${supportEmail}`}
-              className="btn btn-outline-light btn-sm"
+              className="btn btn-sm"
+              style={{
+                backgroundColor: "#212529",
+                borderColor: "#212529",
+                color: "white",
+              }}
             >
               <i className="bi bi-envelope me-2" />
               Contact Support

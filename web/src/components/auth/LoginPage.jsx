@@ -111,9 +111,11 @@ const LoginPage = () => {
     );
   }
 
-  const title = "Armor";
-  const subtitle = "ARMOR Reliably Manages Online Resources";
-  const primaryColor = "#198754";
+  const title = authMethods?.ui?.login_title || "Armor";
+  const subtitle =
+    authMethods?.ui?.login_subtitle ||
+    "ARMOR Reliably Manages Online Resources";
+  const primaryColor = authMethods?.ui?.login_primary_color || "#198754";
 
   const oidcMethods = authMethods.success
     ? authMethods.methods.filter(
@@ -127,147 +129,140 @@ const LoginPage = () => {
     : false;
 
   return (
-    <div className="min-vh-100 d-flex align-items-center justify-content-center bg-dark">
+    <div className="login-container">
       <div className="container">
         <div className="row justify-content-center">
           <div className="col-md-6 col-lg-4">
-            <div className="card bg-dark border-secondary">
-              <div className="card-body p-4">
-                <div className="text-center mb-4">
-                  <i className="bi bi-shield-check display-4 text-success mb-3" />
-                  <h2 className="text-light">{title}</h2>
-                  <p className="text-muted">{subtitle}</p>
+            <div className="login-card">
+              <div className="text-center mb-4">
+                <i className="bi bi-shield-check display-4 text-success mb-3" />
+                <h2 className="text-light">{title}</h2>
+                <p className="powered-by-text mb-0">{subtitle}</p>
+              </div>
+
+              {error && (
+                <div className="alert alert-danger" role="alert">
+                  {error}
                 </div>
+              )}
 
-                {error && (
-                  <div className="alert alert-danger" role="alert">
-                    {error}
-                  </div>
-                )}
+              {/* OIDC Providers */}
+              {oidcMethods.length > 0 && (
+                <div>
+                  {oidcMethods.map((method) => {
+                    const provider = method.id.replace("oidc-", "");
+                    const baseColor = method.color || "#198754";
+                    const lightColor = lightenColor(baseColor);
 
-                {/* OIDC Providers */}
-                {oidcMethods.length > 0 && (
-                  <div className="mb-4">
-                    <h5 className="text-light mb-3">Sign in with:</h5>
-                    {oidcMethods.map((method) => {
-                      const provider = method.id.replace("oidc-", "");
-                      const baseColor = method.color || "#198754";
-                      const lightColor = lightenColor(baseColor);
-
-                      return (
-                        <button
-                          key={method.id}
-                          type="button"
-                          className="btn w-100 mb-2 d-flex align-items-center justify-content-center"
-                          onClick={() => handleOIDCLogin(provider)}
-                          style={{
-                            backgroundColor: "transparent",
-                            borderColor: baseColor,
-                            color: lightColor,
-                          }}
-                        >
-                          <i className="bi bi-shield-lock me-2" />
-                          {method.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Basic Auth Form */}
-                {hasBasicAuth && (
-                  <>
-                    {oidcMethods.length > 0 && (
-                      <div className="text-center mb-3">
-                        <div className="position-relative">
-                          <hr className="text-muted" />
-                          <span className="position-absolute top-50 start-50 translate-middle bg-dark px-2 text-muted">
-                            or
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    <form onSubmit={handleBasicAuth}>
-                      <div className="mb-3">
-                        <label
-                          htmlFor="username"
-                          className="form-label text-light"
-                        >
-                          Username
-                        </label>
-                        <input
-                          type="text"
-                          className="form-control bg-dark border-secondary text-light"
-                          id="username"
-                          value={credentials.username}
-                          onChange={(e) =>
-                            setCredentials({
-                              ...credentials,
-                              username: e.target.value,
-                            })
-                          }
-                          required
-                        />
-                      </div>
-                      <div className="mb-3">
-                        <label
-                          htmlFor="password"
-                          className="form-label text-light"
-                        >
-                          Password
-                        </label>
-                        <input
-                          type="password"
-                          className="form-control bg-dark border-secondary text-light"
-                          id="password"
-                          value={credentials.password}
-                          onChange={(e) =>
-                            setCredentials({
-                              ...credentials,
-                              password: e.target.value,
-                            })
-                          }
-                          required
-                        />
-                      </div>
+                    return (
                       <button
-                        type="submit"
-                        className="btn w-100"
+                        key={method.id}
+                        type="button"
+                        className="btn btn-oidc w-100 mb-2 d-flex align-items-center justify-content-center"
+                        onClick={() => handleOIDCLogin(provider)}
                         style={{
-                          backgroundColor: primaryColor,
-                          borderColor: primaryColor,
+                          backgroundColor: "transparent",
+                          borderColor: baseColor,
+                          color: lightColor,
                         }}
-                        disabled={loading}
                       >
-                        {loading ? (
-                          <>
-                            <span
-                              className="spinner-border spinner-border-sm me-2"
-                              role="status"
-                            />
-                            Signing in...
-                          </>
-                        ) : (
-                          "Sign In"
-                        )}
+                        <i className="bi bi-shield-lock me-2" />
+                        {method.name}
                       </button>
-                    </form>
-                  </>
-                )}
-
-                <div className="text-center mt-4">
-                  <small className="text-muted">
-                    Powered by{" "}
-                    <a
-                      href="https://startcloud.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-decoration-none text-light"
-                    >
-                      STARTcloud
-                    </a>
-                  </small>
+                    );
+                  })}
                 </div>
+              )}
+
+              {/* Divider between OIDC and Basic Auth */}
+              {oidcMethods.length > 0 && hasBasicAuth && (
+                <div className="divider">
+                  <span />
+                </div>
+              )}
+
+              {/* Basic Auth Form */}
+              {hasBasicAuth && (
+                <>
+                  <h5 className="text-light mb-3 text-center">Basic Auth</h5>
+                  <form onSubmit={handleBasicAuth}>
+                    <div className="mb-3">
+                      <input
+                        type="text"
+                        className="form-control bg-dark text-white border-secondary"
+                        id="username"
+                        name="username"
+                        placeholder="Username"
+                        value={credentials.username}
+                        onChange={(e) =>
+                          setCredentials({
+                            ...credentials,
+                            username: e.target.value,
+                          })
+                        }
+                        required
+                        autoComplete="username"
+                      />
+                    </div>
+                    <div className="mb-3">
+                      <input
+                        type="password"
+                        className="form-control bg-dark text-white border-secondary"
+                        id="password"
+                        name="password"
+                        placeholder="Password"
+                        value={credentials.password}
+                        onChange={(e) =>
+                          setCredentials({
+                            ...credentials,
+                            password: e.target.value,
+                          })
+                        }
+                        required
+                        autoComplete="current-password"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="btn w-100"
+                      style={{
+                        backgroundColor: primaryColor,
+                        borderColor: primaryColor,
+                        color: "white",
+                      }}
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <>
+                          <span
+                            className="spinner-border spinner-border-sm me-2"
+                            role="status"
+                          />
+                          Signing in...
+                        </>
+                      ) : (
+                        <>
+                          Login
+                          <i className="bi bi-box-arrow-in-right ms-2" />
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </>
+              )}
+
+              <div className="text-center mt-3">
+                <small className="powered-by-text">
+                  Powered by{" "}
+                  <a
+                    href="https://startcloud.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-decoration-none text-light"
+                  >
+                    STARTcloud
+                  </a>
+                </small>
               </div>
             </div>
           </div>

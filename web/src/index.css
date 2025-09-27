@@ -324,3 +324,63 @@ code {
 .api-keys-table .badge.permission-read {
   background-color: #0d6efd !important; /* Blue for downloads/read */
 }
+
+/* Login page styles */
+body {
+  background-color: #212529;
+  color: #fff;
+  min-height: 100vh;
+}
+
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-card {
+  background-color: #343a40;
+  border: 1px solid #495057;
+  border-radius: 0.5rem;
+  max-width: 400px;
+  width: 100%;
+  padding: 1.5rem;
+}
+
+.btn-oidc {
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.divider {
+  text-align: center;
+  padding: 0.5rem 0;
+  position: relative;
+}
+
+.divider::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: #6c757d;
+}
+
+.divider span {
+  background-color: #343a40;
+  padding: 0 1rem;
+  color: #6c757d;
+}
+
+.btn-login {
+  background-color: var(--login-primary-color, #811937);
+  border-color: var(--login-primary-color, #811937);
+  color: white;
+}
+
+.powered-by-text {
+  color: #6c757d;
+}
