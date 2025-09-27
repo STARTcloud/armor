@@ -2,17 +2,22 @@ import { useState } from "react";
 
 import api from "../utils/api";
 
-const useFileOperations = ({ onSuccess, onError }) => {
+const useFileOperations = ({ onSuccess, onError, onConfirmDelete }) => {
   const [loading, setLoading] = useState(false);
 
   const deleteFile = async (filePath) => {
-    if (!window.confirm("Are you sure you want to delete this item?")) {
-      return;
+    if (onConfirmDelete) {
+      const confirmed = await onConfirmDelete(
+        "Are you sure you want to delete this item?"
+      );
+      if (!confirmed) {
+        return;
+      }
     }
 
     try {
       setLoading(true);
-      await api.delete(`/api/files${filePath}`);
+      await api.delete(filePath);
       onSuccess?.();
     } catch (error) {
       console.error("Delete failed:", error);
@@ -25,7 +30,7 @@ const useFileOperations = ({ onSuccess, onError }) => {
   const renameFile = async (filePath, newName) => {
     try {
       setLoading(true);
-      await api.put(`/api/files${filePath}?action=rename`, { newName });
+      await api.put(`${filePath}?action=rename`, { newName });
       onSuccess?.();
     } catch (error) {
       console.error("Rename failed:", error);
@@ -39,9 +44,8 @@ const useFileOperations = ({ onSuccess, onError }) => {
   const createFolder = async (currentPath, folderName) => {
     try {
       setLoading(true);
-      const folderPath =
-        currentPath === "/" ? `/${folderName}` : `${currentPath}/${folderName}`;
-      await api.post(`/api/files${folderPath}?action=mkdir`);
+      const targetPath = currentPath === "/" ? "" : currentPath;
+      await api.post(`${targetPath}?action=create-folder`, { folderName });
       onSuccess?.();
     } catch (error) {
       console.error("Create folder failed:", error);

@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { useState } from "react";
 
 const SearchBar = ({ onSearch, onClear, value }) => {
@@ -53,6 +54,12 @@ const SearchBar = ({ onSearch, onClear, value }) => {
       </div>
     </form>
   );
+};
+
+SearchBar.propTypes = {
+  onSearch: PropTypes.func.isRequired,
+  onClear: PropTypes.func.isRequired,
+  value: PropTypes.string.isRequired,
 };
 
 export default SearchBar;

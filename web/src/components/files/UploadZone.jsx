@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { useState, useRef } from "react";
 
 import UploadProgress from "./UploadProgress";
@@ -75,8 +76,8 @@ const UploadZone = ({ currentPath, onUploadComplete }) => {
       );
     });
 
-    const uploadPath = currentPath === "/" ? "/" : currentPath;
-    xhr.open("POST", `/api/files${uploadPath}`);
+    const uploadPath = currentPath === "/" ? "" : currentPath;
+    xhr.open("POST", uploadPath);
     xhr.send(formData);
   };
 
@@ -161,6 +162,14 @@ const UploadZone = ({ currentPath, onUploadComplete }) => {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
+          role="button"
+          tabIndex={0}
           style={{ cursor: "pointer" }}
         >
           <i
@@ -206,6 +215,11 @@ const UploadZone = ({ currentPath, onUploadComplete }) => {
       </div>
     </div>
   );
+};
+
+UploadZone.propTypes = {
+  currentPath: PropTypes.string.isRequired,
+  onUploadComplete: PropTypes.func.isRequired,
 };
 
 export default UploadZone;

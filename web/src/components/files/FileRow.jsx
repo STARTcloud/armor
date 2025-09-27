@@ -1,5 +1,74 @@
+import PropTypes from "prop-types";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+
+const FileNameLink = ({ file, getFileLink }) => {
+  if (file.isDirectory) {
+    return (
+      <Link to={getFileLink()} className="text-decoration-none text-light">
+        {file.name}
+      </Link>
+    );
+  }
+  return (
+    <a
+      href={getFileLink()}
+      className="text-decoration-none text-light"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {file.name}
+    </a>
+  );
+};
+
+FileNameLink.propTypes = {
+  file: PropTypes.shape({
+    name: PropTypes.string.isRequired,
+    isDirectory: PropTypes.bool.isRequired,
+  }).isRequired,
+  getFileLink: PropTypes.func.isRequired,
+};
+
+const ChecksumDisplay = ({ file, onCopyChecksum }) => {
+  if (file.checksum) {
+    return (
+      <div className="d-flex align-items-center">
+        <code className="text-success me-2" style={{ fontSize: "0.8em" }}>
+          {file.checksum.substring(0, 16)}...
+        </code>
+        <button
+          className="btn btn-sm btn-outline-secondary"
+          onClick={onCopyChecksum}
+          title="Copy full checksum"
+        >
+          <i className="bi bi-clipboard" />
+        </button>
+      </div>
+    );
+  }
+
+  if (file.isDirectory) {
+    return <span className="text-muted">-</span>;
+  }
+
+  return (
+    <div
+      className="spinner-border spinner-border-sm text-warning"
+      role="status"
+    >
+      <span className="visually-hidden">Calculating...</span>
+    </div>
+  );
+};
+
+ChecksumDisplay.propTypes = {
+  file: PropTypes.shape({
+    checksum: PropTypes.string,
+    isDirectory: PropTypes.bool.isRequired,
+  }).isRequired,
+  onCopyChecksum: PropTypes.func.isRequired,
+};
 
 const FileRow = ({
   file,
@@ -123,25 +192,7 @@ const FileRow = ({
               />
             </form>
           ) : (
-            <>
-              {file.isDirectory ? (
-                <Link
-                  to={getFileLink()}
-                  className="text-decoration-none text-light"
-                >
-                  {file.name}
-                </Link>
-              ) : (
-                <a
-                  href={getFileLink()}
-                  className="text-decoration-none text-light"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {file.name}
-                </a>
-              )}
-            </>
+            <FileNameLink file={file} getFileLink={getFileLink} />
           )}
         </div>
       </td>
@@ -150,29 +201,7 @@ const FileRow = ({
       </td>
       <td className="text-muted">{formatDate(file.modified)}</td>
       <td>
-        {file.checksum ? (
-          <div className="d-flex align-items-center">
-            <code className="text-success me-2" style={{ fontSize: "0.8em" }}>
-              {file.checksum.substring(0, 16)}...
-            </code>
-            <button
-              className="btn btn-sm btn-outline-secondary"
-              onClick={handleCopyChecksum}
-              title="Copy full checksum"
-            >
-              <i className="bi bi-clipboard" />
-            </button>
-          </div>
-        ) : file.isDirectory ? (
-          <span className="text-muted">-</span>
-        ) : (
-          <div
-            className="spinner-border spinner-border-sm text-warning"
-            role="status"
-          >
-            <span className="visually-hidden">Calculating...</span>
-          </div>
-        )}
+        <ChecksumDisplay file={file} onCopyChecksum={handleCopyChecksum} />
       </td>
       <td>
         <div className="btn-group btn-group-sm" role="group">
@@ -206,6 +235,22 @@ const FileRow = ({
       </td>
     </tr>
   );
+};
+
+FileRow.propTypes = {
+  file: PropTypes.shape({
+    name: PropTypes.string.isRequired,
+    path: PropTypes.string.isRequired,
+    isDirectory: PropTypes.bool.isRequired,
+    size: PropTypes.number,
+    modified: PropTypes.string,
+    checksum: PropTypes.string,
+  }).isRequired,
+  currentPath: PropTypes.string.isRequired,
+  onDelete: PropTypes.func.isRequired,
+  onRename: PropTypes.func.isRequired,
+  formatSize: PropTypes.func.isRequired,
+  formatDate: PropTypes.func.isRequired,
 };
 
 export default FileRow;

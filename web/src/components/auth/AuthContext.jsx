@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { createContext, useContext, useState, useEffect } from "react";
 
 import api from "../../utils/api";
@@ -19,7 +20,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuthStatus = async () => {
     try {
-      const response = await api.get("/api/auth/status");
+      const response = await api.get("/auth/status");
       if (response.data.authenticated) {
         setUser(response.data.user);
         setIsAuthenticated(true);
@@ -39,7 +40,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
-      const response = await api.post("/api/auth/login", credentials);
+      const response = await api.post("/auth/login/basic", credentials);
       if (response.data.success) {
         setUser(response.data.user);
         setIsAuthenticated(true);
@@ -57,7 +58,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await api.post("/api/auth/logout");
+      await api.post("/auth/logout");
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
@@ -77,4 +78,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+AuthProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 };

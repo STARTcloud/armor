@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { useState, useEffect } from "react";
 
 const CreateFolderModal = ({ show, onHide, onCreateFolder }) => {
@@ -129,6 +130,12 @@ const CreateFolderModal = ({ show, onHide, onCreateFolder }) => {
       </div>
     </div>
   );
+};
+
+CreateFolderModal.propTypes = {
+  show: PropTypes.bool.isRequired,
+  onHide: PropTypes.func.isRequired,
+  onCreateFolder: PropTypes.func.isRequired,
 };
 
 export default CreateFolderModal;

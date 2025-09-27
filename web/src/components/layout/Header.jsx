@@ -32,8 +32,13 @@ const Header = () => {
         <div className="row align-items-center py-3">
           <div className="col">
             <div className="d-flex align-items-center">
-              <i className="bi bi-shield-check text-success me-2 fs-4" />
-              <h1 className="h4 mb-0 text-light">Armor</h1>
+              <img 
+                src="https://raw.githubusercontent.com/STARTcloud/startcloud_roles/refs/heads/main/roles/startcloud_theme/files/prominic.png"
+                alt="StartCloud"
+                height="32"
+                className="me-2"
+              />
+              <h1 className="h4 mb-0 text-light">Prominic Armor</h1>
               <small className="text-muted ms-2">
                 ARMOR Reliably Manages Online Resources
               </small>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 
 import api from "../../utils/api";
@@ -16,7 +16,7 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const fetchAuthMethods = async () => {
+  const fetchAuthMethods = useCallback(async () => {
     try {
       const oidcProvider = searchParams.get("oidc_provider");
       const authMethod = searchParams.get("auth_method");
@@ -38,7 +38,7 @@ const LoginPage = () => {
     } catch (fetchError) {
       console.error("Failed to fetch auth methods:", fetchError);
     }
-  };
+  }, [searchParams]);
 
   useEffect(() => {
     fetchAuthMethods();
@@ -50,7 +50,7 @@ const LoginPage = () => {
     } else if (errorParam === "network_error") {
       setError("Network error occurred. Please try again.");
     }
-  }, [searchParams]);
+  }, [searchParams, fetchAuthMethods]);
 
   const handleBasicAuth = async (e) => {
     e.preventDefault();

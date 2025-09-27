@@ -264,6 +264,70 @@ router.get('/auth/oidc/:provider', async (req, res) => {
 
 /**
  * @swagger
+ * /auth/status:
+ *   get:
+ *     summary: Check authentication status
+ *     description: Check if user is currently authenticated and return user info
+ *     tags: [Authentication]
+ *     responses:
+ *       200:
+ *         description: Authentication status retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 authenticated:
+ *                   type: boolean
+ *                   example: true
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     username:
+ *                       type: string
+ *                       example: admin
+ *                     role:
+ *                       type: string
+ *                       example: admin
+ *                     email:
+ *                       type: string
+ *                       example: admin@example.com
+ */
+router.get('/auth/status', (req, res) => {
+  try {
+    const token = req.cookies.auth_token;
+
+    if (!token) {
+      return res.json({
+        authenticated: false,
+        user: null,
+      });
+    }
+
+    const authConfig = configLoader.getAuthenticationConfig();
+    const decoded = jwt.verify(token, authConfig.jwt_secret);
+
+    return res.json({
+      authenticated: true,
+      user: {
+        username: decoded.username || decoded.email,
+        role: decoded.role,
+        email: decoded.email,
+        name: decoded.name,
+        provider: decoded.provider || 'basic',
+      },
+    });
+  } catch (error) {
+    logger.error('Auth status check error', { error: error.message });
+    return res.json({
+      authenticated: false,
+      user: null,
+    });
+  }
+});
+
+/**
+ * @swagger
  * /auth/logout:
  *   post:
  *     summary: Logout user

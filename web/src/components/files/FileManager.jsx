@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 
 import useFileOperations from "../../hooks/useFileOperations";
 import useSSE from "../../hooks/useSSE";
 import api from "../../utils/api";
+import ConfirmModal from "../common/ConfirmModal";
 import SearchBar from "../search/SearchBar";
 import SearchResults from "../search/SearchResults";
 
@@ -20,6 +21,8 @@ const FileManager = () => {
   const [searchResults, setSearchResults] = useState(null);
   const [showUpload, setShowUpload] = useState(false);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState(null);
 
   const getCurrentPath = () => {
     const { pathname } = location;
@@ -31,12 +34,12 @@ const FileManager = () => {
 
   const currentPath = getCurrentPath();
 
-  const loadFiles = async () => {
+  const loadFiles = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
 
-      const response = await api.get(`/api/files${currentPath}`);
+      const response = await api.get(currentPath === '/' ? '' : currentPath);
       setFiles(response.data.files || []);
     } catch (err) {
       console.error("Failed to load files:", err);
@@ -44,7 +47,7 @@ const FileManager = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPath]);
 
   useSSE({
     onFileAdded: (data) => {
@@ -71,9 +74,32 @@ const FileManager = () => {
     },
   });
 
+  const handleConfirmDelete = (message) =>
+    new Promise((resolve) => {
+      setFileToDelete({ resolve, message });
+      setShowDeleteConfirm(true);
+    });
+
+  const confirmDelete = () => {
+    if (fileToDelete) {
+      fileToDelete.resolve(true);
+      setShowDeleteConfirm(false);
+      setFileToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    if (fileToDelete) {
+      fileToDelete.resolve(false);
+      setShowDeleteConfirm(false);
+      setFileToDelete(null);
+    }
+  };
+
   const { deleteFile, renameFile, createFolder } = useFileOperations({
     onSuccess: () => loadFiles(),
     onError: (err) => setError(err),
+    onConfirmDelete: handleConfirmDelete,
   });
 
   useEffect(() => {
@@ -91,9 +117,12 @@ const FileManager = () => {
 
     try {
       setSearchQuery(query);
-      const response = await api.get(
-        `/api/search?q=${encodeURIComponent(query)}&path=${encodeURIComponent(currentPath)}`
-      );
+      const searchEndpoint = currentPath === '/' ? '/search' : `${currentPath}/search`;
+      const response = await api.post(searchEndpoint, {
+        query: query,
+        page: 1,
+        limit: 100
+      });
       setSearchResults(response.data);
     } catch (err) {
       console.error("Search failed:", err);
@@ -211,6 +240,20 @@ const FileManager = () => {
         show={showCreateFolder}
         onHide={() => setShowCreateFolder(false)}
         onCreateFolder={handleCreateFolder}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        show={showDeleteConfirm}
+        title="Delete Item"
+        message={
+          fileToDelete?.message || "Are you sure you want to delete this item?"
+        }
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
       />
     </div>
   );

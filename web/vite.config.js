@@ -10,7 +10,10 @@ import pkg from "../package.json" with { type: "json" };
 function loadViteConfig() {
   // Check environment variable first (set by systemd)
   if (process.env.CONFIG_PATH) {
-    return YAML.parse(fs.readFileSync(process.env.CONFIG_PATH, "utf8"));
+    const configPath = process.env.CONFIG_PATH.startsWith('/') 
+      ? process.env.CONFIG_PATH 
+      : `../${process.env.CONFIG_PATH}`;
+    return YAML.parse(fs.readFileSync(configPath, "utf8"));
   }
 
   // Fallback to local config for development

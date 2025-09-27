@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import api from "../../utils/api";
+import ConfirmModal from "../common/ConfirmModal";
 
 const ApiKeysPage = () => {
   const [apiKeys, setApiKeys] = useState([]);
@@ -9,6 +10,8 @@ const ApiKeysPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [newKeyData, setNewKeyData] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [keyToDelete, setKeyToDelete] = useState(null);
   const [createForm, setCreateForm] = useState({
     name: "",
     permissions: {
@@ -71,24 +74,32 @@ const ApiKeysPage = () => {
     }
   };
 
-  const handleDeleteKey = async (keyId) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this API key? This action cannot be undone."
-      )
-    ) {
+  const handleDeleteKey = (keyId) => {
+    setKeyToDelete(keyId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteKey = async () => {
+    if (!keyToDelete) {
       return;
     }
 
     try {
-      await api.delete(`/api/keys/${keyId}`);
+      await api.delete(`/api/keys/${keyToDelete}`);
       loadApiKeys();
+      setShowDeleteConfirm(false);
+      setKeyToDelete(null);
     } catch (deleteError) {
       console.error("Failed to delete API key:", deleteError);
       setError(
         deleteError.response?.data?.message || "Failed to delete API key"
       );
     }
+  };
+
+  const cancelDeleteKey = () => {
+    setShowDeleteConfirm(false);
+    setKeyToDelete(null);
   };
 
   const handleCopyKey = async (key) => {
@@ -328,75 +339,82 @@ const ApiKeysPage = () => {
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label text-light">Permissions</label>
-                    <div className="form-check">
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        id="permDownloads"
-                        checked={createForm.permissions.downloads}
-                        onChange={(e) =>
-                          setCreateForm({
-                            ...createForm,
-                            permissions: {
-                              ...createForm.permissions,
-                              downloads: e.target.checked,
-                            },
-                          })
-                        }
-                      />
-                      <label
-                        className="form-check-label text-light"
-                        htmlFor="permDownloads"
-                      >
-                        Downloads - Allow downloading files
-                      </label>
-                    </div>
-                    <div className="form-check">
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        id="permUploads"
-                        checked={createForm.permissions.uploads}
-                        onChange={(e) =>
-                          setCreateForm({
-                            ...createForm,
-                            permissions: {
-                              ...createForm.permissions,
-                              uploads: e.target.checked,
-                            },
-                          })
-                        }
-                      />
-                      <label
-                        className="form-check-label text-light"
-                        htmlFor="permUploads"
-                      >
-                        Uploads - Allow uploading files
-                      </label>
-                    </div>
-                    <div className="form-check">
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        id="permDelete"
-                        checked={createForm.permissions.delete}
-                        onChange={(e) =>
-                          setCreateForm({
-                            ...createForm,
-                            permissions: {
-                              ...createForm.permissions,
-                              delete: e.target.checked,
-                            },
-                          })
-                        }
-                      />
-                      <label
-                        className="form-check-label text-light"
-                        htmlFor="permDelete"
-                      >
-                        Delete - Allow deleting files and folders
-                      </label>
+                    <label
+                      htmlFor="permissions-group"
+                      className="form-label text-light"
+                    >
+                      Permissions
+                    </label>
+                    <div id="permissions-group">
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id="permDownloads"
+                          checked={createForm.permissions.downloads}
+                          onChange={(e) =>
+                            setCreateForm({
+                              ...createForm,
+                              permissions: {
+                                ...createForm.permissions,
+                                downloads: e.target.checked,
+                              },
+                            })
+                          }
+                        />
+                        <label
+                          className="form-check-label text-light"
+                          htmlFor="permDownloads"
+                        >
+                          Downloads - Allow downloading files
+                        </label>
+                      </div>
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id="permUploads"
+                          checked={createForm.permissions.uploads}
+                          onChange={(e) =>
+                            setCreateForm({
+                              ...createForm,
+                              permissions: {
+                                ...createForm.permissions,
+                                uploads: e.target.checked,
+                              },
+                            })
+                          }
+                        />
+                        <label
+                          className="form-check-label text-light"
+                          htmlFor="permUploads"
+                        >
+                          Uploads - Allow uploading files
+                        </label>
+                      </div>
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id="permDelete"
+                          checked={createForm.permissions.delete}
+                          onChange={(e) =>
+                            setCreateForm({
+                              ...createForm,
+                              permissions: {
+                                ...createForm.permissions,
+                                delete: e.target.checked,
+                              },
+                            })
+                          }
+                        />
+                        <label
+                          className="form-check-label text-light"
+                          htmlFor="permDelete"
+                        >
+                          Delete - Allow deleting files and folders
+                        </label>
+                      </div>
                     </div>
                   </div>
 
@@ -473,11 +491,17 @@ const ApiKeysPage = () => {
                 </div>
 
                 <div className="mb-3">
-                  <label className="form-label text-light">API Key</label>
+                  <label
+                    htmlFor="api-key-display"
+                    className="form-label text-light"
+                  >
+                    API Key
+                  </label>
                   <div className="input-group">
                     <input
                       type="text"
                       className="form-control bg-dark text-light border-secondary"
+                      id="api-key-display"
                       value={newKeyData.key}
                       readOnly
                     />
@@ -514,6 +538,18 @@ const ApiKeysPage = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        show={showDeleteConfirm}
+        title="Delete API Key"
+        message="Are you sure you want to delete this API key? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={confirmDeleteKey}
+        onCancel={cancelDeleteKey}
+      />
     </div>
   );
 };

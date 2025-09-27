@@ -1,13 +1,13 @@
 export const API_ENDPOINTS = {
   AUTH: {
-    STATUS: "/api/auth/status",
+    STATUS: "/auth/status",
     LOGIN: "/auth/login/basic",
-    LOGOUT: "/api/auth/logout",
+    LOGOUT: "/auth/logout",
     METHODS: "/auth/methods",
   },
   FILES: {
-    BASE: "/api/files",
-    SEARCH: "/api/search",
+    SEARCH_ROOT: "/search",
+    SEARCH_PATH: "/search",
   },
   KEYS: {
     BASE: "/api/keys",

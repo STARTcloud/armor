@@ -39,7 +39,11 @@ const Breadcrumbs = () => {
           >
             {index === breadcrumbs.length - 1 ? (
               <span className="text-light">
-                <i className="bi bi-folder-fill me-1" />
+                {index === 0 ? (
+                  <i className="bi bi-house-fill me-1 text-warning" />
+                ) : (
+                  <i className="bi bi-folder-fill me-1 text-warning" />
+                )}
                 {crumb.name}
               </span>
             ) : (
@@ -48,7 +52,11 @@ const Breadcrumbs = () => {
                 className="text-decoration-none"
                 style={{ color: "#198754" }}
               >
-                <i className="bi bi-house-fill me-1" />
+                {index === 0 ? (
+                  <i className="bi bi-house-fill me-1" />
+                ) : (
+                  <i className="bi bi-folder me-1" />
+                )}
                 {crumb.name}
               </Link>
             )}

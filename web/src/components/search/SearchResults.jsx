@@ -1,4 +1,52 @@
+import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
+
+const SearchChecksumDisplay = ({
+  file,
+  query,
+  onCopyChecksum,
+  highlightMatch,
+}) => {
+  if (file.checksum) {
+    return (
+      <div className="d-flex align-items-center">
+        <code className="text-success me-2" style={{ fontSize: "0.8em" }}>
+          {highlightMatch(`${file.checksum.substring(0, 16)}...`, query)}
+        </code>
+        <button
+          className="btn btn-sm btn-outline-secondary"
+          onClick={() => onCopyChecksum(file.checksum)}
+          title="Copy full checksum"
+        >
+          <i className="bi bi-clipboard" />
+        </button>
+      </div>
+    );
+  }
+
+  if (file.isDirectory) {
+    return <span className="text-muted">-</span>;
+  }
+
+  return (
+    <div
+      className="spinner-border spinner-border-sm text-warning"
+      role="status"
+    >
+      <span className="visually-hidden">Calculating...</span>
+    </div>
+  );
+};
+
+SearchChecksumDisplay.propTypes = {
+  file: PropTypes.shape({
+    checksum: PropTypes.string,
+    isDirectory: PropTypes.bool.isRequired,
+  }).isRequired,
+  query: PropTypes.string.isRequired,
+  onCopyChecksum: PropTypes.func.isRequired,
+  highlightMatch: PropTypes.func.isRequired,
+};
 
 const SearchResults = ({ results, query, onClear }) => {
   const formatSize = (bytes) => {
@@ -80,15 +128,18 @@ const SearchResults = ({ results, query, onClear }) => {
     );
     const parts = text.split(regex);
 
-    return parts.map((part, index) =>
-      regex.test(part) ? (
-        <mark key={index} className="bg-warning text-dark">
+    return parts.map((part, index) => {
+      const isHighlight = regex.test(part);
+      const key = isHighlight ? `highlight-${part}-${index}` : `text-${index}`;
+
+      return isHighlight ? (
+        <mark key={key} className="bg-warning text-dark">
           {part}
         </mark>
       ) : (
-        part
-      )
-    );
+        <span key={key}>{part}</span>
+      );
+    });
   };
 
   const handleCopyChecksum = async (checksum) => {
@@ -163,8 +214,8 @@ const SearchResults = ({ results, query, onClear }) => {
             </tr>
           </thead>
           <tbody>
-            {files.map((file, index) => (
-              <tr key={file.path || index}>
+            {files.map((file) => (
+              <tr key={file.path}>
                 <td>
                   <div className="d-flex align-items-center">
                     <i className={`bi ${getFileIcon(file)} me-2`} />
@@ -195,35 +246,12 @@ const SearchResults = ({ results, query, onClear }) => {
                 </td>
                 <td className="text-muted">{formatDate(file.modified)}</td>
                 <td>
-                  {file.checksum ? (
-                    <div className="d-flex align-items-center">
-                      <code
-                        className="text-success me-2"
-                        style={{ fontSize: "0.8em" }}
-                      >
-                        {highlightMatch(
-                          `${file.checksum.substring(0, 16)}...`,
-                          query
-                        )}
-                      </code>
-                      <button
-                        className="btn btn-sm btn-outline-secondary"
-                        onClick={() => handleCopyChecksum(file.checksum)}
-                        title="Copy full checksum"
-                      >
-                        <i className="bi bi-clipboard" />
-                      </button>
-                    </div>
-                  ) : file.isDirectory ? (
-                    <span className="text-muted">-</span>
-                  ) : (
-                    <div
-                      className="spinner-border spinner-border-sm text-warning"
-                      role="status"
-                    >
-                      <span className="visually-hidden">Calculating...</span>
-                    </div>
-                  )}
+                  <SearchChecksumDisplay
+                    file={file}
+                    query={query}
+                    onCopyChecksum={handleCopyChecksum}
+                    highlightMatch={highlightMatch}
+                  />
                 </td>
                 <td>
                   <div className="btn-group btn-group-sm" role="group">
@@ -238,7 +266,7 @@ const SearchResults = ({ results, query, onClear }) => {
                         <i className="bi bi-download" />
                       </a>
                     )}
-                    {file.isDirectory && (
+                    {file.isDirectory ? (
                       <Link
                         to={getFileLink(file)}
                         className="btn btn-outline-primary"
@@ -246,7 +274,7 @@ const SearchResults = ({ results, query, onClear }) => {
                       >
                         <i className="bi bi-folder-open" />
                       </Link>
-                    )}
+                    ) : null}
                   </div>
                 </td>
               </tr>
@@ -256,6 +284,16 @@ const SearchResults = ({ results, query, onClear }) => {
       </div>
     </div>
   );
+};
+
+SearchResults.propTypes = {
+  results: PropTypes.shape({
+    success: PropTypes.bool.isRequired,
+    files: PropTypes.arrayOf(PropTypes.object),
+    totalResults: PropTypes.number,
+  }),
+  query: PropTypes.string.isRequired,
+  onClear: PropTypes.func.isRequired,
 };
 
 export default SearchResults;

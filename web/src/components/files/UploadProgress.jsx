@@ -1,3 +1,5 @@
+import PropTypes from "prop-types";
+
 const UploadProgress = ({ upload, onRemove, onRetry }) => {
   const getStatusIcon = () => {
     switch (upload.status) {
@@ -88,6 +90,21 @@ const UploadProgress = ({ upload, onRemove, onRetry }) => {
       )}
     </div>
   );
+};
+
+UploadProgress.propTypes = {
+  upload: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    file: PropTypes.shape({
+      name: PropTypes.string.isRequired,
+      size: PropTypes.number.isRequired,
+    }).isRequired,
+    status: PropTypes.string.isRequired,
+    progress: PropTypes.number,
+    error: PropTypes.string,
+  }).isRequired,
+  onRemove: PropTypes.func.isRequired,
+  onRetry: PropTypes.func.isRequired,
 };
 
 export default UploadProgress;

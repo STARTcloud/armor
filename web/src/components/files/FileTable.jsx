@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { useState } from "react";
 
 import FileRow from "./FileRow";
@@ -138,6 +139,13 @@ const FileTable = ({ files, currentPath, onDelete, onRename }) => {
       </div>
     </div>
   );
+};
+
+FileTable.propTypes = {
+  files: PropTypes.arrayOf(PropTypes.object).isRequired,
+  currentPath: PropTypes.string.isRequired,
+  onDelete: PropTypes.func.isRequired,
+  onRename: PropTypes.func.isRequired,
 };
 
 export default FileTable;

@@ -1,5 +1,8 @@
 import express from 'express';
 import path from 'path';
+import { existsSync } from 'fs';
+import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import helmet from 'helmet';
 import cors from 'cors';
 import compression from 'compression';
@@ -21,7 +24,9 @@ import { setupHTTPSServer } from './utils/sslManager.js';
 import { specs, swaggerUi } from './config/swagger.js';
 import { getApiKeyModel } from './models/ApiKey.js';
 import { getUserPermissions } from './utils/auth.js';
-import { getUserDisplayName } from './utils/htmlGenerator.js';
+import maintenanceService from './services/maintenanceService.js';
+import checksumService from './services/checksumService.js';
+import { generateApiKey } from './utils/apiKeyUtils.js';
 
 const app = express();
 
@@ -42,10 +47,7 @@ const startServer = async () => {
     logger.error('File watcher initialization failed', { error: error.message });
   });
 
-  const { default: maintenanceService } = await import('./services/maintenanceService.js');
   maintenanceService.start();
-
-  const { default: checksumService } = await import('./services/checksumService.js');
   checksumService.start();
 
   app.use((req, res, next) => {
@@ -127,9 +129,8 @@ const startServer = async () => {
 
       if (req.cookies?.auth_token) {
         try {
-          const jwt = await import('jsonwebtoken');
           const authConfigForJWT = configLoader.getAuthenticationConfig();
-          const decoded = jwt.default.verify(req.cookies.auth_token, authConfigForJWT.jwt_secret);
+          const decoded = jwt.verify(req.cookies.auth_token, authConfigForJWT.jwt_secret);
 
           userPermissions = decoded.permissions || [];
 
@@ -209,9 +210,8 @@ const startServer = async () => {
         });
       }
 
-      const jwt = await import('jsonwebtoken');
       const authConfigForFull = configLoader.getAuthenticationConfig();
-      const decoded = jwt.default.verify(req.cookies.auth_token, authConfigForFull.jwt_secret);
+      const decoded = jwt.verify(req.cookies.auth_token, authConfigForFull.jwt_secret);
 
       if (!decoded) {
         return res.status(401).json({
@@ -257,8 +257,6 @@ const startServer = async () => {
 
       // Decrypt the stored full key
       try {
-        const crypto = await import('crypto');
-
         // Parse IV and encrypted data
         const [ivHex, encryptedData] = apiKey.encrypted_full_key.split(':');
         const iv = Buffer.from(ivHex, 'hex');
@@ -301,7 +299,7 @@ const startServer = async () => {
   });
 
   // Generate temporary API key for Swagger testing
-  app.post('/api/user-api-keys/temp', async (req, res) => {
+  app.post('/api/user-api-keys/temp', (req, res) => {
     try {
       const swaggerConfig = configLoader.getSwaggerConfig();
 
@@ -319,9 +317,8 @@ const startServer = async () => {
         });
       }
 
-      const jwt = await import('jsonwebtoken');
       const authConfigForTemp = configLoader.getAuthenticationConfig();
-      const decoded = jwt.default.verify(req.cookies.auth_token, authConfigForTemp.jwt_secret);
+      const decoded = jwt.verify(req.cookies.auth_token, authConfigForTemp.jwt_secret);
 
       if (!decoded) {
         return res.status(401).json({
@@ -344,7 +341,6 @@ const startServer = async () => {
       }
 
       // Generate temporary key
-      const { generateApiKey } = await import('./utils/apiKeyUtils.js');
       const tempKey = `temp_${generateApiKey()}`;
       const expirationHours = swaggerConfig.temp_key_expiration_hours || 1;
       const expiresAt = new Date(Date.now() + expirationHours * 60 * 60 * 1000);
@@ -388,26 +384,10 @@ const startServer = async () => {
     })
   );
 
-  const { existsSync } = await import('fs');
+  // Serve static assets from Vite build
   const frontendDistPath = 'web/dist';
   if (existsSync(frontendDistPath)) {
-    // Serve static assets from Vite build
     app.use(express.static(frontendDistPath));
-
-    app.get('*', (req, res, next) => {
-      if (
-        req.path.startsWith('/api/') ||
-        req.path.startsWith('/auth/') ||
-        req.path.startsWith('/events') ||
-        req.path.startsWith('/static/') ||
-        req.path.startsWith('/swagger/') ||
-        req.path.startsWith('/api-docs')
-      ) {
-        return next();
-      }
-
-      return res.sendFile(path.resolve(frontendDistPath, 'index.html'));
-    });
   } else {
     logger.warn('Frontend dist directory not found. Run "npm run build" to build the frontend.');
   }
@@ -424,9 +404,8 @@ const startServer = async () => {
 
       if (req.cookies?.auth_token) {
         try {
-          const jwt = await import('jsonwebtoken');
           const authConfigForAPI = configLoader.getAuthenticationConfig();
-          const decoded = jwt.default.verify(req.cookies.auth_token, authConfigForAPI.jwt_secret);
+          const decoded = jwt.verify(req.cookies.auth_token, authConfigForAPI.jwt_secret);
 
           if (decoded) {
             if (decoded.userId) {
@@ -551,7 +530,7 @@ const startServer = async () => {
             <div class="auth-status">
                 <div class="dropdown">
                     <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-person-circle me-1"></i> ${getUserDisplayName(userInfo)}
+                        <i class="bi bi-person-circle me-1"></i> ${userInfo?.name || userInfo?.email || 'User'}
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="profileDropdown">
                         <li><a class="dropdown-item" href="/"><i class="bi bi-shield me-2"></i>Dashboard</a></li>
@@ -583,6 +562,25 @@ const startServer = async () => {
 
     logger.info('API documentation enabled at /api-docs');
   }
+
+  app.get('/*splat', (req, res, next) => {
+    if (
+      req.path.startsWith('/api/') ||
+      req.path.startsWith('/auth/') ||
+      req.path.startsWith('/events') ||
+      req.path.startsWith('/static/') ||
+      req.path.startsWith('/swagger/') ||
+      req.path.startsWith('/api-docs')
+    ) {
+      return next();
+    }
+
+    const distPath = 'web/dist';
+    if (existsSync(distPath)) {
+      return res.sendFile(path.resolve(distPath, 'index.html'));
+    }
+    return next();
+  });
 
   app.use('/', fileServerRoutes);
 

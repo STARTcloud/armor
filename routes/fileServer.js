@@ -13,7 +13,6 @@ import {
 } from '../middleware/auth.middleware.js';
 import { isAllowedDirectory, isStaticDirectory, getStaticContent } from '../utils/auth.js';
 import { getDirectoryItems } from '../utils/fileUtils.js';
-import { generate404Page, getUserDisplayName } from '../utils/htmlGenerator.js';
 import { logAccess, logger, accessLogger, databaseLogger } from '../config/logger.js';
 import configLoader from '../config/configLoader.js';
 import { getFileModel } from '../models/File.js';
@@ -225,7 +224,7 @@ router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
             <div class="auth-status">
                 <div class="dropdown">
                     <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-person-circle me-1"></i> ${getUserDisplayName(userInfo)}
+                        <i class="bi bi-person-circle me-1"></i> ${userInfo?.name || userInfo?.email || 'User'}
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="profileDropdown">
                         <li><a class="dropdown-item" href="/"><i class="bi bi-shield me-2"></i>Dashboard</a></li>
@@ -757,13 +756,7 @@ router.get('*splat', authenticateDownloads, async (req, res) => {
       await fs.access(fullPath);
     } catch {
       logAccess(req, 'NOT_FOUND', fullPath);
-      const serverConfig = configLoader.getServerConfig();
-      const errorConfig = {
-        title: serverConfig.login_title || 'Armor',
-        subtitle: serverConfig.login_subtitle || 'ARMOR Reliably Manages Online Resources',
-        primaryColor: serverConfig.login_primary_color || '#198754',
-      };
-      return res.status(404).send(generate404Page(errorConfig));
+      return res.redirect('/');
     }
 
     const stats = await fs.stat(fullPath);
