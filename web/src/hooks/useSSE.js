@@ -4,6 +4,7 @@ const useSSE = ({
   onFileAdded,
   onFileDeleted,
   onFileRenamed,
+  onFolderCreated,
   onChecksumUpdate,
 }) => {
   const eventSourceRef = useRef(null);
@@ -11,7 +12,7 @@ const useSSE = ({
   useEffect(() => {
     const connectSSE = () => {
       try {
-        eventSourceRef.current = new EventSource("/events");
+        eventSourceRef.current = new EventSource("/api/sse/events");
 
         eventSourceRef.current.onopen = () => {
           console.log("SSE connection opened");
@@ -44,6 +45,15 @@ const useSSE = ({
           }
         });
 
+        eventSourceRef.current.addEventListener("folder-created", (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            onFolderCreated?.(data);
+          } catch (error) {
+            console.error("Error parsing folder-created event:", error);
+          }
+        });
+
         eventSourceRef.current.addEventListener("checksum-update", (event) => {
           try {
             const data = JSON.parse(event.data);
@@ -58,6 +68,7 @@ const useSSE = ({
 
           setTimeout(() => {
             if (eventSourceRef.current?.readyState === EventSource.CLOSED) {
+              console.log("Attempting to reconnect SSE...");
               connectSSE();
             }
           }, 5000);
@@ -75,7 +86,13 @@ const useSSE = ({
         eventSourceRef.current = null;
       }
     };
-  }, [onFileAdded, onFileDeleted, onFileRenamed, onChecksumUpdate]);
+  }, [
+    onFileAdded,
+    onFileDeleted,
+    onFileRenamed,
+    onFolderCreated,
+    onChecksumUpdate,
+  ]);
 
   return eventSourceRef.current;
 };

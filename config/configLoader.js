@@ -150,15 +150,13 @@ class ConfigLoader {
   }
 
   getFileWatcherConfig() {
-    return (
-      this.getConfig().file_watcher || {
-        batch_size: 10,
-        max_concurrent_checksums: 5,
-        batch_delay_ms: 2000,
-        checksum_timeout_ms: 300000,
-        enable_progress_logging: true,
-      }
-    );
+    return {
+      enable_progress_logging: this.getConfig().file_watcher?.enable_progress_logging ?? true,
+      batch_size: this.getConfig().file_watcher?.batch_size ?? 10,
+      batch_delay_ms: 0,
+      max_concurrent_checksums: this.getConfig().file_watcher?.max_concurrent_checksums ?? 5,
+      checksum_timeout_ms: this.getConfig().file_watcher?.checksum_timeout_ms ?? 300000,
+    };
   }
 
   getLoggingConfig() {

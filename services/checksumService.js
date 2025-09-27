@@ -83,6 +83,7 @@ class ChecksumService {
     try {
       logger.info(`Starting checksum generation for: ${filePath}`);
 
+      const File = getFileModel();
       await withDatabaseRetry(() =>
         databaseOperationService.queueChecksumUpdate({
           filePath,

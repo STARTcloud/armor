@@ -259,11 +259,7 @@ class FileWatcherService {
       usePolling: true, // Use polling for reliable unlink detection across filesystems
       alwaysStat: true, // Provide stats in event callbacks (more efficient)
       atomic: true, // Handle atomic editor writes
-      awaitWriteFinish: {
-        // Wait for file writes to complete
-        stabilityThreshold: 2000,
-        pollInterval: 100,
-      },
+      awaitWriteFinish: false,
     });
 
     this.watcher.on('change', (filePath, stats) => {
