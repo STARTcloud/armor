@@ -112,9 +112,9 @@ const LandingPage = () => {
           </div>
           <h1 className="display-4 mb-4">{title}</h1>
           <p className="lead mb-3">{description}</p>
-          <p className="text-secondary">{subtitle}</p>
+          <p style={{ color: "#adb5bd" }}>{subtitle}</p>
           <hr className="my-4" />
-          <p className="small text-secondary">
+          <p className="small" style={{ color: "#adb5bd" }}>
             <i className="bi bi-info-circle me-2" />
             Access to resources requires proper authentication
           </p>

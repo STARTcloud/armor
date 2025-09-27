@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, Link, useSearchParams } from "react-router-dom";
 
 import api from "../../utils/api";
 
 const Breadcrumbs = () => {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [primaryColor, setPrimaryColor] = useState("#198754");
 
   useEffect(() => {
@@ -23,8 +24,14 @@ const Breadcrumbs = () => {
   }, []);
 
   const generateBreadcrumbs = (pathname) => {
+    const viewIndex = searchParams.get("view") === "index";
+
     if (!pathname || pathname === "/") {
-      return [{ name: "Armor", path: "/" }];
+      const breadcrumbs = [{ name: "Armor", path: "/" }];
+      if (viewIndex) {
+        breadcrumbs.push({ name: "Home", path: "/?view=index", isHome: true });
+      }
+      return breadcrumbs;
     }
 
     const parts = pathname.split("/").filter(Boolean);
@@ -59,6 +66,8 @@ const Breadcrumbs = () => {
                     className="bi bi-shield-check me-1"
                     style={{ color: primaryColor }}
                   />
+                ) : crumb.isHome ? (
+                  <i className="bi bi-house me-1 text-light" />
                 ) : (
                   <i className="bi bi-folder2 me-1 text-light" />
                 )}
@@ -71,6 +80,8 @@ const Breadcrumbs = () => {
                     className="bi bi-shield-check me-1"
                     style={{ color: primaryColor }}
                   />
+                ) : crumb.isHome ? (
+                  <i className="bi bi-house me-1 text-light" />
                 ) : (
                   <i className="bi bi-folder2 me-1 text-light" />
                 )}
