@@ -48,7 +48,7 @@ const shouldShowLandingPage = (isRoot, serverConfig, isAdmin, viewIndex, query) 
   isRoot && !serverConfig.show_root_index && !(isAdmin && viewIndex) && !query.sort && !query.order;
 
 // Helper function to handle landing page response
-const handleLandingPageResponse = (req, res, _uploadCredentials) => {
+const handleLandingPageResponse = (req, res) => {
   accessLogger.info('Redirecting to React app for root access');
   logAccess(req, 'LANDING_PAGE', 'redirecting to React app');
   return res.redirect('/');

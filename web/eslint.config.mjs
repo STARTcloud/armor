@@ -85,13 +85,13 @@ export default [
       "no-var": "error",
       "no-undef": "error",
       "no-unused-vars": [
-        "warn", // Warn for declared but unused variables
+        "error",
         {
-          args: "after-used",
-          argsIgnorePattern: "^_",
-          varsIgnorePattern: "^_",
-          ignoreRestSiblings: true,
-          caughtErrors: "none", // Don't warn about unused catch parameters
+          vars: "all",
+          args: "all",
+          caughtErrors: "all",
+          ignoreRestSiblings: false,
+          reportUsedIgnorePattern: false,
         },
       ],
       "no-use-before-define": [

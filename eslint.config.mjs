@@ -47,10 +47,11 @@ export default [
       'no-unused-vars': [
         'error',
         {
+          vars: 'all',
           args: 'all',
-          argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_',
-          ignoreRestSiblings: true,
+          caughtErrors: 'all',
+          ignoreRestSiblings: false,
+          reportUsedIgnorePattern: false,
         },
       ],
       'no-use-before-define': ['error', { functions: false, classes: true, variables: true }],
