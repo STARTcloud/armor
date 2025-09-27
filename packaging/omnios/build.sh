@@ -73,14 +73,12 @@ build_app() {
     export CPPFLAGS="-D_POSIX_C_SOURCE=199309L -D__EXTENSIONS__"
     export CFLAGS="-D_POSIX_C_SOURCE=199309L -D__EXTENSIONS__"
     
-    # Sync versions
-    logcmd npm run sync-versions
+    # Install dependencies using structured scripts
+    MAKE=gmake logcmd npm run install:all:nodev
     
-    # Install dependencies
-    MAKE=gmake logcmd npm ci
-    
-    # Install production dependencies only
-    MAKE=gmake logcmd npm ci --omit=dev
+    # TODO: Enable when Vite builds are ready
+    # Build frontend
+    # logcmd npm run build
 }
 
 install_app() {
@@ -103,9 +101,12 @@ install_app() {
         fi
     done
     
-    # Copy static web assets
+    # Copy web assets
     logcmd mkdir -p web
-    logcmd cp -r $SRCDIR/web/static web/
+    # TODO: Enable when Vite builds are ready
+    # logcmd cp -r $SRCDIR/web/dist web/
+    # Temporary: Copy public assets directly
+    logcmd cp -r $SRCDIR/web/public web/
     
     # Copy node_modules (production only)
     if [ -d "$SRCDIR/node_modules" ]; then

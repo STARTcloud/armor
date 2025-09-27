@@ -1,4 +1,28 @@
-node_modules
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+*/node_modules
+node_modules/
+node_modules/*
+*/node_modules/.cache
+
+
+*/core
+core/*
+core
+/.pnp
+.pnp.js
+
+Trash
+
+
+# production
+/build
+web/dist
+
+# testing
+/coverage
+
 *.log
 *.db
 dev.config.yaml
@@ -8,3 +32,24 @@ logs/
 *.crt
 *.csr
 stress_test.js
+
+
+# Debian packaging artifacts
+*.deb
+
+
+# Vite build cache
+web/.vite
+web/node_modules/.vite
+
+
+# misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

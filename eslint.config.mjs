@@ -7,6 +7,7 @@ export default [
   // Ignore patterns
   {
     ignores: [
+      'web/**/*', // Frontend has its own ESLint config
       'node_modules/**/*', // Dependencies
       'dist/**/*', // Build output
       'build/**/*', // Build output

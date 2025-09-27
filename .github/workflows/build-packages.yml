@@ -48,21 +48,11 @@ jobs:
           fi
 
       - name: Install dependencies
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install
-          fi
+        run: npm run install:all
 
-      - name: Install production dependencies only
-        if: matrix.package-type == 'production'
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci --omit=dev
-          else
-            npm install --omit=dev
-          fi
+      # TODO: Enable when ready for Vite builds
+      # - name: Build frontend
+      #   run: npm run build
 
       - name: Create package structure
         run: |
@@ -70,13 +60,16 @@ jobs:
 
       - name: Copy application files
         run: |
-          # Core application files (Armor backend-only structure)
+          # Core application files
           cp -r models routes middleware config utils services packaging app.js package.json "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
           cp -r node_modules "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
-
-          # Static web assets (preserve directory structure)
+          
+          # Web assets
           mkdir -p "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/"
-          cp -r web/static "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/static"
+          # TODO: Enable when Vite builds are ready
+          #cp -r web/dist "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/dist"
+          # Temporary: Copy public assets directly
+          cp -r web/public "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/public"
 
           # Systemd service
           cp packaging/DEBIAN/systemd/armor.service "${PACKAGE_NAME}_${VERSION}_${ARCH}/etc/systemd/system/"

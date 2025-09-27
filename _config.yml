@@ -12,7 +12,7 @@ includes_dir: '.'
 
 # Logo and favicon settings
 # logo: "/web/public/images/logo.png"
-favicon_ico: 'web/static/images/favicon.ico'
+favicon_ico: '/web/public/favicon.ico'
 
 defaults:
   - scope:

@@ -1,0 +1,27 @@
+{
+  "short_name": "Armor",
+  "name": "Armor",
+  "description": "Client Side Code using Vite, faciliates communication with the Armor Backend",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "images/logo192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "images/logo512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "scope": "/ui/",
+  "start_url": "/ui/",
+  "display": "standalone",
+  "theme_color": "#f69435",
+  "background_color": "#4a4a4a"
+}
