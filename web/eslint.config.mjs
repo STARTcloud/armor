@@ -20,6 +20,12 @@ export default [
       ".vite/**/*",
       "public/**/*",
       "*.log",
+      "*.json",
+      "*.lock",
+      "package-lock.json",
+      "package.json",
+      "vite.config.js",
+      "vite.config.mjs",
     ],
   },
 
@@ -316,6 +322,15 @@ export default [
   // Vite configuration files - Special handling
   {
     files: ["**/vite.config.js", "**/vite.config.mjs"],
+    languageOptions: {
+      ecmaVersion: 2024, // Support for import assertions
+      sourceType: "module",
+      parserOptions: {
+        ecmaFeatures: {
+          importAssertions: true, // Enable import assertion support
+        },
+      },
+    },
     rules: {
       "no-undef": "off", // Allow import assertions and special Vite syntax
       "import/no-unresolved": "off", // Vite handles special imports
