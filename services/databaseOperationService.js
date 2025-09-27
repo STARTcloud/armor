@@ -1,23 +1,17 @@
-import { getDatabase } from '../config/database.js';
 import { getFileModel } from '../models/File.js';
-import { databaseLogger as logger } from '../config/logger.js';
 
 class DatabaseOperationService {
-  constructor() {
+  queueFileUpsert(fileData) {
+    const File = getFileModel();
+    return File.upsert(fileData);
   }
 
-  async queueFileUpsert(fileData) {
+  queueChecksumUpdate(checksumData) {
     const File = getFileModel();
-    return await File.upsert(fileData);
-  }
-
-  async queueChecksumUpdate(checksumData) {
-    const File = getFileModel();
-    return await File.update(checksumData.updateFields, {
-      where: { file_path: checksumData.filePath }
+    return File.update(checksumData.updateFields, {
+      where: { file_path: checksumData.filePath },
     });
   }
-
 }
 
 export default new DatabaseOperationService();

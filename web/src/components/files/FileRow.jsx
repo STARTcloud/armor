@@ -80,6 +80,8 @@ const FileRow = ({
 }) => {
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState(file.name || "");
+  const [pressTimer, setPressTimer] = useState(null);
+  const [isLongPress, setIsLongPress] = useState(false);
 
   const handleRename = async (e) => {
     e.preventDefault();
@@ -93,6 +95,7 @@ const FileRow = ({
       setIsRenaming(false);
     } catch (error) {
       console.error("Failed to rename file:", error);
+      setIsRenaming(false);
     }
   };
 
@@ -115,9 +118,48 @@ const FileRow = ({
     }
   };
 
+  const handleDownloadFile = () => {
+    if (!file.isDirectory) {
+      const downloadUrl = `${window.location.origin}${file.path}`;
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = file.name;
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  const handleIconMouseDown = () => {
+    if (!file.isDirectory) {
+      setIsLongPress(false);
+      const timer = setTimeout(() => {
+        setIsLongPress(true);
+        handleDownloadFile();
+      }, 500);
+      setPressTimer(timer);
+    }
+  };
+
+  const handleIconMouseUp = () => {
+    if (pressTimer) {
+      clearTimeout(pressTimer);
+      setPressTimer(null);
+    }
+    setTimeout(() => setIsLongPress(false), 100);
+  };
+
+  const handleIconClick = async (e) => {
+    if (!isLongPress && !file.isDirectory) {
+      e.preventDefault();
+      await handleCopyLink();
+    }
+  };
+
   const getFileIcon = () => {
     if (file.isDirectory) {
-      return "bi-folder text-light";
+      return "bi-folder2 text-light";
     }
 
     const ext = file.name?.split(".").pop()?.toLowerCase();
@@ -164,7 +206,7 @@ const FileRow = ({
     if (file.isDirectory) {
       const newPath =
         currentPath === "/" ? `/${file.name}` : `${currentPath}/${file.name}`;
-      return `/browse${newPath}`;
+      return newPath;
     }
     return file.path;
   };
@@ -173,7 +215,28 @@ const FileRow = ({
     <tr>
       <td>
         <div className="d-flex align-items-center">
-          <i className={`bi ${getFileIcon()} me-2`} />
+          <i
+            className={`bi ${getFileIcon()} me-2`}
+            style={{ cursor: file.isDirectory ? "default" : "pointer" }}
+            onMouseDown={handleIconMouseDown}
+            onMouseUp={handleIconMouseUp}
+            onMouseLeave={handleIconMouseUp}
+            onClick={handleIconClick}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleIconClick(e);
+              }
+            }}
+            role={file.isDirectory ? "presentation" : "button"}
+            tabIndex={file.isDirectory ? -1 : 0}
+            aria-label={
+              file.isDirectory ? "" : "Click to copy link, hold to download"
+            }
+            title={
+              file.isDirectory ? "" : "Click to copy link, hold to download"
+            }
+          />
           {isRenaming ? (
             <form onSubmit={handleRename} className="d-flex align-items-center">
               <input
@@ -181,11 +244,13 @@ const FileRow = ({
                 className="form-control form-control-sm bg-dark text-light border-secondary"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                onBlur={() => setIsRenaming(false)}
+                onBlur={handleRename}
                 onKeyDown={(e) => {
                   if (e.key === "Escape") {
                     setIsRenaming(false);
                     setNewName(file.name || "");
+                  } else if (e.key === "Enter") {
+                    handleRename(e);
                   }
                 }}
                 style={{ maxWidth: "200px" }}
@@ -196,11 +261,11 @@ const FileRow = ({
           )}
         </div>
       </td>
-      <td className="text-muted">{file.isDirectory ? "Folder" : "File"}</td>
-      <td className="text-muted">
+      <td className="text-light">{file.isDirectory ? "Folder" : "File"}</td>
+      <td className="text-light">
         {file.isDirectory ? "-" : formatSize(file.size)}
       </td>
-      <td className="text-muted">{formatDate(file.modified)}</td>
+      <td className="text-light">{formatDate(file.mtime)}</td>
       <td>
         <ChecksumDisplay file={file} onCopyChecksum={handleCopyChecksum} />
       </td>
@@ -244,7 +309,7 @@ FileRow.propTypes = {
     path: PropTypes.string.isRequired,
     isDirectory: PropTypes.bool.isRequired,
     size: PropTypes.number,
-    modified: PropTypes.string,
+    mtime: PropTypes.string,
     checksum: PropTypes.string,
   }).isRequired,
   currentPath: PropTypes.string.isRequired,

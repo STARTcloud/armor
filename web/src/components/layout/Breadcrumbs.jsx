@@ -1,5 +1,6 @@
-import { useLocation, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { useLocation, Link } from "react-router-dom";
+
 import api from "../../utils/api";
 
 const Breadcrumbs = () => {
@@ -54,8 +55,8 @@ const Breadcrumbs = () => {
             {index === breadcrumbs.length - 1 ? (
               <span className="text-light">
                 {index === 0 ? (
-                  <i 
-                    className="bi bi-shield-check me-1" 
+                  <i
+                    className="bi bi-shield-check me-1"
                     style={{ color: primaryColor }}
                   />
                 ) : (
@@ -66,8 +67,8 @@ const Breadcrumbs = () => {
             ) : (
               <Link to={crumb.path} className="text-decoration-none text-light">
                 {index === 0 ? (
-                  <i 
-                    className="bi bi-shield-check me-1" 
+                  <i
+                    className="bi bi-shield-check me-1"
                     style={{ color: primaryColor }}
                   />
                 ) : (
