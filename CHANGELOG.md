@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.2](https://github.com/STARTcloud/armor_private/compare/v1.13.1...v1.13.2) (2025-09-27)
+
+
+### Bug Fixes
+
+* remove 1000ms batch delay from database operations for immediate file processing ([1048ae7](https://github.com/STARTcloud/armor_private/commit/1048ae7884c5bbe5310581ff51676e3883f169f9))
+
 ## [1.13.1](https://github.com/STARTcloud/armor_private/compare/v1.13.0...v1.13.1) (2025-09-27)
 
 
