@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.3](https://github.com/STARTcloud/armor_private/compare/v1.13.2...v1.13.3) (2025-09-27)
+
+
+### Bug Fixes
+
+* route database operations to databaseLogger and HTTP requests to accessLogger ([78fd182](https://github.com/STARTcloud/armor_private/commit/78fd182bafe3d67204617dd1e7fe6e047e040bcd))
+
 ## [1.13.2](https://github.com/STARTcloud/armor_private/compare/v1.13.1...v1.13.2) (2025-09-27)
 
 
