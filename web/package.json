@@ -21,8 +21,8 @@
   },
   "scripts": {
     "dev": "vite",
-    "install": "npm ci",
-    "install:nodev": "npm ci --omit=dev",
+    "cinstall": "npm ci",
+    "cinstall:nodev": "npm ci --omit=dev",
     "build": "vite build",
     "preview": "vite preview",
     "client": "vite dev --host 0.0.0.0",

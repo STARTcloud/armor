@@ -48,7 +48,7 @@ jobs:
           fi
 
       - name: Install dependencies
-        run: npm run install:all
+        run: npm run cinstall:all
 
       # TODO: Enable when ready for Vite builds
       # - name: Build frontend

@@ -18,11 +18,11 @@ sudo apt install nodejs npm dpkg-dev gdebi-core
 # Sync versions across all config files
 npm run sync-versions
 
-# Install dependencies
-npm ci
+# Install dependencies using structured scripts
+npm run cinstall:all
 
 # Install production dependencies only
-npm ci --omit=dev
+npm run cinstall:all:nodev
 ```
 
 ### 2. Create Package Structure

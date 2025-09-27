@@ -74,7 +74,7 @@ build_app() {
     export CFLAGS="-D_POSIX_C_SOURCE=199309L -D__EXTENSIONS__"
     
     # Install dependencies using structured scripts
-    MAKE=gmake logcmd npm run install:all:nodev
+    MAKE=gmake logcmd npm run cinstall:all:nodev
     
     # TODO: Enable when Vite builds are ready
     # Build frontend
