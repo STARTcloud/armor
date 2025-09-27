@@ -395,42 +395,18 @@ class FileWatcherService {
     }
   }
 
-  // Schedule file processing with stability delay (with stats from chokidar)
+  // Process file immediately after chokidar write completion
   scheduleFileProcessingWithStats(filePath, stats) {
-    // Clear existing timer for this file
-    if (this.fileStabilityTimers.has(filePath)) {
-      clearTimeout(this.fileStabilityTimers.get(filePath));
-    }
-
-    // Set new timer - wait 2 seconds after last change before processing
-    const timer = setTimeout(() => {
-      this.fileStabilityTimers.delete(filePath);
-      const dirPath = dirname(filePath);
-      const itemName = basename(filePath);
-      this.cacheItemInfoWithStats(dirPath, itemName, stats);
-    }, 2000);
-
-    this.fileStabilityTimers.set(filePath, timer);
-    logger.info(`File stability timer set for: ${filePath}`);
+    const dirPath = dirname(filePath);
+    const itemName = basename(filePath);
+    this.cacheItemInfoWithStats(dirPath, itemName, stats);
   }
 
-  // Schedule file processing with stability delay (legacy for compatibility)
+  // Process file immediately without delays
   scheduleFileProcessing(filePath) {
-    // Clear existing timer for this file
-    if (this.fileStabilityTimers.has(filePath)) {
-      clearTimeout(this.fileStabilityTimers.get(filePath));
-    }
-
-    // Set new timer - wait 2 seconds after last change before processing
-    const timer = setTimeout(() => {
-      this.fileStabilityTimers.delete(filePath);
-      const dirPath = dirname(filePath);
-      const itemName = basename(filePath);
-      this.cacheItemInfo(dirPath, itemName);
-    }, 2000);
-
-    this.fileStabilityTimers.set(filePath, timer);
-    logger.info(`File stability timer set for: ${filePath}`);
+    const dirPath = dirname(filePath);
+    const itemName = basename(filePath);
+    this.cacheItemInfo(dirPath, itemName);
   }
 
   // Cache item info using pre-loaded database lookup (eliminates individual queries)
@@ -606,11 +582,9 @@ class FileWatcherService {
     }
 
     // Process the file now that upload is complete
-    setTimeout(() => {
-      const dirPath = dirname(filePath);
-      const itemName = basename(filePath);
-      this.cacheItemInfo(dirPath, itemName);
-    }, 1000); // Small delay to ensure file is fully written
+    const dirPath = dirname(filePath);
+    const itemName = basename(filePath);
+    this.cacheItemInfo(dirPath, itemName);
   }
 
   async cleanupStaleEntries() {
