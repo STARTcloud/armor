@@ -50,6 +50,7 @@ class ChecksumService {
       File.findAll({
         where: {
           checksum_status: ['pending', 'error'],
+          is_directory: false,
         },
         limit: this.config.max_concurrent_checksums * 2,
         raw: true,

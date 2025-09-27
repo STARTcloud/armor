@@ -27,6 +27,8 @@ class FileWatcherService {
     await this.cacheDirectory(this.watchPath);
     logger.info(`✅ Initial directory scan completed for: ${this.watchPath}`);
 
+    await this.cleanupStaleEntries();
+
     this.startWatcher();
 
     const File = getFileModel();
@@ -464,40 +466,31 @@ class FileWatcherService {
           new Date(existingFile.last_modified).getTime() !== stats.mtime.getTime();
 
         if (needsChecksum) {
-          this.queueChecksumGeneration(itemPath);
           logger.info(
-            `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (checksum queued)`
+            `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (checksum will be processed by checksum service)`
           );
-
-          if (!existingFile) {
-            logger.info(`About to send SSE file-added event for: ${itemPath} (checksum queued)`);
-            sendFileAdded(itemPath, { size: stats.size, mtime: stats.mtime });
-            logger.info(`SSE file-added event sent for: ${itemPath} (checksum queued)`);
-          }
-
-          return { created, itemPath, skipped: false };
+        } else {
+          logger.info(
+            `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (checksum valid, skipped)`
+          );
         }
-        logger.info(
-          `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (checksum valid, skipped)`
-        );
 
         if (!existingFile) {
-          logger.info(`About to send SSE file-added event for: ${itemPath} (checksum skipped)`);
+          logger.info(`About to send SSE file-added event for ${itemPath}`);
           sendFileAdded(itemPath, { size: stats.size, mtime: stats.mtime });
-          logger.info(`SSE file-added event sent for: ${itemPath} (checksum skipped)`);
+          logger.info(`SSE file-added event sent for ${itemPath}`);
         }
+      } else {
+        logger.info(`${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath}`);
 
-        return { created, itemPath, skipped: true };
+        if (!existingFile) {
+          logger.info(`About to send SSE file-added event for directory ${itemPath}`);
+          sendFileAdded(itemPath, { size: 0, mtime: stats.mtime });
+          logger.info(`SSE file-added event sent for directory ${itemPath}`);
+        }
       }
-      logger.info(`${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath}`);
 
-      if (!existingFile) {
-        logger.info(`About to send SSE file-added event for directory: ${itemPath}`);
-        sendFileAdded(itemPath, { size: 0, mtime: new Date() });
-        logger.info(`SSE file-added event sent for directory: ${itemPath}`);
-      }
-
-      return { created, itemPath, skipped: false };
+      return { created, itemPath };
     } catch (error) {
       logger.error(`Error updating database for ${dirPath}/${itemName}: ${error.message}`);
       throw error;
@@ -545,49 +538,36 @@ class FileWatcherService {
           new Date(existingFile.last_modified).getTime() !== (stats ? stats.mtime.getTime() : 0);
 
         if (needsChecksum) {
-          this.queueChecksumGeneration(itemPath);
           logger.info(
-            `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (using chokidar stats, checksum queued)`
+            `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (using chokidar stats, checksum will be processed by checksum service)`
           );
-
-          if (!existingFile) {
-            logger.info(`About to send SSE file-added event for: ${itemPath}`);
-            sendFileAdded(itemPath, {
-              size: stats ? stats.size : 0,
-              mtime: stats ? stats.mtime : new Date(),
-            });
-            logger.info(`SSE file-added event sent for: ${itemPath}`);
-          }
-
-          return { created, itemPath, skipped: false };
+        } else {
+          logger.info(
+            `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (using chokidar stats, checksum valid, skipped)`
+          );
         }
-        logger.info(
-          `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (using chokidar stats, checksum valid, skipped)`
-        );
 
         if (!existingFile) {
-          logger.info(`About to send SSE file-added event for: ${itemPath} (checksum skipped)`);
+          logger.info(`About to send SSE file-added event for ${itemPath}`);
           sendFileAdded(itemPath, {
             size: stats ? stats.size : 0,
             mtime: stats ? stats.mtime : new Date(),
           });
-          logger.info(`SSE file-added event sent for: ${itemPath} (checksum skipped)`);
+          logger.info(`SSE file-added event sent for ${itemPath}`);
         }
+      } else {
+        logger.info(
+          `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (using chokidar stats)`
+        );
 
-        return { created, itemPath, skipped: true };
+        if (!existingFile) {
+          logger.info(`About to send SSE file-added event for directory ${itemPath}`);
+          sendFileAdded(itemPath, { size: 0, mtime: stats ? stats.mtime : new Date() });
+          logger.info(`SSE file-added event sent for directory ${itemPath}`);
+        }
       }
 
-      logger.info(
-        `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (using chokidar stats)`
-      );
-
-      if (!existingFile) {
-        logger.info(`About to send SSE file-added event for directory: ${itemPath}`);
-        sendFileAdded(itemPath, { size: 0, mtime: stats ? stats.mtime : new Date() });
-        logger.info(`SSE file-added event sent for directory: ${itemPath}`);
-      }
-
-      return { created, itemPath, skipped: false };
+      return { created, itemPath };
     } catch (error) {
       logger.error(`Error updating database for ${dirPath}/${itemName}: ${error.message}`);
       // Fallback to regular method if stats-based method fails
@@ -631,6 +611,81 @@ class FileWatcherService {
       const itemName = basename(filePath);
       this.cacheItemInfo(dirPath, itemName);
     }, 1000); // Small delay to ensure file is fully written
+  }
+
+  async cleanupStaleEntries() {
+    logger.info('Starting cleanup of stale database entries');
+
+    try {
+      const File = getFileModel();
+
+      const allDbEntries = await withDatabaseRetry(() =>
+        File.findAll({
+          attributes: ['file_path'],
+          raw: true,
+        })
+      );
+
+      logger.info(`Found ${allDbEntries.length} database entries to verify`);
+
+      let removedCount = 0;
+      const batchSize = 100;
+
+      // Process in batches to avoid overwhelming the filesystem
+      const processBatch = batch => {
+        const checkPromises = batch.map(async entry => {
+          try {
+            await fs.access(entry.file_path);
+            return { filePath: entry.file_path, exists: true };
+          } catch {
+            return { filePath: entry.file_path, exists: false };
+          }
+        });
+
+        return Promise.allSettled(checkPromises);
+      };
+
+      const removeStaleFiles = filesToRemove =>
+        File.destroy({
+          where: {
+            file_path: {
+              [Op.in]: filesToRemove,
+            },
+          },
+        });
+
+      // Create all batches first
+      const batches = [];
+      for (let i = 0; i < allDbEntries.length; i += batchSize) {
+        batches.push(allDbEntries.slice(i, i + batchSize));
+      }
+
+      // Process all batches and collect results
+      const batchResults = await Promise.all(batches.map(batch => processBatch(batch)));
+
+      const allFilesToRemove = [];
+      batchResults.forEach((results, batchIndex) => {
+        const filesToRemove = results
+          .filter(result => result.status === 'fulfilled' && !result.value.exists)
+          .map(result => result.value.filePath);
+
+        if (filesToRemove.length > 0) {
+          allFilesToRemove.push(...filesToRemove);
+          logger.info(`Found ${filesToRemove.length} stale entries in batch ${batchIndex + 1}`);
+        }
+      });
+
+      if (allFilesToRemove.length > 0) {
+        await withDatabaseRetry(() => removeStaleFiles(allFilesToRemove));
+        removedCount = allFilesToRemove.length;
+        logger.info(`Removed ${removedCount} stale database entries`);
+      }
+
+      logger.info(`✅ Cleanup complete: removed ${removedCount} stale database entries`);
+    } catch (error) {
+      logger.error(`Failed to cleanup stale entries: ${error.message}`);
+      throw error;
+    }
   }
 
   async close() {
