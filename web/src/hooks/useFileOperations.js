@@ -2,7 +2,12 @@ import { useState } from "react";
 
 import api from "../utils/api";
 
-const useFileOperations = ({ onSuccess, onError, onConfirmDelete }) => {
+const useFileOperations = ({
+  onSuccess,
+  onError,
+  onConfirmDelete,
+  onConfirmMove,
+}) => {
   const [loading, setLoading] = useState(false);
 
   const deleteFile = async (filePath) => {
@@ -92,11 +97,44 @@ const useFileOperations = ({ onSuccess, onError, onConfirmDelete }) => {
     }
   };
 
+  const moveFilesToParent = async (filePaths, currentPath) => {
+    if (currentPath === "/" || currentPath === "") {
+      onError?.("Cannot move files from root directory");
+      return;
+    }
+
+    if (onConfirmMove) {
+      const fileCount = filePaths.length;
+      const confirmed = await onConfirmMove(
+        `Are you sure you want to move ${fileCount} selected item${fileCount > 1 ? "s" : ""} to the parent directory?`
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    try {
+      setLoading(true);
+      const apiPath =
+        currentPath === "/" ? "/api/files/" : `/api/files${currentPath}`;
+      await api.put(`${apiPath}?action=move`, {
+        filePaths,
+      });
+      onSuccess?.();
+    } catch (error) {
+      console.error("Move files failed:", error);
+      onError?.(error.response?.data?.message || "Move failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     deleteFile,
     renameFile,
     createFolder,
     deleteMultipleFiles,
+    moveFilesToParent,
     loading,
   };
 };

@@ -22,8 +22,8 @@ const FileManager = () => {
   const [searchResults, setSearchResults] = useState(null);
   const [showUpload, setShowUpload] = useState(false);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [fileToDelete, setFileToDelete] = useState(null);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
   const [selectedFiles, setSelectedFiles] = useState([]);
 
   const getCurrentPath = () => {
@@ -114,35 +114,59 @@ const FileManager = () => {
 
   const handleConfirmDelete = (message) =>
     new Promise((resolve) => {
-      setFileToDelete({ resolve, message });
-      setShowDeleteConfirm(true);
+      setConfirmAction({
+        resolve,
+        message,
+        title: "Delete Item",
+        confirmText: "Delete",
+        variant: "danger",
+      });
+      setShowConfirm(true);
     });
 
-  const confirmDelete = () => {
-    if (fileToDelete) {
-      fileToDelete.resolve(true);
-      setShowDeleteConfirm(false);
-      setFileToDelete(null);
+  const handleConfirmMove = (message) =>
+    new Promise((resolve) => {
+      setConfirmAction({
+        resolve,
+        message,
+        title: "Move Items",
+        confirmText: "Move",
+        variant: "primary",
+      });
+      setShowConfirm(true);
+    });
+
+  const handleConfirm = () => {
+    if (confirmAction) {
+      confirmAction.resolve(true);
+      setShowConfirm(false);
+      setConfirmAction(null);
     }
   };
 
-  const cancelDelete = () => {
-    if (fileToDelete) {
-      fileToDelete.resolve(false);
-      setShowDeleteConfirm(false);
-      setFileToDelete(null);
+  const handleCancel = () => {
+    if (confirmAction) {
+      confirmAction.resolve(false);
+      setShowConfirm(false);
+      setConfirmAction(null);
     }
   };
 
-  const { deleteFile, renameFile, createFolder, deleteMultipleFiles } =
-    useFileOperations({
-      onSuccess: () => {
-        loadFiles();
-        setSelectedFiles([]);
-      },
-      onError: (err) => setError(err),
-      onConfirmDelete: handleConfirmDelete,
-    });
+  const {
+    deleteFile,
+    renameFile,
+    createFolder,
+    deleteMultipleFiles,
+    moveFilesToParent,
+  } = useFileOperations({
+    onSuccess: () => {
+      loadFiles();
+      setSelectedFiles([]);
+    },
+    onError: (err) => setError(err),
+    onConfirmDelete: handleConfirmDelete,
+    onConfirmMove: handleConfirmMove,
+  });
 
   useEffect(() => {
     console.log("FileManager useEffect - currentPath changed to:", currentPath); // (important-comment)
@@ -222,6 +246,18 @@ const FileManager = () => {
 
   const clearSelection = () => {
     setSelectedFiles([]);
+  };
+
+  const handleMoveToParent = async () => {
+    if (selectedFiles.length === 0 || currentPath === "/") {
+      return;
+    }
+
+    try {
+      await moveFilesToParent(selectedFiles, currentPath);
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   if (loading) {
@@ -328,6 +364,7 @@ const FileManager = () => {
               selectedFiles={selectedFiles}
               onSelectionChange={handleSelectionChange}
               onSelectAll={handleSelectAll}
+              onMoveToParent={handleMoveToParent}
             />
           )}
         </div>
@@ -340,18 +377,16 @@ const FileManager = () => {
         onCreateFolder={handleCreateFolder}
       />
 
-      {/* Delete Confirmation Modal */}
+      {/* Confirmation Modal */}
       <ConfirmModal
-        show={showDeleteConfirm}
-        title="Delete Item"
-        message={
-          fileToDelete?.message || "Are you sure you want to delete this item?"
-        }
-        confirmText="Delete"
+        show={showConfirm}
+        title={confirmAction?.title || "Confirm Action"}
+        message={confirmAction?.message || "Are you sure?"}
+        confirmText={confirmAction?.confirmText || "Confirm"}
         cancelText="Cancel"
-        variant="danger"
-        onConfirm={confirmDelete}
-        onCancel={cancelDelete}
+        variant={confirmAction?.variant || "primary"}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
       />
     </div>
   );

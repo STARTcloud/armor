@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import { promises as fs } from 'fs';
-import { join, basename } from 'path';
+import { join, basename, extname } from 'path';
 import { Op } from 'sequelize';
 import auth from 'basic-auth';
 import { SERVED_DIR, getSecurePath } from '../config/paths.js';
@@ -245,124 +245,240 @@ router.get('*splat', authenticateDownloads, async (req, res) => {
 });
 
 router.put('*splat', authenticateUploads, async (req, res, next) => {
-  if (req.query.action !== 'rename') {
-    return next();
+  if (req.query.action !== 'rename' && req.query.action !== 'move') {
+    next();
+    return;
   }
 
   try {
-    const { newName } = req.body;
+    if (req.query.action === 'rename') {
+      const { newName } = req.body;
 
-    if (!newName || newName.trim() === '') {
-      return res.status(400).json({
-        success: false,
-        message: 'New name is required',
-      });
-    }
+      if (!newName || newName.trim() === '') {
+        return res.status(400).json({
+          success: false,
+          message: 'New name is required',
+        });
+      }
 
-    const sanitizedNewName = newName.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const requestPath = Array.isArray(req.params.splat)
-      ? req.params.splat.join('/')
-      : req.params.splat || '';
-    const oldFullPath = getSecurePath(requestPath);
-    const parentDir = oldFullPath.substring(
-      0,
-      oldFullPath.lastIndexOf('/') || oldFullPath.lastIndexOf('\\')
-    );
-    const newFullPath = join(parentDir, sanitizedNewName);
-
-    // Check if old file/folder exists
-    try {
-      await fs.access(oldFullPath);
-    } catch {
-      return res.status(404).json({
-        success: false,
-        message: 'File or folder not found',
-      });
-    }
-
-    // Check if new name already exists
-    try {
-      await fs.access(newFullPath);
-      return res.status(400).json({
-        success: false,
-        message: 'A file or folder with that name already exists',
-      });
-    } catch {
-      // Good - new name doesn't exist
-    }
-
-    const oldName = basename(oldFullPath);
-
-    // Perform the rename
-    await fs.rename(oldFullPath, newFullPath);
-
-    // Update database records
-    const File = getFileModel();
-
-    const stats = await fs.stat(newFullPath);
-
-    if (stats.isDirectory()) {
-      // For directories, update all files within
-      await withDatabaseRetry(() =>
-        File.update(
-          {
-            file_path: newFullPath,
-          },
-          {
-            where: { file_path: oldFullPath },
-          }
-        )
+      const sanitizedNewName = newName.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const requestPath = Array.isArray(req.params.splat)
+        ? req.params.splat.join('/')
+        : req.params.splat || '';
+      const oldFullPath = getSecurePath(requestPath);
+      const parentDir = oldFullPath.substring(
+        0,
+        oldFullPath.lastIndexOf('/') || oldFullPath.lastIndexOf('\\')
       );
+      const newFullPath = join(parentDir, sanitizedNewName);
 
-      // Update all files within the directory
-      const filesInDir = await withDatabaseRetry(() =>
-        File.findAll({
-          where: {
-            file_path: {
-              [Op.like]: `${oldFullPath}%`,
+      // Check if old file/folder exists
+      try {
+        await fs.access(oldFullPath);
+      } catch {
+        return res.status(404).json({
+          success: false,
+          message: 'File or folder not found',
+        });
+      }
+
+      // Check if new name already exists
+      try {
+        await fs.access(newFullPath);
+        return res.status(400).json({
+          success: false,
+          message: 'A file or folder with that name already exists',
+        });
+      } catch {
+        // Good - new name doesn't exist
+      }
+
+      const oldName = basename(oldFullPath);
+
+      // Perform the rename
+      await fs.rename(oldFullPath, newFullPath);
+
+      // Update database records
+      const File = getFileModel();
+
+      const stats = await fs.stat(newFullPath);
+
+      if (stats.isDirectory()) {
+        // For directories, update all files within
+        await withDatabaseRetry(() =>
+          File.update(
+            {
+              file_path: newFullPath,
             },
-          },
-        })
-      );
+            {
+              where: { file_path: oldFullPath },
+            }
+          )
+        );
 
-      const updatePromises = filesInDir.map(file => {
-        const newFilePath = file.file_path.replace(oldFullPath, newFullPath);
-        return withDatabaseRetry(() => file.update({ file_path: newFilePath }));
+        // Update all files within the directory
+        const filesInDir = await withDatabaseRetry(() =>
+          File.findAll({
+            where: {
+              file_path: {
+                [Op.like]: `${oldFullPath}%`,
+              },
+            },
+          })
+        );
+
+        const updatePromises = filesInDir.map(file => {
+          const newFilePath = file.file_path.replace(oldFullPath, newFullPath);
+          return withDatabaseRetry(() => file.update({ file_path: newFilePath }));
+        });
+
+        await Promise.all(updatePromises);
+      } else {
+        // For files, just update the single record
+        await withDatabaseRetry(() =>
+          File.update(
+            {
+              file_path: newFullPath,
+            },
+            {
+              where: { file_path: oldFullPath },
+            }
+          )
+        );
+      }
+
+      // Send SSE event for real-time UI update
+      // sendFileRenamed imported at top of file
+      sendFileRenamed(oldFullPath, newFullPath, stats.isDirectory());
+
+      logAccess(req, 'RENAME_SUCCESS', `${oldName} → ${sanitizedNewName}`);
+
+      return res.json({
+        success: true,
+        oldName,
+        newName: sanitizedNewName,
+        message: `${stats.isDirectory() ? 'Folder' : 'File'} renamed successfully`,
+      });
+    } else if (req.query.action === 'move') {
+      const { filePaths } = req.body;
+
+      if (!filePaths || !Array.isArray(filePaths) || filePaths.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'File paths array is required',
+        });
+      }
+
+      const currentPath = Array.isArray(req.params.splat)
+        ? req.params.splat.join('/')
+        : req.params.splat || '';
+
+      if (currentPath === '' || currentPath === '/') {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot move files from root directory',
+        });
+      }
+
+      const parentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+      const targetDir = getSecurePath(parentPath);
+
+      const movePromises = filePaths.map(async filePath => {
+        const oldFullPath = getSecurePath(filePath);
+        const fileName = basename(oldFullPath);
+        const newFullPath = join(targetDir, fileName);
+
+        logger.debug('Move operation paths', {
+          filePath,
+          oldFullPath,
+          fileName,
+          targetDir,
+          newFullPath,
+        });
+
+        try {
+          await fs.access(oldFullPath);
+        } catch {
+          throw new Error(`File not found: ${filePath}`);
+        }
+
+        try {
+          await fs.access(newFullPath);
+          const ext = extname(fileName);
+          const baseName = basename(fileName, ext);
+          let counter = 1;
+          let uniqueFileName = fileName;
+          let uniqueFullPath = newFullPath;
+
+          while (true) {
+            try {
+              await fs.access(uniqueFullPath);
+              uniqueFileName = `${baseName}_${counter}${ext}`;
+              uniqueFullPath = join(targetDir, uniqueFileName);
+              counter++;
+            } catch {
+              break;
+            }
+          }
+
+          newFullPath = uniqueFullPath;
+        } catch {
+          // File doesn't exist in target directory, no conflict
+        }
+
+        await fs.rename(oldFullPath, newFullPath);
+
+        const File = getFileModel();
+        const stats = await fs.stat(newFullPath);
+
+        if (stats.isDirectory()) {
+          await withDatabaseRetry(() =>
+            File.update({ file_path: newFullPath }, { where: { file_path: oldFullPath } })
+          );
+
+          const filesInDir = await withDatabaseRetry(() =>
+            File.findAll({
+              where: {
+                file_path: {
+                  [Op.like]: `${oldFullPath}%`,
+                },
+              },
+            })
+          );
+
+          const updatePromises = filesInDir.map(file => {
+            const newFilePath = file.file_path.replace(oldFullPath, newFullPath);
+            return withDatabaseRetry(() => file.update({ file_path: newFilePath }));
+          });
+
+          await Promise.all(updatePromises);
+        } else {
+          await withDatabaseRetry(() =>
+            File.update({ file_path: newFullPath }, { where: { file_path: oldFullPath } })
+          );
+        }
+
+        sendFileRenamed(oldFullPath, newFullPath, stats.isDirectory());
+        return { oldPath: filePath, newPath: newFullPath.replace(getSecurePath(''), '') };
       });
 
-      await Promise.all(updatePromises);
-    } else {
-      // For files, just update the single record
-      await withDatabaseRetry(() =>
-        File.update(
-          {
-            file_path: newFullPath,
-          },
-          {
-            where: { file_path: oldFullPath },
-          }
-        )
-      );
+      const movedFiles = await Promise.all(movePromises);
+
+      logAccess(req, 'MOVE_SUCCESS', `Moved ${filePaths.length} items to parent directory`);
+
+      return res.json({
+        success: true,
+        movedFiles,
+        message: `${filePaths.length} item${filePaths.length > 1 ? 's' : ''} moved successfully`,
+      });
     }
-
-    // Send SSE event for real-time UI update
-    // sendFileRenamed imported at top of file
-    sendFileRenamed(oldFullPath, newFullPath, stats.isDirectory());
-
-    logAccess(req, 'RENAME_SUCCESS', `${oldName} → ${sanitizedNewName}`);
-
-    return res.json({
-      success: true,
-      oldName,
-      newName: sanitizedNewName,
-      message: `${stats.isDirectory() ? 'Folder' : 'File'} renamed successfully`,
-    });
   } catch (error) {
-    logger.error('Rename error', { error: error.message });
-    logAccess(req, 'RENAME_ERROR', error.message);
+    const action = req.query.action === 'move' ? 'Move' : 'Rename';
+    logger.error(`${action} error`, { error: error.message });
+    logAccess(req, `${action.toUpperCase()}_ERROR`, error.message);
     return res.status(500).json({
       success: false,
-      message: 'Failed to rename item',
+      message: `Failed to ${action.toLowerCase()} item${req.query.action === 'move' ? 's' : ''}`,
     });
   }
 });

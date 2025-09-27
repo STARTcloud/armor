@@ -11,9 +11,11 @@ const FileTable = ({
   selectedFiles,
   onSelectionChange,
   onSelectAll,
+  onMoveToParent,
 }) => {
   const [sortField, setSortField] = useState("name");
   const [sortDirection, setSortDirection] = useState("asc");
+  const [dragOver, setDragOver] = useState(false);
 
   const handleSort = (field) => {
     if (sortField === field) {
@@ -86,6 +88,26 @@ const FileTable = ({
     onSelectAll(e.target.checked);
   };
 
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    if (selectedFiles.length > 0 && currentPath !== "/") {
+      setDragOver(true);
+    }
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (selectedFiles.length > 0 && currentPath !== "/") {
+      onMoveToParent();
+    }
+  };
+
   return (
     <div className="card bg-dark border-secondary">
       <div className="card-header bg-dark border-secondary">
@@ -141,6 +163,31 @@ const FileTable = ({
             </tr>
           </thead>
           <tbody>
+            {currentPath !== "/" && selectedFiles.length > 0 && (
+              <tr
+                className={`parent-directory-row ${dragOver ? "drag-over" : ""}`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                style={{
+                  backgroundColor: dragOver
+                    ? "rgba(129, 25, 55, 0.2)"
+                    : "transparent",
+                  cursor: selectedFiles.length > 0 ? "pointer" : "default",
+                }}
+              >
+                <td style={{ width: "5%" }}></td>
+                <td>
+                  <i className="bi bi-folder-up me-2 text-warning" />
+                  <span className="text-muted">Parent Directory</span>
+                </td>
+                <td className="text-muted">Folder</td>
+                <td className="text-muted">-</td>
+                <td className="text-muted">-</td>
+                <td className="text-muted">-</td>
+                <td></td>
+              </tr>
+            )}
             {isEmpty ? (
               <tr>
                 <td colSpan="7" className="text-center py-5">
@@ -181,6 +228,7 @@ FileTable.propTypes = {
   selectedFiles: PropTypes.arrayOf(PropTypes.string).isRequired,
   onSelectionChange: PropTypes.func.isRequired,
   onSelectAll: PropTypes.func.isRequired,
+  onMoveToParent: PropTypes.func.isRequired,
 };
 
 export default FileTable;

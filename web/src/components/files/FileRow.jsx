@@ -217,8 +217,19 @@ const FileRow = ({
     return file.path;
   };
 
+  const handleDragStart = (e) => {
+    if (isSelected) {
+      e.dataTransfer.setData("text/plain", file.path);
+      e.dataTransfer.effectAllowed = "move";
+    }
+  };
+
   return (
-    <tr className={isSelected ? "table-active" : ""}>
+    <tr
+      className={isSelected ? "table-active" : ""}
+      draggable={isSelected}
+      onDragStart={handleDragStart}
+    >
       <td style={{ width: "5%", padding: "8px" }}>
         <input
           type="checkbox"
