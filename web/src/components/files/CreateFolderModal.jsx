@@ -53,9 +53,10 @@ const CreateFolderModal = ({ show, onHide, onCreateFolder }) => {
     <div
       className="modal show d-block"
       tabIndex="-1"
+      role="dialog"
       style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
     >
-      <div className="modal-dialog modal-dialog-centered">
+      <div className="modal-dialog modal-dialog-centered" role="document">
         <div className="modal-content bg-dark border-secondary">
           <div className="modal-header border-secondary">
             <h5 className="modal-title text-light">
@@ -120,7 +121,7 @@ const CreateFolderModal = ({ show, onHide, onCreateFolder }) => {
                 ) : (
                   <>
                     <i className="bi bi-folder-plus me-2" />
-                    Create Folder
+                    Create
                   </>
                 )}
               </button>

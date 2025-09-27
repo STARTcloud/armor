@@ -26,10 +26,7 @@ const FileManager = () => {
 
   const getCurrentPath = () => {
     const { pathname } = location;
-    if (pathname.startsWith("/browse")) {
-      return pathname.substring(7) || "/";
-    }
-    return "/";
+    return pathname === "/" ? "/" : pathname;
   };
 
   const currentPath = getCurrentPath();
@@ -68,6 +65,11 @@ const FileManager = () => {
       }
     },
     onFileRenamed: (data) => {
+      if (data.directory === currentPath) {
+        loadFiles();
+      }
+    },
+    onFolderCreated: (data) => {
       if (data.directory === currentPath) {
         loadFiles();
       }
@@ -192,26 +194,26 @@ const FileManager = () => {
       )}
 
       {/* Action Bar */}
-      <div className="row mb-4">
-        <div className="col-md-6">
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <div className="d-flex align-items-center gap-2">
           <button
-            className="btn btn-outline-primary me-2"
+            type="button"
+            className="btn btn-success"
             onClick={() => setShowCreateFolder(true)}
-            title="Create New Folder"
+            title="Create Folder"
           >
             <i className="bi bi-folder-plus" />
           </button>
           <button
-            className="btn btn-outline-success"
+            type="button"
+            className={`btn ${showUpload ? "btn-primary" : "btn-outline-primary"}`}
             onClick={() => setShowUpload(!showUpload)}
             title={showUpload ? "Hide Upload Section" : "Show Upload Section"}
           >
-            <i
-              className={`bi ${showUpload ? "bi-cloud-upload-fill" : "bi-cloud-upload"}`}
-            />
+            <i className="bi bi-cloud-upload" />
           </button>
         </div>
-        <div className="col-md-6">
+        <div className="d-flex align-items-center gap-2">
           <SearchBar
             onSearch={handleSearch}
             onClear={clearSearch}

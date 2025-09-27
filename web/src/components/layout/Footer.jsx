@@ -2,7 +2,7 @@ const Footer = () => (
   <footer className="py-4 border-top border-secondary">
     <div className="container text-center">
       <div className="d-flex align-items-center justify-content-center">
-        <span className="text-muted me-2">Powered by</span>
+        <span className="text-light me-2">Powered by</span>
         <a
           href="https://startcloud.com"
           target="_blank"

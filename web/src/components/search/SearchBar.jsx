@@ -21,38 +21,36 @@ const SearchBar = ({ onSearch, onClear, value }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="d-flex">
-      <div className="input-group">
-        <span className="input-group-text bg-dark border-secondary text-light">
-          <i className="bi bi-search" />
-        </span>
+    <div className="d-flex align-items-center gap-2">
+      <div className="input-group" style={{ width: "300px" }}>
         <input
           type="text"
           className="form-control bg-dark text-light border-secondary"
-          placeholder="Search files and checksums..."
+          placeholder="Search files or Checksums..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
         />
-        {query && (
-          <button
-            type="button"
-            className="btn btn-outline-secondary"
-            onClick={handleClear}
-            title="Clear search"
-          >
-            <i className="bi bi-x" />
-          </button>
-        )}
         <button
-          type="submit"
-          className="btn btn-outline-primary"
-          disabled={!query.trim()}
+          type="button"
+          className="btn btn-outline-light"
+          onClick={handleSubmit}
+          title="Search"
         >
-          Search
+          <i className="bi bi-search" />
         </button>
       </div>
-    </form>
+      {query && (
+        <button
+          type="button"
+          className="btn btn-outline-secondary"
+          onClick={handleClear}
+          title="Clear search"
+        >
+          <i className="bi bi-x" />
+        </button>
+      )}
+    </div>
   );
 };
 

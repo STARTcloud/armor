@@ -10,14 +10,8 @@ const App = () => (
     <Router>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/" element={<ProtectedFileRoute path="/" />} />
-        <Route path="/browse" element={<ProtectedFileRoute path="/browse" />} />
-        <Route
-          path="/browse/*"
-          element={<ProtectedFileRoute path="/browse/*" />}
-        />
         <Route path="/api-keys" element={<ProtectedApiRoute />} />
-        <Route path="*" element={<ProtectedFileRoute path="*" />} />
+        <Route path="*" element={<ProtectedFileRoute />} />
       </Routes>
     </Router>
   </AuthProvider>

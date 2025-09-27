@@ -27,6 +27,18 @@ code {
   color: #ffffff !important;
 }
 
+/* Main content container with proper margins */
+.main-content {
+  flex: 1;
+}
+
+/* Layout container styling - moved from inline styles */
+.layout-container {
+  max-width: 80%; /* Increased from 70% to make content about 10% wider */
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
 /* Custom scrollbar for dark theme */
 ::-webkit-scrollbar {
   width: 8px;
@@ -126,13 +138,21 @@ code {
 .table-dark {
   --bs-table-bg: #2d3748;
   --bs-table-border-color: #4a5568;
-  --bs-table-color: #e2e8f0;
+  --bs-table-color: #f8f9fa;
 }
 
 .table-dark td,
 .table-dark th {
   border-color: #4a5568;
-  color: #e2e8f0;
+  color: #f8f9fa;
+  background-color: #2d3748;
+}
+
+/* Ensure table headers have proper contrast */
+.table-dark thead th {
+  background-color: #1a202c !important;
+  color: #ffffff !important;
+  border-bottom: 2px solid #4a5568;
 }
 
 .table-dark a {
@@ -143,12 +163,57 @@ code {
   color: #63b3ed;
 }
 
+.table-dark .text-muted {
+  color: #adb5bd !important;
+}
+
 .checksum {
   cursor: pointer;
 }
 
 .checksum:hover {
   text-decoration: underline;
+}
+
+/* Remove rounded corners from card containers used for tables */
+.card {
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+/* Ensure folder icons are outlined, not filled */
+.bi-folder2::before {
+  content: "\f1c1" !important; /* Bootstrap folder2 icon (outlined) */
+}
+
+/* Table column width adjustments */
+.table th:nth-child(1), /* Name column */
+.table td:nth-child(1) {
+  width: 29.25%; /* Reduced by 10% from 32.5% */
+}
+
+.table th:nth-child(5), /* Checksum column */
+.table td:nth-child(5) {
+  width: 22.5%; /* Increased by 7.5% from 15% */
+}
+
+/* Improved striped row styling for better contrast */
+.table-striped > tbody > tr:nth-of-type(odd) > td {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.table-striped > tbody > tr:nth-of-type(even) > td {
+  background-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Input placeholder styling for dark theme */
+.form-control::placeholder {
+  color: #adb5bd !important;
+  opacity: 1;
+}
+
+.form-control:focus::placeholder {
+  color: #6c757d !important;
 }
 
 /* Breadcrumb styles */

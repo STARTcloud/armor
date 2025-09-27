@@ -29,7 +29,7 @@ const ConfirmModal = ({
       role="dialog"
       style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
     >
-      <div className="modal-dialog modal-dialog-centered">
+      <div className="modal-dialog modal-dialog-centered" role="document">
         <div className="modal-content bg-dark border-secondary">
           <div className="modal-header border-secondary">
             <h5 className="modal-title text-light">
