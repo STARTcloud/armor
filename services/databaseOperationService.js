@@ -7,7 +7,7 @@ class DatabaseOperationService {
     this.batchQueue = [];
     this.batchTimer = null;
     this.batchSize = 50;
-    this.batchDelayMs = 1000;
+    this.batchDelayMs = 0;
     this.isProcessing = false;
   }
 
