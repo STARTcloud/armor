@@ -68,12 +68,25 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const logoutLocal = async () => {
+    try {
+      await api.post("/auth/logout/local");
+    } catch (error) {
+      console.error("Local logout error:", error);
+    } finally {
+      setUser(null);
+      setIsAuthenticated(false);
+      window.location.href = "/login";
+    }
+  };
+
   const value = {
     user,
     isAuthenticated,
     loading,
     login,
     logout,
+    logoutLocal,
     checkAuthStatus,
   };
 

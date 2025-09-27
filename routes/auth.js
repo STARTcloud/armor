@@ -20,9 +20,8 @@ import {
 const router = express.Router();
 
 router.get('/login', (req, res) => {
-  const queryString = new URLSearchParams(req.query).toString();
-  const redirectUrl = queryString ? `/login?${queryString}` : '/login';
-  return res.redirect(redirectUrl);
+  console.log('Login page requested from:', req.ip);
+  res.sendFile('index.html', { root: './web/dist' });
 });
 
 /**

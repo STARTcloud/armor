@@ -5,7 +5,7 @@ import { useAuth } from "../auth/AuthContext";
 import Breadcrumbs from "./Breadcrumbs";
 
 const Header = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, logoutLocal } = useAuth();
   const location = useLocation();
 
   const getUserDisplayName = (userInfo) => {
@@ -93,6 +93,15 @@ const Header = () => {
                   <button className="dropdown-item text-light" onClick={logout}>
                     <i className="bi bi-box-arrow-right me-2" />
                     Logout
+                  </button>
+                </li>
+                <li>
+                  <button
+                    className="dropdown-item text-light"
+                    onClick={logoutLocal}
+                  >
+                    <i className="bi bi-box-arrow-left me-2" />
+                    Logout (Local)
                   </button>
                 </li>
               </ul>
