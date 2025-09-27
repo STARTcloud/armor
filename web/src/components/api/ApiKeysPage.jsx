@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import api from "../../utils/api";
 import ConfirmModal from "../common/ConfirmModal";
+import SearchBar from "../search/SearchBar";
+import "./api-keys.css";
 
 const ApiKeysPage = () => {
   const [apiKeys, setApiKeys] = useState([]);
@@ -12,6 +14,11 @@ const ApiKeysPage = () => {
   const [newKeyData, setNewKeyData] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [keyToDelete, setKeyToDelete] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredKeys, setFilteredKeys] = useState([]);
+  const [userPermissions, setUserPermissions] = useState([]);
+  const [sortField, setSortField] = useState("created_at");
+  const [sortDirection, setSortDirection] = useState("desc");
   const [createForm, setCreateForm] = useState({
     name: "",
     permissions: {
@@ -20,19 +27,36 @@ const ApiKeysPage = () => {
       delete: false,
     },
     expiresAt: "",
+    expirationDays: 30,
   });
 
   const loadApiKeys = async () => {
     try {
       setLoading(true);
       setError("");
-      const response = await api.get("/api/keys");
-      setApiKeys(response.data.keys || []);
+      const response = await api.get("/api/api-keys");
+      if (response.data.success) {
+        setApiKeys(response.data.api_keys || []);
+      } else {
+        setError(response.data.message || "Failed to load API keys");
+      }
     } catch (loadError) {
       console.error("Failed to load API keys:", loadError);
       setError("Failed to load API keys");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadUserPermissions = async () => {
+    try {
+      const response = await api.get("/api/user-api-keys");
+      if (response.data.success) {
+        setUserPermissions(response.data.user_permissions || []);
+      }
+    } catch (err) {
+      console.error("Failed to load user permissions:", err);
+      setUserPermissions(["downloads"]);
     }
   };
 
@@ -46,13 +70,21 @@ const ApiKeysPage = () => {
 
     try {
       setError("");
-      const response = await api.post("/api/keys", {
+      const expirationDate = createForm.expirationDays
+        ? new Date(
+            Date.now() + createForm.expirationDays * 24 * 60 * 60 * 1000
+          ).toISOString()
+        : createForm.expiresAt || null;
+
+      const response = await api.post("/api/api-keys", {
         name: createForm.name.trim(),
-        permissions: createForm.permissions,
-        expiresAt: createForm.expiresAt || null,
+        permissions: Object.keys(createForm.permissions).filter(
+          (key) => createForm.permissions[key]
+        ),
+        expires_at: expirationDate,
       });
 
-      setNewKeyData(response.data);
+      setNewKeyData(response.data.api_key);
       setShowCreateModal(false);
       setShowKeyModal(true);
       setCreateForm({
@@ -63,6 +95,7 @@ const ApiKeysPage = () => {
           delete: false,
         },
         expiresAt: "",
+        expirationDays: 30,
       });
 
       loadApiKeys();
@@ -85,7 +118,7 @@ const ApiKeysPage = () => {
     }
 
     try {
-      await api.delete(`/api/keys/${keyToDelete}`);
+      await api.delete(`/api/api-keys/${keyToDelete}`);
       loadApiKeys();
       setShowDeleteConfirm(false);
       setKeyToDelete(null);
@@ -126,17 +159,104 @@ const ApiKeysPage = () => {
 
   const getPermissionBadges = (permissions) => {
     const badges = [];
+    if (Array.isArray(permissions)) {
+      return permissions;
+    }
     if (permissions.downloads) {
-      badges.push("Downloads");
+      badges.push("downloads");
     }
     if (permissions.uploads) {
-      badges.push("Uploads");
+      badges.push("uploads");
     }
     if (permissions.delete) {
-      badges.push("Delete");
+      badges.push("delete");
     }
     return badges;
   };
+
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      setFilteredKeys([]);
+      return;
+    }
+
+    const filtered = apiKeys.filter(
+      (key) =>
+        key.name.toLowerCase().includes(query.toLowerCase()) ||
+        key.key_preview.toLowerCase().includes(query.toLowerCase()) ||
+        getPermissionBadges(key.permissions).some((perm) =>
+          perm.toLowerCase().includes(query.toLowerCase())
+        )
+    );
+    setFilteredKeys(filtered);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setFilteredKeys([]);
+  };
+
+  const handleSort = (field) => {
+    const direction =
+      sortField === field && sortDirection === "asc" ? "desc" : "asc";
+    setSortField(field);
+    setSortDirection(direction);
+  };
+
+  const sortedKeys = (searchQuery ? filteredKeys : apiKeys).sort((a, b) => {
+    let aVal = a[sortField];
+    let bVal = b[sortField];
+
+    if (sortField === "name") {
+      aVal = aVal?.toLowerCase() || "";
+      bVal = bVal?.toLowerCase() || "";
+    } else if (
+      sortField === "created_at" ||
+      sortField === "expires_at" ||
+      sortField === "last_used"
+    ) {
+      aVal = aVal ? new Date(aVal) : new Date(0);
+      bVal = bVal ? new Date(bVal) : new Date(0);
+    }
+
+    if (sortDirection === "asc") {
+      return aVal > bVal ? 1 : -1;
+    }
+    return aVal < bVal ? 1 : -1;
+  });
+
+  const retrieveFullKey = async (keyId) => {
+    try {
+      const response = await api.get(`/api/api-keys/${keyId}/full`);
+      if (response.data.success) {
+        await navigator.clipboard.writeText(response.data.full_key);
+
+        const toast = document.createElement("div");
+        toast.className =
+          "position-fixed top-0 start-50 translate-middle-x mt-3 alert alert-success";
+        toast.style.zIndex = "9999";
+        toast.innerHTML =
+          '<i class="bi bi-check-circle me-2"></i>API key copied to clipboard!';
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+          if (document.body.contains(toast)) {
+            document.body.removeChild(toast);
+          }
+        }, 3000);
+      } else {
+        setError(`Failed to retrieve full key: ${response.data.message}`);
+      }
+    } catch (retrieveError) {
+      setError(`Failed to retrieve full key: ${retrieveError.message}`);
+    }
+  };
+
+  useEffect(() => {
+    loadApiKeys();
+    loadUserPermissions();
+  }, []);
 
   if (loading) {
     return (
@@ -152,25 +272,20 @@ const ApiKeysPage = () => {
 
   return (
     <div className="container-fluid py-4">
-      <div className="row mb-4">
-        <div className="col">
-          <h2 className="text-light mb-3">
-            <i className="bi bi-key me-2" />
-            API Keys Management
-          </h2>
-          <p className="text-muted">
-            Create and manage API keys for programmatic access to your files.
-          </p>
-        </div>
-        <div className="col-auto">
-          <button
-            className="btn btn-primary"
-            onClick={() => setShowCreateModal(true)}
-          >
-            <i className="bi bi-plus-circle me-2" />
-            Create New Key
-          </button>
-        </div>
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <button
+          type="button"
+          className="btn btn-success"
+          onClick={() => setShowCreateModal(true)}
+          title="Generate New API Key"
+        >
+          <i className="bi bi-key" />
+        </button>
+        <SearchBar
+          onSearch={handleSearch}
+          onClear={handleClearSearch}
+          value={searchQuery}
+        />
       </div>
 
       {error && (
@@ -188,114 +303,172 @@ const ApiKeysPage = () => {
         </div>
       )}
 
-      {/* API Keys List */}
-      <div className="card bg-dark border-secondary">
-        <div className="card-header bg-dark border-secondary">
-          <h5 className="mb-0 text-light">Your API Keys ({apiKeys.length})</h5>
-        </div>
-        <div className="card-body">
-          {apiKeys.length === 0 ? (
-            <div className="text-center py-5">
-              <i className="bi bi-key display-4 text-muted mb-3" />
-              <h5 className="text-light">No API Keys</h5>
-              <p className="text-muted">
-                Create your first API key to get started with programmatic
-                access.
-              </p>
-              <button
-                className="btn btn-primary"
-                onClick={() => setShowCreateModal(true)}
-              >
-                <i className="bi bi-plus-circle me-2" />
-                Create API Key
-              </button>
-            </div>
-          ) : (
-            <div className="table-responsive">
-              <table className="table table-dark table-hover mb-0">
-                <thead>
-                  <tr>
-                    <th scope="col">Name</th>
-                    <th scope="col">Permissions</th>
-                    <th scope="col">Created</th>
-                    <th scope="col">Expires</th>
-                    <th scope="col">Last Used</th>
-                    <th scope="col">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {apiKeys.map((key) => (
-                    <tr
-                      key={key.id}
-                      className={
-                        isExpired(key.expiresAt) ? "table-warning" : ""
-                      }
-                    >
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <i className="bi bi-key me-2 text-primary" />
-                          <div>
-                            <div className="text-light fw-medium">
-                              {key.name}
-                            </div>
-                            <small className="text-muted">
-                              {key.keyPrefix}...
-                              {isExpired(key.expiresAt) && (
-                                <span className="badge bg-warning text-dark ms-2">
-                                  Expired
-                                </span>
-                              )}
-                            </small>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        {getPermissionBadges(key.permissions).map(
-                          (permission) => (
-                            <span
-                              key={permission}
-                              className="badge bg-secondary me-1"
-                            >
-                              {permission}
-                            </span>
-                          )
-                        )}
-                      </td>
-                      <td className="text-muted">
-                        {formatDate(key.createdAt)}
-                      </td>
-                      <td className="text-muted">
-                        {key.expiresAt ? (
+      <div id="apiKeysTable" className="api-keys-table">
+        {sortedKeys.length === 0 && !loading ? (
+          <div className="text-center py-4">
+            <i className="bi bi-key display-4 text-muted" />
+            <h5 className="mt-3 text-muted">No API Keys</h5>
+            <p className="text-muted">
+              Create your first API key to get started
+            </p>
+          </div>
+        ) : (
+          <table className="table table-dark table-striped">
+            <thead>
+              <tr>
+                <th
+                  style={{ cursor: "pointer" }}
+                  onClick={() => handleSort("name")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleSort("name");
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-label="Sort by name"
+                >
+                  Name{" "}
+                  {sortField === "name" && (
+                    <i
+                      className={`bi bi-arrow-${sortDirection === "asc" ? "up" : "down"}`}
+                    />
+                  )}
+                </th>
+                <th>Key Preview</th>
+                <th>Permissions</th>
+                <th
+                  style={{ cursor: "pointer" }}
+                  onClick={() => handleSort("expires_at")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleSort("expires_at");
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-label="Sort by expiration date"
+                >
+                  Expires{" "}
+                  {sortField === "expires_at" && (
+                    <i
+                      className={`bi bi-arrow-${sortDirection === "asc" ? "up" : "down"}`}
+                    />
+                  )}
+                </th>
+                <th
+                  style={{ cursor: "pointer" }}
+                  onClick={() => handleSort("last_used")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleSort("last_used");
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-label="Sort by last used date"
+                >
+                  Last Used{" "}
+                  {sortField === "last_used" && (
+                    <i
+                      className={`bi bi-arrow-${sortDirection === "asc" ? "up" : "down"}`}
+                    />
+                  )}
+                </th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedKeys.map((key) => {
+                const expired = isExpired(key.expires_at);
+                const expiredClass = expired ? "expired" : "";
+
+                return (
+                  <tr
+                    key={key.id}
+                    className={expiredClass}
+                    style={expired ? { opacity: 0.6 } : {}}
+                  >
+                    <td>
+                      {key.name}
+                      {expired && (
+                        <span className="badge bg-danger ms-2">Expired</span>
+                      )}
+                    </td>
+                    <td>
+                      <code
+                        className="key-preview"
+                        style={
+                          key.is_retrievable && !expired
+                            ? {
+                                cursor: "pointer",
+                                textDecoration: "underline",
+                                fontFamily: "monospace",
+                              }
+                            : { fontFamily: "monospace" }
+                        }
+                        onClick={
+                          key.is_retrievable && !expired
+                            ? () => retrieveFullKey(key.id)
+                            : undefined
+                        }
+                        onKeyDown={
+                          key.is_retrievable && !expired
+                            ? (e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  retrieveFullKey(key.id);
+                                }
+                              }
+                            : undefined
+                        }
+                        tabIndex={key.is_retrievable && !expired ? 0 : -1}
+                        role={
+                          key.is_retrievable && !expired ? "button" : undefined
+                        }
+                        title={
+                          key.is_retrievable && !expired
+                            ? "Click to view/copy full key"
+                            : ""
+                        }
+                      >
+                        {key.key_preview || key.keyPrefix}...
+                      </code>
+                    </td>
+                    <td>
+                      {getPermissionBadges(key.permissions).map(
+                        (permission) => (
                           <span
-                            className={
-                              isExpired(key.expiresAt) ? "text-warning" : ""
-                            }
+                            key={permission}
+                            className="badge bg-secondary me-1"
                           >
-                            {formatDate(key.expiresAt)}
+                            {permission}
                           </span>
-                        ) : (
-                          "Never"
-                        )}
-                      </td>
-                      <td className="text-muted">
-                        {formatDate(key.lastUsedAt)}
-                      </td>
-                      <td>
-                        <button
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => handleDeleteKey(key.id)}
-                          title="Delete API key"
-                        >
-                          <i className="bi bi-trash" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                        )
+                      )}
+                    </td>
+                    <td>
+                      {key.expires_at ? formatDate(key.expires_at) : "Never"}
+                    </td>
+                    <td>{formatDate(key.last_used || key.lastUsedAt)}</td>
+                    <td>
+                      <button
+                        className="btn btn-outline-danger btn-sm delete-key-btn"
+                        onClick={() => handleDeleteKey(key.id)}
+                        title="Delete API key"
+                      >
+                        <i className="bi bi-trash" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {/* Create Key Modal */}
@@ -340,17 +513,18 @@ const ApiKeysPage = () => {
 
                   <div className="mb-3">
                     <label
-                      htmlFor="permissions-group"
+                      htmlFor="keyPermissions"
                       className="form-label text-light"
                     >
                       Permissions
                     </label>
-                    <div id="permissions-group">
+                    <div id="keyPermissions">
                       <div className="form-check">
                         <input
                           className="form-check-input"
                           type="checkbox"
-                          id="permDownloads"
+                          value="downloads"
+                          id="perm-downloads"
                           checked={createForm.permissions.downloads}
                           onChange={(e) =>
                             setCreateForm({
@@ -364,17 +538,22 @@ const ApiKeysPage = () => {
                         />
                         <label
                           className="form-check-label text-light"
-                          htmlFor="permDownloads"
+                          htmlFor="perm-downloads"
                         >
-                          Downloads - Allow downloading files
+                          Downloads
                         </label>
+                        <small className="form-text text-muted d-block">
+                          Access to download files
+                        </small>
                       </div>
                       <div className="form-check">
                         <input
                           className="form-check-input"
                           type="checkbox"
-                          id="permUploads"
+                          value="uploads"
+                          id="perm-uploads"
                           checked={createForm.permissions.uploads}
+                          disabled={!userPermissions.includes("uploads")}
                           onChange={(e) =>
                             setCreateForm({
                               ...createForm,
@@ -387,17 +566,27 @@ const ApiKeysPage = () => {
                         />
                         <label
                           className="form-check-label text-light"
-                          htmlFor="permUploads"
+                          htmlFor="perm-uploads"
+                          style={{
+                            opacity: !userPermissions.includes("uploads")
+                              ? "0.5"
+                              : "1",
+                          }}
                         >
-                          Uploads - Allow uploading files
+                          Uploads
                         </label>
+                        <small className="form-text text-muted d-block">
+                          Access to upload files
+                        </small>
                       </div>
                       <div className="form-check">
                         <input
                           className="form-check-input"
                           type="checkbox"
-                          id="permDelete"
+                          value="delete"
+                          id="perm-delete"
                           checked={createForm.permissions.delete}
+                          disabled={!userPermissions.includes("delete")}
                           onChange={(e) =>
                             setCreateForm({
                               ...createForm,
@@ -410,36 +599,50 @@ const ApiKeysPage = () => {
                         />
                         <label
                           className="form-check-label text-light"
-                          htmlFor="permDelete"
+                          htmlFor="perm-delete"
+                          style={{
+                            opacity: !userPermissions.includes("delete")
+                              ? "0.5"
+                              : "1",
+                          }}
                         >
-                          Delete - Allow deleting files and folders
+                          Delete
                         </label>
+                        <small className="form-text text-muted d-block">
+                          Access to delete files
+                        </small>
                       </div>
                     </div>
                   </div>
-
                   <div className="mb-3">
                     <label
-                      htmlFor="expiresAt"
+                      htmlFor="keyExpiration"
                       className="form-label text-light"
                     >
-                      Expiration Date (Optional)
+                      Expiration
                     </label>
-                    <input
-                      type="datetime-local"
-                      className="form-control bg-dark text-light border-secondary"
-                      id="expiresAt"
-                      value={createForm.expiresAt}
+                    <select
+                      className="form-select bg-dark text-light border-secondary"
+                      id="keyExpiration"
+                      value={createForm.expirationDays || ""}
                       onChange={(e) =>
                         setCreateForm({
                           ...createForm,
-                          expiresAt: e.target.value,
+                          expirationDays: parseInt(e.target.value),
                         })
                       }
-                    />
-                    <div className="form-text text-muted">
-                      Leave empty for keys that never expire
-                    </div>
+                      required
+                    >
+                      <option value="">Select expiration period</option>
+                      <option value="7">7 days</option>
+                      <option value="30">30 days</option>
+                      <option value="90">90 days</option>
+                      <option value="180">180 days</option>
+                      <option value="365">1 year</option>
+                    </select>
+                    <small className="form-text text-muted">
+                      API keys cannot be set to never expire
+                    </small>
                   </div>
                 </div>
                 <div className="modal-footer border-secondary">
@@ -468,7 +671,7 @@ const ApiKeysPage = () => {
           tabIndex="-1"
           style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
         >
-          <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-dialog modal-dialog-centered modal-lg">
             <div className="modal-content bg-dark border-secondary">
               <div className="modal-header border-secondary">
                 <h5 className="modal-title text-light">
@@ -517,7 +720,10 @@ const ApiKeysPage = () => {
 
                 <div className="mb-3">
                   <h6 className="text-light">Usage Example:</h6>
-                  <pre className="bg-secondary p-3 rounded">
+                  <pre
+                    className="bg-secondary p-3 rounded"
+                    style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}
+                  >
                     <code className="text-light">
                       {`curl -H "Authorization: Bearer ${newKeyData.key}" \\
      ${window.location.origin}/api/files/`}

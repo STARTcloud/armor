@@ -9,7 +9,6 @@ import {
   authenticateDownloads,
   authenticateUploads,
   authenticateDelete,
-  authenticateApiKeyAccess,
 } from '../middleware/auth.middleware.js';
 import { isAllowedDirectory, getStaticContent } from '../utils/auth.js';
 import { getDirectoryItems } from '../utils/fileUtils.js';
@@ -136,11 +135,6 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
-
-router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
-  logAccess(req, 'API_KEYS_PAGE', 'redirecting to React app');
-  return res.redirect('/api-keys');
-});
 
 /**
  * @swagger

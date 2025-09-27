@@ -31,7 +31,7 @@ const SearchBar = ({ onSearch, onClear, value }) => {
         <input
           type="text"
           className="form-control bg-dark text-light border-secondary"
-          placeholder="Search files or Checksums..."
+          placeholder="Search API keys..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}

@@ -1,0 +1,15 @@
+.expired {
+  opacity: 0.6;
+}
+
+.key-preview {
+  font-family: monospace;
+}
+
+.api-keys-table .table td {
+  vertical-align: middle;
+}
+
+.api-keys-table .badge {
+  font-size: 0.75em;
+}
