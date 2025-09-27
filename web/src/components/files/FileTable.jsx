@@ -176,7 +176,7 @@ const FileTable = ({
                   cursor: selectedFiles.length > 0 ? "pointer" : "default",
                 }}
               >
-                <td style={{ width: "5%" }}></td>
+                <td style={{ width: "5%" }} />
                 <td>
                   <i className="bi bi-folder-up me-2 text-warning" />
                   <span className="text-muted">Parent Directory</span>
@@ -185,7 +185,7 @@ const FileTable = ({
                 <td className="text-muted">-</td>
                 <td className="text-muted">-</td>
                 <td className="text-muted">-</td>
-                <td></td>
+                <td />
               </tr>
             )}
             {isEmpty ? (

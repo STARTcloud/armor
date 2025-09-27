@@ -246,8 +246,7 @@ router.get('*splat', authenticateDownloads, async (req, res) => {
 
 router.put('*splat', authenticateUploads, async (req, res, next) => {
   if (req.query.action !== 'rename' && req.query.action !== 'move') {
-    next();
-    return;
+    return next();
   }
 
   try {
@@ -386,7 +385,7 @@ router.put('*splat', authenticateUploads, async (req, res, next) => {
       const movePromises = filePaths.map(async filePath => {
         const oldFullPath = getSecurePath(filePath);
         const fileName = basename(oldFullPath);
-        const newFullPath = join(targetDir, fileName);
+        let newFullPath = join(targetDir, fileName);
 
         logger.debug('Move operation paths', {
           filePath,
@@ -407,21 +406,19 @@ router.put('*splat', authenticateUploads, async (req, res, next) => {
           const ext = extname(fileName);
           const baseName = basename(fileName, ext);
           let counter = 1;
-          let uniqueFileName = fileName;
-          let uniqueFullPath = newFullPath;
+          let found = false;
 
-          while (true) {
+          while (!found && counter < 1000) {
+            const uniqueFileName = `${baseName}_${counter}${ext}`;
+            const uniqueFullPath = join(targetDir, uniqueFileName);
             try {
-              await fs.access(uniqueFullPath);
-              uniqueFileName = `${baseName}_${counter}${ext}`;
-              uniqueFullPath = join(targetDir, uniqueFileName);
+              await fs.access(uniqueFullPath); // eslint-disable-line no-await-in-loop
               counter++;
             } catch {
-              break;
+              newFullPath = uniqueFullPath;
+              found = true;
             }
           }
-
-          newFullPath = uniqueFullPath;
         } catch {
           // File doesn't exist in target directory, no conflict
         }
@@ -472,6 +469,10 @@ router.put('*splat', authenticateUploads, async (req, res, next) => {
         message: `${filePaths.length} item${filePaths.length > 1 ? 's' : ''} moved successfully`,
       });
     }
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid action. Must be "rename" or "move"',
+    });
   } catch (error) {
     const action = req.query.action === 'move' ? 'Move' : 'Rename';
     logger.error(`${action} error`, { error: error.message });
