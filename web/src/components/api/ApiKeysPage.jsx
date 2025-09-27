@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import api from "../../utils/api";
 import ConfirmModal from "../common/ConfirmModal";
 import SearchBar from "../search/SearchBar";
-import "./api-keys.css";
 
 const ApiKeysPage = () => {
   const [apiKeys, setApiKeys] = useState([]);

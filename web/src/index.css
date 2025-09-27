@@ -252,3 +252,75 @@ code {
 .breadcrumb-item + .breadcrumb-item::before {
   color: #6c757d;
 }
+
+/* API Keys component styles - consolidated from api-keys.css */
+.expired {
+  opacity: 0.6;
+}
+
+.key-preview {
+  font-family: monospace;
+}
+
+.api-keys-table .table td {
+  vertical-align: middle;
+}
+
+.api-keys-table .badge {
+  font-size: 0.75em;
+}
+
+/* Column width adjustments - final user feedback: key preview 20% narrower, space to last used */
+.api-keys-table .table th:nth-child(1),
+.api-keys-table .table td:nth-child(1) {
+  width: 5% !important;
+} /* Checkbox column */
+.api-keys-table .table th:nth-child(2),
+.api-keys-table .table td:nth-child(2) {
+  width: 20% !important;
+} /* Name */
+.api-keys-table .table th:nth-child(3),
+.api-keys-table .table td:nth-child(3) {
+  width: 8% !important;
+} /* Key Preview - 20% narrower (was 10%) */
+.api-keys-table .table th:nth-child(4),
+.api-keys-table .table td:nth-child(4) {
+  width: 22% !important;
+} /* Permissions */
+.api-keys-table .table th:nth-child(5),
+.api-keys-table .table td:nth-child(5) {
+  width: 17% !important;
+} /* Expires */
+.api-keys-table .table th:nth-child(6),
+.api-keys-table .table td:nth-child(6) {
+  width: 23% !important;
+} /* Last Used - gets extra 2% from key preview */
+.api-keys-table .table th:nth-child(7),
+.api-keys-table .table td:nth-child(7) {
+  width: 5% !important;
+} /* Actions */
+
+/* Ensure proper spacing between permission badges */
+.api-keys-table .badge {
+  margin-right: 0.25rem !important;
+  display: inline-block !important;
+}
+
+.api-keys-table .badge:last-child {
+  margin-right: 0 !important;
+}
+
+/* Color-coded permission badges */
+.api-keys-table .badge.permission-delete {
+  background-color: #dc3545 !important; /* Red for delete */
+}
+
+.api-keys-table .badge.permission-uploads,
+.api-keys-table .badge.permission-write {
+  background-color: #198754 !important; /* Green for uploads/write */
+}
+
+.api-keys-table .badge.permission-downloads,
+.api-keys-table .badge.permission-read {
+  background-color: #0d6efd !important; /* Blue for downloads/read */
+}

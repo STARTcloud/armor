@@ -42,10 +42,11 @@ export const getUserPermissions = user => {
 };
 
 export const isAllowedDirectory = (path, servedDir) => {
-  const relativePath = path.replace(servedDir, '').replace(/\\/g, '/');
   const allowedDirs = configLoader.getAllowedDirectories();
 
-  return allowedDirs.some(dir => relativePath.startsWith(dir));
+  return allowedDirs.some(
+    dir => servedDir === dir || servedDir.startsWith(`${dir}/`) || path.startsWith(dir)
+  );
 };
 
 export const isStaticDirectory = (path, servedDir) => {
