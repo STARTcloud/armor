@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.1](https://github.com/STARTcloud/armor_private/compare/v1.13.0...v1.13.1) (2025-09-27)
+
+
+### Bug Fixes
+
+* remove setTimeout delays from file watcher while keeping awaitWriteFinish ([2426e07](https://github.com/STARTcloud/armor_private/commit/2426e0733f952440394c2c432ec7a925de1a9e0c))
+
 ## [1.13.0](https://github.com/STARTcloud/armor_private/compare/v1.12.0...v1.13.0) (2025-09-27)
 
 
