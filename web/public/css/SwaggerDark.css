@@ -15,7 +15,7 @@
     background-color: rgba(255, 255, 255, 0.5) !important;
   }
 
-  embed[type='application/pdf'] {
+  embed[type="application/pdf"] {
     filter: invert(90%);
   }
 
@@ -995,7 +995,7 @@
   .swagger-ui .shadow-hover::after {
     border-radius: inherit;
     box-shadow: rgba(0, 0, 0, 0.2) 0 0 16px 2px;
-    content: '';
+    content: "";
     height: 100%;
     left: 0;
     opacity: 0;
@@ -1070,7 +1070,12 @@
   }
 
   .swagger-ui .opblock.opblock-post .opblock-summary-method,
-  .swagger-ui .opblock.opblock-post .tab-header .tab-item.active h4 span::after {
+  .swagger-ui
+    .opblock.opblock-post
+    .tab-header
+    .tab-item.active
+    h4
+    span::after {
     background: #48cb90;
   }
 
@@ -1098,7 +1103,12 @@
   }
 
   .swagger-ui .opblock.opblock-delete .opblock-summary-method,
-  .swagger-ui .opblock.opblock-delete .tab-header .tab-item.active h4 span::after {
+  .swagger-ui
+    .opblock.opblock-delete
+    .tab-header
+    .tab-item.active
+    h4
+    span::after {
     background: #c83232;
   }
 
@@ -1126,7 +1136,12 @@
   }
 
   .swagger-ui .opblock.opblock-patch .opblock-summary-method,
-  .swagger-ui .opblock.opblock-patch .tab-header .tab-item.active h4 span::after {
+  .swagger-ui
+    .opblock.opblock-patch
+    .tab-header
+    .tab-item.active
+    h4
+    span::after {
     background: #5cd6bc;
   }
 
@@ -1140,7 +1155,12 @@
   }
 
   .swagger-ui .opblock.opblock-head .opblock-summary-method,
-  .swagger-ui .opblock.opblock-head .tab-header .tab-item.active h4 span::after {
+  .swagger-ui
+    .opblock.opblock-head
+    .tab-header
+    .tab-item.active
+    h4
+    span::after {
     background: #8c3fcf;
   }
 
@@ -1154,7 +1174,12 @@
   }
 
   .swagger-ui .opblock.opblock-options .opblock-summary-method,
-  .swagger-ui .opblock.opblock-options .tab-header .tab-item.active h4 span::after {
+  .swagger-ui
+    .opblock.opblock-options
+    .tab-header
+    .tab-item.active
+    h4
+    span::after {
     background: #24598f;
   }
 
@@ -1169,7 +1194,12 @@
   }
 
   .swagger-ui .opblock.opblock-deprecated .opblock-summary-method,
-  .swagger-ui .opblock.opblock-deprecated .tab-header .tab-item.active h4 span::after {
+  .swagger-ui
+    .opblock.opblock-deprecated
+    .tab-header
+    .tab-item.active
+    h4
+    span::after {
     background: #2e2e2e;
   }
 
@@ -1283,22 +1313,22 @@
   }
 
   .swagger-ui button.invalid,
-  .swagger-ui input[type='email'].invalid,
-  .swagger-ui input[type='file'].invalid,
-  .swagger-ui input[type='password'].invalid,
-  .swagger-ui input[type='search'].invalid,
-  .swagger-ui input[type='text'].invalid,
+  .swagger-ui input[type="email"].invalid,
+  .swagger-ui input[type="file"].invalid,
+  .swagger-ui input[type="password"].invalid,
+  .swagger-ui input[type="search"].invalid,
+  .swagger-ui input[type="text"].invalid,
   .swagger-ui select.invalid,
   .swagger-ui textarea.invalid {
     background: #390e0e;
     border-color: #c83232;
   }
 
-  .swagger-ui input[type='email'],
-  .swagger-ui input[type='file'],
-  .swagger-ui input[type='password'],
-  .swagger-ui input[type='search'],
-  .swagger-ui input[type='text'],
+  .swagger-ui input[type="email"],
+  .swagger-ui input[type="file"],
+  .swagger-ui input[type="password"],
+  .swagger-ui input[type="search"],
+  .swagger-ui input[type="text"],
   .swagger-ui textarea {
     background: #1c1c21;
     border: 1px solid #404040;
@@ -1328,12 +1358,12 @@
     border: 2px solid #2a69a7;
   }
 
-  .swagger-ui .checkbox input[type='checkbox'] + label > .item {
+  .swagger-ui .checkbox input[type="checkbox"] + label > .item {
     background: #303030;
     box-shadow: #303030 0 0 0 2px;
   }
 
-  .swagger-ui .checkbox input[type='checkbox']:checked + label > .item {
+  .swagger-ui .checkbox input[type="checkbox"]:checked + label > .item {
     background: url('data:image/svg+xml;charset=utf-8,<svg width="10" height="8" viewBox="3 7 10 8" xmlns="http://www.w3.org/2000/svg"><path fill="%2341474E" fill-rule="evenodd" d="M6.333 15L3 11.667l1.333-1.334 2 2L11.667 7 13 8.333z"/></svg>')
       50% center no-repeat #303030;
   }
@@ -1674,7 +1704,7 @@
   }
 
   .swagger-ui .topbar .download-url-wrapper .select-label select,
-  .swagger-ui .topbar .download-url-wrapper input[type='text'] {
+  .swagger-ui .topbar .download-url-wrapper input[type="text"] {
     border: 2px solid #63a040;
   }
 

@@ -63,7 +63,7 @@ jobs:
           # Core application files
           cp -r models routes middleware config utils services packaging app.js package.json "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
           cp -r node_modules "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
-          
+
           # Web assets
           mkdir -p "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/"
           # TODO: Enable when Vite builds are ready
