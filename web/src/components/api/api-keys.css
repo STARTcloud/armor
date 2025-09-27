@@ -13,3 +13,17 @@
 .api-keys-table .badge {
   font-size: 0.75em;
 }
+
+/* Column width adjustments - more specific selectors */
+.api-keys-table .table th:nth-child(1),
+.api-keys-table .table td:nth-child(1) { width: 20% !important; } /* Name */
+.api-keys-table .table th:nth-child(2),
+.api-keys-table .table td:nth-child(2) { width: 25% !important; } /* Key Preview */
+.api-keys-table .table th:nth-child(3),
+.api-keys-table .table td:nth-child(3) { width: 25% !important; } /* Permissions - wider */
+.api-keys-table .table th:nth-child(4),
+.api-keys-table .table td:nth-child(4) { width: 16% !important; } /* Expires - 5% wider */
+.api-keys-table .table th:nth-child(5),
+.api-keys-table .table td:nth-child(5) { width: 9% !important; } /* Last Used - narrower */
+.api-keys-table .table th:nth-child(6),
+.api-keys-table .table td:nth-child(6) { width: 5% !important; } /* Actions */

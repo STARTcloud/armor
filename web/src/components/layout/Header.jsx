@@ -1,9 +1,11 @@
 import { useAuth } from "../auth/AuthContext";
+import { useLocation } from "react-router-dom";
 
 import Breadcrumbs from "./Breadcrumbs";
 
 const Header = () => {
   const { user, logout } = useAuth();
+  const location = useLocation();
 
   const getUserDisplayName = (userInfo) => {
     if (!userInfo) {
@@ -50,23 +52,35 @@ const Header = () => {
                 className="dropdown-menu dropdown-menu-end bg-dark border-secondary"
                 aria-labelledby="userDropdown"
               >
-                <li>
-                  <a className="dropdown-item text-light" href="/api-keys">
-                    <i className="bi bi-key me-2" />
-                    API Keys
-                  </a>
-                </li>
-                <li>
-                  <a
-                    className="dropdown-item text-light"
-                    href="/api/docs"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <i className="bi bi-book me-2" />
-                    API Documentation
-                  </a>
-                </li>
+                {location.pathname !== "/" && !location.pathname.includes("view=index") && (
+                  <li>
+                    <a className="dropdown-item text-light" href="/?view=index">
+                      <i className="bi bi-shield me-2" />
+                      Dashboard
+                    </a>
+                  </li>
+                )}
+                {location.pathname !== "/api-keys" && (
+                  <li>
+                    <a className="dropdown-item text-light" href="/api-keys">
+                      <i className="bi bi-key me-2" />
+                      API Keys
+                    </a>
+                  </li>
+                )}
+                {location.pathname !== "/api-docs" && (
+                  <li>
+                    <a
+                      className="dropdown-item text-light"
+                      href="/api-docs"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <i className="bi bi-book me-2" />
+                      API Documentation
+                    </a>
+                  </li>
+                )}
                 <li>
                   <hr className="dropdown-divider border-secondary" />
                 </li>

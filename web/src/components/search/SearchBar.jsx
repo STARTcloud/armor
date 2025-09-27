@@ -9,6 +9,12 @@ const SearchBar = ({ onSearch, onClear, value }) => {
     onSearch(query);
   };
 
+  const handleInputChange = (e) => {
+    const newQuery = e.target.value;
+    setQuery(newQuery);
+    onSearch(newQuery); // Trigger search on every keystroke
+  };
+
   const handleClear = () => {
     setQuery("");
     onClear();
@@ -33,7 +39,7 @@ const SearchBar = ({ onSearch, onClear, value }) => {
           className="form-control bg-dark text-light border-secondary"
           placeholder="Search API keys..."
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={handleInputChange}
           onKeyDown={handleKeyDown}
         />
         {query && (
