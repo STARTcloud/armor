@@ -24,7 +24,7 @@ import {
   generate404Page,
   getUserDisplayName,
 } from '../utils/htmlGenerator.js';
-import { logAccess, logger } from '../config/logger.js';
+import { logAccess, logger, accessLogger, databaseLogger } from '../config/logger.js';
 import configLoader from '../config/configLoader.js';
 import { getFileModel } from '../models/File.js';
 import { withDatabaseRetry } from '../config/database.js';
@@ -72,7 +72,7 @@ const shouldShowLandingPage = (isRoot, serverConfig, isAdmin, viewIndex, query) 
 
 // Helper function to handle landing page response
 const handleLandingPageResponse = (req, res, uploadCredentials) => {
-  logger.info('Showing landing page for root access');
+  accessLogger.info('Showing landing page for root access');
   logAccess(req, 'LANDING_PAGE', 'showing secured site message');
   const landingConfig = createLandingConfig();
   landingConfig.packageInfo = configLoader.getPackageInfo();
@@ -113,7 +113,7 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
     req.oidcUser?.permissions?.includes('uploads') || req.isAuthenticated === 'uploads';
   const viewIndex = req.query.view === 'index';
 
-  logger.info('Root page check', {
+  accessLogger.info('Root page check', {
     fullPath,
     SERVED_DIR,
     isRoot,
@@ -1306,7 +1306,7 @@ router.post('/folders', authenticateUploads, async (req, res) => {
       })
     );
 
-    logger.info(`Added folder to database: ${newFolderPath}`);
+    databaseLogger.info(`Added folder to database: ${newFolderPath}`);
 
     // sendFolderCreated imported at top of file
     sendFolderCreated(newFolderPath);
@@ -1370,7 +1370,7 @@ router.post('*splat/folders', authenticateUploads, async (req, res) => {
       })
     );
 
-    logger.info(`Added folder to database: ${newFolderPath}`);
+    databaseLogger.info(`Added folder to database: ${newFolderPath}`);
 
     // sendFolderCreated imported at top of file
     sendFolderCreated(newFolderPath);
@@ -1537,7 +1537,7 @@ router.post('*splat', authenticateUploads, async (req, res, next) => {
       })
     );
 
-    logger.info(`Added folder to database: ${newFolderPath}`);
+    databaseLogger.info(`Added folder to database: ${newFolderPath}`);
 
     // sendFolderCreated imported at top of file
     sendFolderCreated(newFolderPath);

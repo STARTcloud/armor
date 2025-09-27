@@ -4,7 +4,7 @@ import { join, dirname, basename } from 'path';
 import { Op } from 'sequelize';
 import { getFileModel } from '../models/File.js';
 import { sendFileDeleted, sendFileAdded } from '../routes/sse.js';
-import { fileWatcherLogger as logger } from '../config/logger.js';
+import { fileWatcherLogger as logger, databaseLogger } from '../config/logger.js';
 import configLoader from '../config/configLoader.js';
 import { withDatabaseRetry } from '../config/database.js';
 import cacheService from './cacheService.js';
@@ -35,7 +35,7 @@ class FileWatcherService {
     const fileCount = await File.count();
 
     logger.info(`🎉 File watcher initialization complete!`);
-    logger.info(`📊 Database summary: ${fileCount} total items tracked`);
+    databaseLogger.info(`📊 Database summary: ${fileCount} total items tracked`);
   }
 
   async cacheDirectory(dirPath) {
@@ -66,7 +66,9 @@ class FileWatcherService {
         existingFileMap.set(file.file_path, file);
       });
 
-      logger.info(`Loaded ${existingFiles.length} existing database records for ${dirPath}`);
+      databaseLogger.info(
+        `Loaded ${existingFiles.length} existing database records for ${dirPath}`
+      );
 
       // Process items individually with error recovery
       const processItems = itemsToProcess => {
@@ -214,11 +216,11 @@ class FileWatcherService {
           new Date(existingFile.last_modified).getTime() !== stats.mtime.getTime();
 
         if (needsChecksum) {
-          logger.info(
+          databaseLogger.info(
             `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (checksum will be processed by checksum service)`
           );
         } else {
-          logger.info(
+          databaseLogger.info(
             `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (checksum valid, skipped)`
           );
         }
@@ -229,7 +231,9 @@ class FileWatcherService {
           logger.info(`SSE file-added event sent for ${itemPath}`);
         }
       } else {
-        logger.info(`${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath}`);
+        databaseLogger.info(
+          `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath}`
+        );
 
         if (!existingFile) {
           logger.info(`About to send SSE file-added event for directory ${itemPath}`);
@@ -282,7 +286,7 @@ class FileWatcherService {
       const File = getFileModel();
       try {
         await withDatabaseRetry(() => File.destroy({ where: { file_path: filePath } }));
-        logger.info(`Database record removed for deleted file: ${filePath}`);
+        databaseLogger.info(`Database record removed for deleted file: ${filePath}`);
 
         sendFileDeleted(filePath);
         logger.info(`SSE file deletion event sent for: ${filePath}`);
@@ -336,7 +340,7 @@ class FileWatcherService {
           logger.info(`SSE: Sending directory deletion event for: ${dirPath}`);
           sendFileDeleted(dirPath, true);
         } else {
-          logger.info(`No database records found for deleted directory: ${dirPath}`);
+          databaseLogger.info(`No database records found for deleted directory: ${dirPath}`);
           logger.info(`SSE: Sending directory deletion event for: ${dirPath}`);
           sendFileDeleted(dirPath, true);
         }
@@ -384,7 +388,7 @@ class FileWatcherService {
         isDirectory: file.is_directory,
       }));
 
-      logger.info(`Found ${items.length} items in database for ${dirPath}`);
+      databaseLogger.info(`Found ${items.length} items in database for ${dirPath}`);
 
       cacheService.set(cacheKey, items);
 
@@ -442,11 +446,11 @@ class FileWatcherService {
           new Date(existingFile.last_modified).getTime() !== stats.mtime.getTime();
 
         if (needsChecksum) {
-          logger.info(
+          databaseLogger.info(
             `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (checksum will be processed by checksum service)`
           );
         } else {
-          logger.info(
+          databaseLogger.info(
             `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (checksum valid, skipped)`
           );
         }
@@ -457,7 +461,9 @@ class FileWatcherService {
           logger.info(`SSE file-added event sent for ${itemPath}`);
         }
       } else {
-        logger.info(`${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath}`);
+        databaseLogger.info(
+          `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath}`
+        );
 
         if (!existingFile) {
           logger.info(`About to send SSE file-added event for directory ${itemPath}`);
@@ -514,11 +520,11 @@ class FileWatcherService {
           new Date(existingFile.last_modified).getTime() !== (stats ? stats.mtime.getTime() : 0);
 
         if (needsChecksum) {
-          logger.info(
+          databaseLogger.info(
             `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (using chokidar stats, checksum will be processed by checksum service)`
           );
         } else {
-          logger.info(
+          databaseLogger.info(
             `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (using chokidar stats, checksum valid, skipped)`
           );
         }
@@ -532,7 +538,7 @@ class FileWatcherService {
           logger.info(`SSE file-added event sent for ${itemPath}`);
         }
       } else {
-        logger.info(
+        databaseLogger.info(
           `${!existingFile ? 'Created' : 'Updated'} database record: ${itemPath} (using chokidar stats)`
         );
 
@@ -588,7 +594,7 @@ class FileWatcherService {
   }
 
   async cleanupStaleEntries() {
-    logger.info('Starting cleanup of stale database entries');
+    databaseLogger.info('Starting cleanup of stale database entries');
 
     try {
       const File = getFileModel();
@@ -600,7 +606,7 @@ class FileWatcherService {
         })
       );
 
-      logger.info(`Found ${allDbEntries.length} database entries to verify`);
+      databaseLogger.info(`Found ${allDbEntries.length} database entries to verify`);
 
       let removedCount = 0;
       const batchSize = 100;
@@ -652,10 +658,10 @@ class FileWatcherService {
       if (allFilesToRemove.length > 0) {
         await withDatabaseRetry(() => removeStaleFiles(allFilesToRemove));
         removedCount = allFilesToRemove.length;
-        logger.info(`Removed ${removedCount} stale database entries`);
+        databaseLogger.info(`Removed ${removedCount} stale database entries`);
       }
 
-      logger.info(`✅ Cleanup complete: removed ${removedCount} stale database entries`);
+      databaseLogger.info(`✅ Cleanup complete: removed ${removedCount} stale database entries`);
     } catch (error) {
       logger.error(`Failed to cleanup stale entries: ${error.message}`);
       throw error;
