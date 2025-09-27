@@ -168,7 +168,8 @@ const SearchResults = ({ results, query, onClear }) => {
     );
   }
 
-  const { files = [], totalResults = 0 } = results;
+  const { results: files = [], pagination = {} } = results;
+  const totalResults = pagination.total || 0;
 
   if (files.length === 0) {
     return (
@@ -191,15 +192,11 @@ const SearchResults = ({ results, query, onClear }) => {
 
   return (
     <div className="card bg-dark border-0">
-      <div className="card-header bg-dark border-0 d-flex justify-content-between align-items-center">
+      <div className="card-header bg-dark border-0">
         <h5 className="mb-0 text-light">
           <i className="bi bi-search me-2" />
           Search Results for &quot;{query}&quot; ({totalResults} found)
         </h5>
-        <button className="btn btn-sm btn-outline-secondary" onClick={onClear}>
-          <i className="bi bi-x me-1" />
-          Clear Search
-        </button>
       </div>
       <div className="table-responsive">
         <table className="table table-dark table-hover mb-0">

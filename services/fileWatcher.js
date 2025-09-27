@@ -353,7 +353,7 @@ class FileWatcherService {
       this.scheduleFileProcessingWithStats(dirPath, stats);
     });
 
-    this.watcher.on('raw', (event, path, details) => {
+    this.watcher.on('raw', (event, details) => {
       if (event === 'moved' && details && details.oldPath && details.newPath) {
         logger.info(`File renamed from ${details.oldPath} to ${details.newPath}`);
         sendFileRenamed(details.oldPath, details.newPath);

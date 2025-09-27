@@ -20,6 +20,11 @@ const SearchBar = ({ onSearch, onClear, value }) => {
     }
   };
 
+  const handleInputClear = () => {
+    setQuery("");
+    onClear();
+  };
+
   return (
     <div className="d-flex align-items-center gap-2">
       <div className="input-group" style={{ width: "300px" }}>
@@ -31,6 +36,22 @@ const SearchBar = ({ onSearch, onClear, value }) => {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
         />
+        {query && (
+          <button
+            type="button"
+            className="btn btn-outline-secondary position-absolute"
+            style={{
+              right: "45px",
+              zIndex: 10,
+              border: "none",
+              background: "transparent",
+            }}
+            onClick={handleInputClear}
+            title="Clear input and search"
+          >
+            <i className="bi bi-x" />
+          </button>
+        )}
         <button
           type="button"
           className="btn btn-outline-light"
@@ -40,16 +61,6 @@ const SearchBar = ({ onSearch, onClear, value }) => {
           <i className="bi bi-search" />
         </button>
       </div>
-      {query && (
-        <button
-          type="button"
-          className="btn btn-outline-secondary"
-          onClick={handleClear}
-          title="Clear search"
-        >
-          <i className="bi bi-x" />
-        </button>
-      )}
     </div>
   );
 };
