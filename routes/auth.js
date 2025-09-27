@@ -653,17 +653,17 @@ router.post('/auth/logout/local', (req, res) => {
   }
 });
 
-router.get('/web/static/images/favicon.ico', (req, res) => {
+router.get('/web/public/images/favicon.ico', (req, res) => {
   logger.debug('Serving favicon', { ip: req.ip, userAgent: req.get('User-Agent') });
   res.set('Cache-Control', 'public, max-age=86400');
-  return res.sendFile('/web/static/images/favicon.ico', { root: '.' });
+  return res.sendFile('/web/public/images/favicon.ico', { root: '.' });
 });
 
 router.get('/robots.txt', (req, res) => {
   logger.debug('Serving robots.txt', { ip: req.ip, userAgent: req.get('User-Agent') });
   res.set('Cache-Control', 'public, max-age=86400');
   res.set('Content-Type', 'text/plain');
-  return res.sendFile('/web/static/robots.txt', { root: '.' });
+  return res.sendFile('/web/public/robots.txt', { root: '.' });
 });
 
 export default router;

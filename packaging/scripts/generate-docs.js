@@ -19,9 +19,9 @@ const generateSwaggerUI = () => `<!DOCTYPE html>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Armor Reference</title>
-    <link rel="icon" type="image/x-icon" href="/arrmor/assets/images/favicon.ico">
-    <link rel="apple-touch-icon" sizes="192x192" href="/arrmor/assets/images/logo192.png">
-    <link rel="apple-touch-icon" sizes="512x512" href="/arrmor/assets/images/logo512.png">
+    <link rel="icon" type="image/x-icon" href="/armor/assets/images/favicon.ico">
+    <link rel="apple-touch-icon" sizes="192x192" href="/armor/assets/images/logo192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/armor/assets/images/logo512.png">
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui.css" />
     <style>
         html {

@@ -204,7 +204,7 @@ export default [
 
   // Browser JavaScript files - provide necessary globals
   {
-    files: ['web/static/**/*.js'],
+    files: ['web/public/**/*.js'],
     languageOptions: {
       ecmaVersion: 2024,
       sourceType: 'script',

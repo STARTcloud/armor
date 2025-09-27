@@ -42,7 +42,7 @@ mkdir -p "${PACKAGE_NAME}_${VERSION}_${ARCH}"/{opt/armor,etc/armor,etc/systemd/s
 cp -r models routes middleware config utils services packaging app.js package.json "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
 cp -r node_modules "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
 mkdir -p "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/"
-cp -r web/static "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/static"
+cp -r web/public "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/public"
 
 # Configuration files
 cp packaging/config/production-config.yaml "${PACKAGE_NAME}_${VERSION}_${ARCH}/etc/armor/config.yaml"
@@ -104,7 +104,7 @@ sudo systemctl status armor
 **Must include these directories in the copy command or the package will fail:**
 - `utils/` - Contains config loading utilities
 - `scripts/` - Contains version synchronization tools
-- `web/static/` - Contains CSS, JS, and image assets
+- `web/public/` - Contains CSS, JS, and image assets
 
 ### ✅ Single Source of Truth Versioning
 **Root `package.json` is the ONLY place to change version numbers.**
@@ -155,9 +155,9 @@ gh workflow run release-please.yml
    - ❌ Missing `utils` in copy command
    - ✅ Fix: Add `utils` to the cp command
 
-2. **Cannot stat 'web/static'**
+2. **Cannot stat 'web/public'**
    - ❌ Static assets missing
-   - ✅ Fix: Ensure `web/static/` directory exists
+   - ✅ Fix: Ensure `web/public/` directory exists
 
 3. **Version mismatch in API documentation**
    - ❌ Version sync issue
@@ -165,7 +165,7 @@ gh workflow run release-please.yml
 
 4. **Static files not serving**
    - ❌ Directory structure incorrect
-   - ✅ Fix: Verify `/opt/armor/web/static/` exists after installation
+   - ✅ Fix: Verify `/opt/armor/web/public/` exists after installation
 
 ### Service Issues
 ```bash
