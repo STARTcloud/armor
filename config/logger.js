@@ -296,5 +296,5 @@ export const morganMiddleware = morgan('combined', {
   },
 });
 
-export { logger, databaseLogger, fileWatcherLogger, sseLogger, authLogger };
+export { logger, accessLogger, databaseLogger, fileWatcherLogger, sseLogger, authLogger };
 export default logger;

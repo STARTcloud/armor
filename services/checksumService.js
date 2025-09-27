@@ -1,6 +1,6 @@
 import { getFileModel } from '../models/File.js';
 import { sendChecksumUpdate } from '../routes/sse.js';
-import { fileWatcherLogger as logger } from '../config/logger.js';
+import { fileWatcherLogger as logger, databaseLogger } from '../config/logger.js';
 import { withDatabaseRetry } from '../config/database.js';
 import { promises as fs } from 'fs';
 import configLoader from '../config/configLoader.js';
@@ -95,7 +95,7 @@ class ChecksumService {
       } catch {
         const File = getFileModel();
         await withDatabaseRetry(() => File.destroy({ where: { file_path: filePath } }));
-        logger.info(`Removed non-existent file from database: ${filePath}`);
+        databaseLogger.info(`Removed non-existent file from database: ${filePath}`);
         return;
       }
 

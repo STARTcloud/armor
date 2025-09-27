@@ -1,5 +1,5 @@
 import { optimizeDatabase } from '../config/database.js';
-import { fileWatcherLogger as logger } from '../config/logger.js';
+import { fileWatcherLogger as logger, databaseLogger } from '../config/logger.js';
 
 class MaintenanceService {
   constructor() {
@@ -22,9 +22,9 @@ class MaintenanceService {
 
         try {
           this.isRunning = true;
-          logger.info('Starting scheduled database maintenance');
+          databaseLogger.info('Starting scheduled database maintenance');
           await optimizeDatabase();
-          logger.info('Scheduled database maintenance completed');
+          databaseLogger.info('Scheduled database maintenance completed');
         } catch (error) {
           logger.error(`Scheduled database maintenance failed: ${error.message}`);
         } finally {
@@ -34,14 +34,14 @@ class MaintenanceService {
       24 * 60 * 60 * 1000
     );
 
-    logger.info('Database maintenance scheduler started (24 hour interval)');
+    databaseLogger.info('Database maintenance scheduler started (24 hour interval)');
   }
 
   stop() {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
-      logger.info('Database maintenance scheduler stopped');
+      databaseLogger.info('Database maintenance scheduler stopped');
     }
   }
 
@@ -52,9 +52,9 @@ class MaintenanceService {
 
     try {
       this.isRunning = true;
-      logger.info('Starting manual database maintenance');
+      databaseLogger.info('Starting manual database maintenance');
       await optimizeDatabase();
-      logger.info('Manual database maintenance completed');
+      databaseLogger.info('Manual database maintenance completed');
     } finally {
       this.isRunning = false;
     }
