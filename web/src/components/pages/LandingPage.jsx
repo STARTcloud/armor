@@ -4,6 +4,38 @@ import { useNavigate } from "react-router-dom";
 import api from "../../utils/api";
 import Footer from "../layout/Footer";
 
+const getConfigValue = (config, uiKey, fallbackKey, defaultValue) =>
+  config?.ui?.[uiKey] || config?.[fallbackKey] || defaultValue;
+
+const getStyles = (primaryColor) => ({
+  landingCard: {
+    textAlign: "center",
+    maxWidth: "500px",
+    padding: "3rem",
+  },
+  shieldIcon: {
+    fontSize: "4rem",
+    color: primaryColor,
+    marginBottom: "1rem",
+  },
+  body: {
+    backgroundColor: "#212529",
+    color: "#fff",
+    minHeight: "100vh",
+    display: "flex",
+    flexDirection: "column",
+  },
+  mainContent: {
+    flex: "1",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  footer: {
+    width: "100%",
+  },
+});
+
 const LandingPage = () => {
   const navigate = useNavigate();
   const [config, setConfig] = useState(null);
@@ -34,63 +66,56 @@ const LandingPage = () => {
     );
   }
 
-  const title =
-    config?.ui?.landing_title || config?.landing_title || "STARTcloud Armor";
-  const subtitle =
-    config?.ui?.landing_subtitle ||
-    config?.landing_subtitle ||
-    "ARMOR Reliably Manages Online Resources";
-  const description =
-    config?.ui?.landing_description ||
-    config?.landing_description ||
-    "This is a secured download site";
-  const iconClass =
-    config?.ui?.landing_icon_class ||
-    config?.landing_icon_class ||
-    "bi bi-shield-check";
-  const iconUrl = config?.ui?.landing_icon_url || config?.landing_icon_url;
-  const supportEmail =
-    config?.ui?.support_email ||
-    config?.support_email ||
-    "support@startcloud.com";
-  const primaryColor = config?.ui?.login_primary_color || "#198754";
+  const title = getConfigValue(
+    config,
+    "landing_title",
+    "landing_title",
+    "STARTcloud Armor"
+  );
+  const subtitle = getConfigValue(
+    config,
+    "landing_subtitle",
+    "landing_subtitle",
+    "ARMOR Reliably Manages Online Resources"
+  );
+  const description = getConfigValue(
+    config,
+    "landing_description",
+    "landing_description",
+    "This is a secured download site"
+  );
+  const iconClass = getConfigValue(
+    config,
+    "landing_icon_class",
+    "landing_icon_class",
+    "bi bi-shield-check"
+  );
+  const iconUrl = getConfigValue(
+    config,
+    "landing_icon_url",
+    "landing_icon_url",
+    null
+  );
+  const supportEmail = getConfigValue(
+    config,
+    "support_email",
+    "support_email",
+    "support@startcloud.com"
+  );
+  const primaryColor = getConfigValue(
+    config,
+    "login_primary_color",
+    "login_primary_color",
+    "#198754"
+  );
 
-  const landingCardStyle = {
-    textAlign: "center",
-    maxWidth: "500px",
-    padding: "3rem",
-  };
-
-  const shieldIconStyle = {
-    fontSize: "4rem",
-    color: primaryColor,
-    marginBottom: "1rem",
-  };
-
-  const bodyStyle = {
-    backgroundColor: "#212529",
-    color: "#fff",
-    minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-  };
-
-  const mainContentStyle = {
-    flex: "1",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  };
-
-  const footerStyle = {
-    width: "100%",
-  };
+  const styles = getStyles(primaryColor);
 
   return (
-    <div style={bodyStyle}>
-      <div style={mainContentStyle}>
-        <div style={landingCardStyle}>
-          <div style={shieldIconStyle}>
+    <div style={styles.body}>
+      <div style={styles.mainContent}>
+        <div style={styles.landingCard}>
+          <div style={styles.shieldIcon}>
             <button
               onClick={() => navigate("/?view=index")}
               style={{
@@ -129,7 +154,7 @@ const LandingPage = () => {
           </div>
         </div>
       </div>
-      <div style={footerStyle}>
+      <div style={styles.footer}>
         <Footer />
       </div>
     </div>

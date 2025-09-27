@@ -405,19 +405,26 @@ router.put('*splat', authenticateUploads, async (req, res, next) => {
           await fs.access(newFullPath);
           const ext = extname(fileName);
           const baseName = basename(fileName, ext);
-          let counter = 1;
-          let found = false;
 
-          while (!found && counter < 1000) {
-            const uniqueFileName = `${baseName}_${counter}${ext}`;
+          const potentialNames = [];
+          for (let counter = 1; counter < 1000; counter++) {
+            potentialNames.push(`${baseName}_${counter}${ext}`);
+          }
+
+          const checkPromises = potentialNames.map(async uniqueFileName => {
             const uniqueFullPath = join(targetDir, uniqueFileName);
             try {
-              await fs.access(uniqueFullPath); // eslint-disable-line no-await-in-loop
-              counter++;
+              await fs.access(uniqueFullPath);
+              return { fileName: uniqueFileName, exists: true, path: uniqueFullPath };
             } catch {
-              newFullPath = uniqueFullPath;
-              found = true;
+              return { fileName: uniqueFileName, exists: false, path: uniqueFullPath };
             }
+          });
+
+          const results = await Promise.all(checkPromises);
+          const availableFile = results.find(result => !result.exists);
+          if (availableFile) {
+            newFullPath = availableFile.path;
           }
         } catch {
           // File doesn't exist in target directory, no conflict

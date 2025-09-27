@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useLocation, useSearchParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 import useFileOperations from "../../hooks/useFileOperations";
 import useSSE from "../../hooks/useSSE";
@@ -14,7 +14,6 @@ import UploadZone from "./UploadZone";
 
 const FileManager = () => {
   const location = useLocation();
-  const [searchParams] = useSearchParams();
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

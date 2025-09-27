@@ -286,6 +286,10 @@ const SearchResults = ({ results, query, onClear }) => {
 SearchResults.propTypes = {
   results: PropTypes.shape({
     success: PropTypes.bool.isRequired,
+    results: PropTypes.arrayOf(PropTypes.object),
+    pagination: PropTypes.shape({
+      total: PropTypes.number,
+    }),
     files: PropTypes.arrayOf(PropTypes.object),
     totalResults: PropTypes.number,
   }),
