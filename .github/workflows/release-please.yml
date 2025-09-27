@@ -46,9 +46,8 @@ jobs:
       - name: Install dependencies
         run: npm run cinstall:all:nodev
 
-      # TODO: Enable when ready for Vite builds
-      # - name: Build frontend
-      #   run: npm run build
+      - name: Build frontend
+        run: npm run build
 
       - name: Set Debian package variables
         run: |
@@ -64,9 +63,8 @@ jobs:
         run: |
           cp -r models routes middleware config utils services packaging app.js package.json "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
           cp -r node_modules "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
-          # TODO: Enable when Vite builds are ready
-          #cp -r web/dist "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/dist"
-          # Temporary: Copy public assets directly
+          cp -r web/dist "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/dist"
+          # Keep public assets for Swagger theming
           cp -r web/public "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/public"
 
       - name: Copy configuration files to Debian package

@@ -11,19 +11,9 @@ import {
   authenticateDelete,
   authenticateApiKeyAccess,
 } from '../middleware/auth.middleware.js';
-import {
-  isValidUser,
-  isAllowedDirectory,
-  isStaticDirectory,
-  getStaticContent,
-} from '../utils/auth.js';
+import { isAllowedDirectory, isStaticDirectory, getStaticContent } from '../utils/auth.js';
 import { getDirectoryItems } from '../utils/fileUtils.js';
-import {
-  generateDirectoryListing,
-  getSecuredSiteMessage,
-  generate404Page,
-  getUserDisplayName,
-} from '../utils/htmlGenerator.js';
+import { generate404Page, getUserDisplayName } from '../utils/htmlGenerator.js';
 import { logAccess, logger, accessLogger, databaseLogger } from '../config/logger.js';
 import configLoader from '../config/configLoader.js';
 import { getFileModel } from '../models/File.js';
@@ -31,18 +21,6 @@ import { withDatabaseRetry } from '../config/database.js';
 import { sendFileDeleted, sendFileRenamed, sendFolderCreated } from './sse.js';
 
 // Helper function to create landing config
-const createLandingConfig = () => {
-  const serverConfig = configLoader.getServerConfig();
-  return {
-    title: serverConfig.landing_title || 'Prominic Armor',
-    subtitle: serverConfig.landing_subtitle || 'ARMOR Reliably Manages Online Resources',
-    description: serverConfig.landing_description || 'This is a secured download site',
-    iconClass: serverConfig.landing_icon_class || 'bi bi-shield-check',
-    iconUrl: serverConfig.landing_icon_url || null,
-    supportEmail: serverConfig.support_email || 'support@prominic.net',
-    primaryColor: serverConfig.landing_primary_color || '#198754',
-  };
-};
 
 // Helper function to handle JSON directory response
 const handleJsonDirectoryResponse = async (req, res, fullPath, relativePath) => {
@@ -71,14 +49,10 @@ const shouldShowLandingPage = (isRoot, serverConfig, isAdmin, viewIndex, query) 
   isRoot && !serverConfig.show_root_index && !(isAdmin && viewIndex) && !query.sort && !query.order;
 
 // Helper function to handle landing page response
-const handleLandingPageResponse = (req, res, uploadCredentials) => {
-  accessLogger.info('Showing landing page for root access');
-  logAccess(req, 'LANDING_PAGE', 'showing secured site message');
-  const landingConfig = createLandingConfig();
-  landingConfig.packageInfo = configLoader.getPackageInfo();
-  const userInfo =
-    req.oidcUser || (uploadCredentials ? { username: uploadCredentials.name } : null);
-  return res.send(getSecuredSiteMessage(landingConfig, userInfo));
+const handleLandingPageResponse = (req, res, _uploadCredentials) => {
+  accessLogger.info('Redirecting to React app for root access');
+  logAccess(req, 'LANDING_PAGE', 'redirecting to React app');
+  return res.redirect('/');
 };
 
 // Helper function to handle directory listing
@@ -89,11 +63,7 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
 
   if (!isAllowed) {
     logAccess(req, 'ACCESS_DENIED', 'directory not in allowed list');
-    const landingConfig = createLandingConfig();
-    landingConfig.packageInfo = configLoader.getPackageInfo();
-    const userInfo =
-      req.oidcUser || (uploadCredentials ? { username: uploadCredentials.name } : null);
-    return res.send(getSecuredSiteMessage(landingConfig, userInfo));
+    return res.redirect('/');
   }
 
   if (isStatic) {
@@ -131,32 +101,9 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
     return handleLandingPageResponse(req, res, uploadCredentials);
   }
 
-  const hasBasicUploadAccess = uploadCredentials && isValidUser(uploadCredentials, 'uploads');
-  const hasOidcUploadAccess = req.oidcUser && req.oidcUser.permissions.includes('uploads');
-  const hasUploadAccess = hasBasicUploadAccess || hasOidcUploadAccess;
-
-  const itemsInfo = await getDirectoryItems(fullPath, req.fileWatcher);
-  logAccess(req, 'LIST_DIRECTORY', `size: ${itemsInfo.length} items`);
-
-  let indexContent = '';
-  if (fullPath !== SERVED_DIR) {
-    indexContent = (await getStaticContent(fullPath)) || '';
-  }
-
-  const userInfo =
-    req.oidcUser || (uploadCredentials ? { username: uploadCredentials.name } : null);
-
-  const html = generateDirectoryListing(
-    hasUploadAccess ? 'uploads' : 'downloads',
-    req.query,
-    itemsInfo,
-    relativePath,
-    indexContent,
-    userInfo,
-    serverConfig,
-    configLoader.getPackageInfo()
-  );
-  return res.send(html);
+  // Redirect to React app for directory listing
+  const targetPath = relativePath === '/' ? '/browse/' : `/browse${relativePath}`;
+  return res.redirect(targetPath);
 };
 
 /**

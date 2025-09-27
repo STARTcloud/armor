@@ -50,9 +50,8 @@ jobs:
       - name: Install dependencies
         run: npm run cinstall:all
 
-      # TODO: Enable when ready for Vite builds
-      # - name: Build frontend
-      #   run: npm run build
+      - name: Build frontend
+        run: npm run build
 
       - name: Create package structure
         run: |
@@ -66,9 +65,8 @@ jobs:
 
           # Web assets
           mkdir -p "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/"
-          # TODO: Enable when Vite builds are ready
-          #cp -r web/dist "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/dist"
-          # Temporary: Copy public assets directly
+          cp -r web/dist "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/dist"
+          # Keep public assets for Swagger theming
           cp -r web/public "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/public"
 
           # Systemd service

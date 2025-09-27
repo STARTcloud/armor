@@ -4,7 +4,6 @@ import * as client from 'openid-client';
 import configLoader from '../config/configLoader.js';
 import { isValidUser, getUserPermissions } from '../utils/auth.js';
 import { logAccess, authLogger as logger } from '../config/logger.js';
-import { generateLoginPage } from '../utils/loginPage.js';
 import {
   buildAuthorizationUrl,
   handleOidcCallback,
@@ -21,64 +20,9 @@ import {
 const router = express.Router();
 
 router.get('/login', (req, res) => {
-  const errorParam = req.query.error;
-  const logoutParam = req.query.logout;
-  const oidcProviderParam = req.query.oidc_provider;
-  const authMethodParam = req.query.auth_method;
-  let errorMessage = '';
-
-  if (logoutParam === 'success') {
-    errorMessage = 'You have been successfully logged out.';
-  } else {
-    switch (errorParam) {
-      case 'invalid_credentials':
-        errorMessage = 'Invalid username or password';
-        break;
-      case 'oidc_failed':
-        errorMessage = 'OIDC authentication failed. Please try again or use basic authentication.';
-        break;
-      case 'network_error':
-        errorMessage = 'Network error occurred. Please try again.';
-        break;
-      case 'token_failed':
-        errorMessage = 'Failed to generate authentication token';
-        break;
-      case 'no_oidc_providers':
-        errorMessage = 'No OIDC providers are configured';
-        break;
-      case 'logout_failed':
-        errorMessage = 'Logout failed. Please try again.';
-        break;
-    }
-  }
-
-  // Get login page configuration from config loader
-  const serverConfig = configLoader.getServerConfig();
-  const packageInfo = configLoader.getPackageInfo();
-
-  // Determine title based on config
-  let pageTitle;
-  if (serverConfig.login_title !== undefined) {
-    pageTitle = serverConfig.login_title;
-  } else if (serverConfig.login_icon_url) {
-    pageTitle = '';
-  } else {
-    pageTitle = 'Armor';
-  }
-
-  const loginConfig = {
-    title: pageTitle,
-    subtitle: serverConfig.login_subtitle || 'ARMOR Reliably Manages Online Resources',
-    iconClass: serverConfig.login_icon_class || 'bi bi-cloud-download',
-    iconUrl: serverConfig.login_icon_url || null,
-    primaryColor: serverConfig.login_primary_color || '#198754', // Use Armor green
-    packageInfo,
-    oidcProvider: oidcProviderParam,
-    authMethod: authMethodParam,
-  };
-
-  const html = generateLoginPage(errorMessage, loginConfig);
-  return res.send(html);
+  const queryString = new URLSearchParams(req.query).toString();
+  const redirectUrl = queryString ? `/login?${queryString}` : '/login';
+  return res.redirect(redirectUrl);
 });
 
 /**

@@ -1,6 +1,5 @@
 server:
-  config_version:
-    $import: "version.yaml#/version"
+  config_version: 1.13.3
   domain: "local.home.Mydomain.net"
   port: 443
   show_root_index: false

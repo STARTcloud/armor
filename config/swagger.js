@@ -6,7 +6,7 @@ const options = {
     openapi: '3.0.0',
     info: {
       title: 'Armor API',
-      version: '1.0.0',
+      version: '1.13.3',
       description:
         'API for Armor - ARMOR Reliably Manages Online Resources. A secure file management system with authentication and API key support.',
       license: {

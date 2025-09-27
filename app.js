@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import helmet from 'helmet';
 import cors from 'cors';
 import compression from 'compression';
@@ -386,6 +387,30 @@ const startServer = async () => {
       },
     })
   );
+
+  const { existsSync } = await import('fs');
+  const frontendDistPath = 'web/dist';
+  if (existsSync(frontendDistPath)) {
+    // Serve static assets from Vite build
+    app.use(express.static(frontendDistPath));
+
+    app.get('*', (req, res, next) => {
+      if (
+        req.path.startsWith('/api/') ||
+        req.path.startsWith('/auth/') ||
+        req.path.startsWith('/events') ||
+        req.path.startsWith('/static/') ||
+        req.path.startsWith('/swagger/') ||
+        req.path.startsWith('/api-docs')
+      ) {
+        return next();
+      }
+
+      return res.sendFile(path.resolve(frontendDistPath, 'index.html'));
+    });
+  } else {
+    logger.warn('Frontend dist directory not found. Run "npm run build" to build the frontend.');
+  }
 
   // Conditionally enable API documentation
   const serverConfig = configLoader.getServerConfig();
