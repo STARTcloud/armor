@@ -20,13 +20,13 @@
 .api-keys-table .table th:nth-child(2),
 .api-keys-table .table td:nth-child(2) { width: 20% !important; } /* Name */
 .api-keys-table .table th:nth-child(3),
-.api-keys-table .table td:nth-child(3) { width: 10% !important; } /* Key Preview - 20% narrower (was 12%) */
+.api-keys-table .table td:nth-child(3) { width: 8% !important; } /* Key Preview - 20% narrower (was 10%) */
 .api-keys-table .table th:nth-child(4),
 .api-keys-table .table td:nth-child(4) { width: 22% !important; } /* Permissions */
 .api-keys-table .table th:nth-child(5),
 .api-keys-table .table td:nth-child(5) { width: 17% !important; } /* Expires */
 .api-keys-table .table th:nth-child(6),
-.api-keys-table .table td:nth-child(6) { width: 21% !important; } /* Last Used - gets extra 2% from key preview */
+.api-keys-table .table td:nth-child(6) { width: 23% !important; } /* Last Used - gets extra 2% from key preview */
 .api-keys-table .table th:nth-child(7),
 .api-keys-table .table td:nth-child(7) { width: 5% !important; } /* Actions */
 
