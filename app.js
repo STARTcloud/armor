@@ -21,7 +21,7 @@ import authRoutes from './routes/auth.js';
 import sseRoutes from './routes/sse.js';
 import apiKeyRoutes from './routes/apiKeys.js';
 import { setupHTTPSServer } from './utils/sslManager.js';
-import { specs, swaggerUi } from './config/swagger.js';
+import { specs } from './config/swagger.js';
 import { getApiKeyModel } from './models/ApiKey.js';
 import { getUserPermissions } from './utils/auth.js';
 import maintenanceService from './services/maintenanceService.js';
@@ -393,6 +393,7 @@ const startServer = async () => {
   }
 
   app.get('/api/swagger.json', (req, res) => {
+    console.log('Serving OpenAPI spec for React Swagger UI', req.path);
     res.json(specs);
   });
 

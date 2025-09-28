@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import SwaggerUI from 'swagger-ui-react';
-import 'swagger-ui-react/swagger-ui.css';
+import { useState, useEffect } from "react";
+import SwaggerUI from "swagger-ui-react";
+import "swagger-ui-react/swagger-ui.css";
 
-import api from '../../utils/api';
-import { useAuth } from '../auth/AuthContext';
+import api from "../../utils/api";
 
 const SwaggerDocsPage = () => {
-  const { user } = useAuth();
   const [swaggerSpec, setSwaggerSpec] = useState(null);
   const [userApiKeys, setUserApiKeys] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,20 +13,20 @@ const SwaggerDocsPage = () => {
   useEffect(() => {
     const fetchSwaggerData = async () => {
       try {
-        const specResponse = await api.get('/api/swagger.json');
+        const specResponse = await api.get("/api/swagger.json");
         setSwaggerSpec(specResponse.data);
 
         try {
-          const keysResponse = await api.get('/api/user-api-keys');
+          const keysResponse = await api.get("/api/user-api-keys");
           if (keysResponse.data.success) {
             setUserApiKeys(keysResponse.data.api_keys || []);
           }
         } catch (keyError) {
-          console.log('API keys not available:', keyError);
+          console.log("API keys not available:", keyError);
         }
       } catch (err) {
-        console.error('Error fetching Swagger data:', err);
-        setError('Failed to load API documentation');
+        console.error("Error fetching Swagger data:", err);
+        setError("Failed to load API documentation");
       } finally {
         setLoading(false);
       }
@@ -37,28 +35,12 @@ const SwaggerDocsPage = () => {
     fetchSwaggerData();
   }, []);
 
-  const getModifiedSpec = () => {
-    if (!swaggerSpec) return null;
-    
-    const currentUrl = `${window.location.protocol}//${window.location.host}`;
-    const modifiedSpec = JSON.parse(JSON.stringify(swaggerSpec));
-    
-    if (modifiedSpec.servers) {
-      modifiedSpec.servers = [
-        {
-          url: currentUrl,
-          description: 'Current Server',
-        },
-      ];
-    }
-    
-    return modifiedSpec;
-  };
-
-
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px', backgroundColor: '#1a1d20' }}>
+      <div
+        className="d-flex justify-content-center align-items-center"
+        style={{ minHeight: "400px", backgroundColor: "#1a1d20" }}
+      >
         <div className="spinner-border text-primary" role="status">
           <span className="visually-hidden">Loading API documentation...</span>
         </div>
@@ -68,7 +50,9 @@ const SwaggerDocsPage = () => {
 
   if (error) {
     return (
-      <div style={{ backgroundColor: '#1a1d20', color: '#fff', padding: '20px' }}>
+      <div
+        style={{ backgroundColor: "#1a1d20", color: "#fff", padding: "20px" }}
+      >
         <div className="alert alert-danger" role="alert">
           <h4 className="alert-heading">Error Loading API Documentation</h4>
           <p>{error}</p>
@@ -78,8 +62,15 @@ const SwaggerDocsPage = () => {
   }
 
   return (
-    <div style={{ backgroundColor: '#1a1d20', color: '#ffffff', minHeight: '100vh' }}>
-      <style>{`
+    <div
+      style={{
+        backgroundColor: "#1a1d20",
+        color: "#ffffff",
+        minHeight: "100vh",
+      }}
+    >
+      <style>
+        {`
         .swagger-ui {
           background: #1a1d20 !important;
           color: #ffffff !important;
@@ -143,37 +134,38 @@ const SwaggerDocsPage = () => {
           border: 1px solid #4a5568 !important;
           border-radius: 8px !important;
         }
-      `}</style>
-      
+      `}
+      </style>
+
       <SwaggerUI
         spec={swaggerSpec}
-        deepLinking={true}
+        deepLinking
         displayOperationId={false}
         defaultModelsExpandDepth={1}
         defaultModelExpandDepth={1}
         defaultModelRendering="example"
-        displayRequestDuration={true}
+        displayRequestDuration
         docExpansion="list"
-        filter={true}
-        showExtensions={true}
-        showCommonExtensions={true}
-        tryItOutEnabled={true}
+        filter
+        showExtensions
+        showCommonExtensions
+        tryItOutEnabled
         validatorUrl={null}
         requestInterceptor={(request) => {
-          if (request.url.startsWith('/')) {
+          if (request.url.startsWith("/")) {
             const currentUrl = `${window.location.protocol}//${window.location.host}`;
             request.url = currentUrl + request.url;
           }
-          
+
           if (userApiKeys.length > 0 && userApiKeys[0].key) {
-            request.headers['X-API-Key'] = userApiKeys[0].key;
+            request.headers["X-API-Key"] = userApiKeys[0].key;
           }
-          
-          console.log('Request interceptor:', request);
+
+          console.log("Request interceptor:", request);
           return request;
         }}
         responseInterceptor={(response) => {
-          console.log('Response interceptor:', response);
+          console.log("Response interceptor:", response);
           return response;
         }}
       />
