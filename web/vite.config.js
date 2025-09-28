@@ -63,7 +63,7 @@ export default defineConfig({
     },
     proxy: {
       "/api": {
-        target: `http://${config.server?.hostname?.value || "localhost"}:${config.server?.port?.value || 3443}`,
+        target: `https://${config.server?.hostname?.value || "localhost"}:8443`,
         changeOrigin: true,
         secure: false,
       },

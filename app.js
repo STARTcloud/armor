@@ -392,175 +392,12 @@ const startServer = async () => {
     logger.warn('Frontend dist directory not found. Run "npm run build" to build the frontend.');
   }
 
-  // Conditionally enable API documentation
-  const serverConfig = configLoader.getServerConfig();
-  if (serverConfig.enable_api_docs) {
-    const ApiKey = getApiKeyModel();
+  app.get('/api/swagger.json', (req, res) => {
+    res.json(specs);
+  });
 
-    // Dynamic API key fetching for Swagger setup
-    app.use('/api-docs', async (req, res, next) => {
-      let userApiKeys = [];
-      let userInfo = null;
-
-      if (req.cookies?.auth_token) {
-        try {
-          const authConfigForAPI = configLoader.getAuthenticationConfig();
-          const decoded = jwt.verify(req.cookies.auth_token, authConfigForAPI.jwt_secret);
-
-          if (decoded) {
-            if (decoded.userId) {
-              userInfo = { id: decoded.userId, username: decoded.username || 'User' };
-            } else if (decoded.username) {
-              userInfo = { username: decoded.username };
-            }
-
-            let whereClause = {};
-
-            if (decoded.userId) {
-              whereClause = { user_type: 'oidc', user_id: decoded.userId };
-            } else if (decoded.username) {
-              const localUsers = configLoader.getAuthUsers();
-              const localUser = localUsers.find(u => u.username === decoded.username);
-              if (localUser?.id) {
-                whereClause = { user_type: 'local', local_user_id: localUser.id };
-              }
-            }
-
-            if (Object.keys(whereClause).length > 0) {
-              const apiKeys = await ApiKey.findAll({
-                where: whereClause,
-                attributes: ['id', 'name', 'key_preview', 'permissions', 'expires_at'],
-                order: [['created_at', 'DESC']],
-              });
-
-              userApiKeys = apiKeys.map(key => key.toJSON());
-            }
-          }
-        } catch (error) {
-          logger.debug('Could not fetch user API keys for Swagger', { error: error.message });
-        }
-      }
-
-      req.userApiKeys = userApiKeys;
-      req.userInfo = userInfo;
-      logger.debug('API keys loaded for Swagger', {
-        count: userApiKeys.length,
-        userAgent: req.headers['user-agent'],
-      });
-      res.locals.swaggerApiKeys = userApiKeys;
-      next();
-    });
-
-    app.use('/api-docs', swaggerUi.serve);
-    app.get('/api-docs', (req, res) => {
-      const swaggerServerConfig = configLoader.getServerConfig();
-      const { userInfo } = req;
-      // Clean implementation using external JS file
-      const specsJson = JSON.stringify(specs)
-        .replace(/</g, '\\u003c')
-        .replace(/>/g, '\\u003e')
-        .replace(/\u2028/g, '\\u2028')
-        .replace(/\u2029/g, '\\u2029');
-
-      const userApiKeysJson = JSON.stringify(req.userApiKeys || [])
-        .replace(/</g, '\\u003c')
-        .replace(/>/g, '\\u003e')
-        .replace(/\u2028/g, '\\u2028')
-        .replace(/\u2029/g, '\\u2029');
-
-      const customHtml = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Armor API Documentation</title>
-    <link rel="icon" type="image/x-icon" href="/static/images/favicon.ico">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
-    <link rel="stylesheet" type="text/css" href="/static/css/SwaggerDark.css" />
-    <link rel="stylesheet" type="text/css" href="/static/css/SwaggerDark.user.css" />
-    <style>
-        body {
-            background-color: #1a1d20;
-            color: #fff;
-            margin: 0;
-            padding: 0;
-        }
-        .auth-status {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .breadcrumb {
-            background-color: transparent;
-            margin-bottom: 0;
-        }
-        .breadcrumb-item > a {
-            color: #6c757d;
-            text-decoration: none;
-        }
-        .breadcrumb-item > a:hover {
-            color: #fff;
-        }
-        .breadcrumb-item.active {
-            color: #fff;
-        }
-        .breadcrumb-item + .breadcrumb-item::before {
-            color: #6c757d;
-        }
-        .swagger-ui {
-            margin-top: 0;
-        }
-    </style>
-</head>
-<body>
-    <div class="container mt-4">
-        <div class="d-flex align-items-center justify-content-between mb-4">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item">
-                        <span style="color: ${swaggerServerConfig.login_primary_color || '#198754'};">
-                            <i class="bi bi-book me-1"></i>API Documentation
-                        </span>
-                    </li>
-                </ol>
-            </nav>
-            <div class="auth-status">
-                <div class="dropdown">
-                    <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-person-circle me-1"></i> ${userInfo?.name || userInfo?.email || 'User'}
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="profileDropdown">
-                        <li><a class="dropdown-item" href="/"><i class="bi bi-shield me-2"></i>Dashboard</a></li>
-                        <li><a class="dropdown-item" href="/api-keys"><i class="bi bi-key me-2"></i>API Keys</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="/logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-                        <li><a class="dropdown-item" href="/logout/local"><i class="bi bi-box-arrow-left me-2"></i>Logout (Local)</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        
-        <div id="swagger-ui"></div>
-    </div>
-    
-    <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-bundle.js"></script>
-    <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-standalone-preset.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        window.swaggerSpec = ${specsJson};
-        window.userApiKeys = ${userApiKeysJson};
-    </script>
-    <script src="/static/js/swagger-custom.js"></script>
-</body>
-</html>`;
-
-      res.send(customHtml);
-    });
-
-    logger.info('API documentation enabled at /api-docs');
+  if (configLoader.getServerConfig().enable_api_docs) {
+    logger.info('API documentation enabled at /api-docs (React implementation)');
   }
 
   // API routes for file operations (upload, delete, etc.)
@@ -577,8 +414,7 @@ const startServer = async () => {
       req.path.startsWith('/api/') ||
       req.path.startsWith('/auth/') ||
       req.path.startsWith('/static/') ||
-      req.path.startsWith('/swagger/') ||
-      req.path.startsWith('/api-docs')
+      req.path.startsWith('/swagger/')
     ) {
       return next();
     }
