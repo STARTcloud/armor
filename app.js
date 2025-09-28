@@ -475,11 +475,11 @@ const startServer = async () => {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Armor API Documentation</title>
-    <link rel="icon" type="image/x-icon" href="/web/public/images/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="/static/images/favicon.ico">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
-    <link rel="stylesheet" type="text/css" href="/web/public/css/SwaggerDark.css" />
-    <link rel="stylesheet" type="text/css" href="/web/public/css/SwaggerDark.user.css" />
+    <link rel="stylesheet" type="text/css" href="/static/css/SwaggerDark.css" />
+    <link rel="stylesheet" type="text/css" href="/static/css/SwaggerDark.user.css" />
     <style>
         body {
             background-color: #1a1d20;
@@ -553,7 +553,7 @@ const startServer = async () => {
         window.swaggerSpec = ${specsJson};
         window.userApiKeys = ${userApiKeysJson};
     </script>
-    <script src="/web/public/js/swagger-custom.js"></script>
+    <script src="/static/js/swagger-custom.js"></script>
 </body>
 </html>`;
 
