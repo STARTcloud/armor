@@ -186,15 +186,51 @@ code {
   content: "\f1c1" !important; /* Bootstrap folder2 icon (outlined) */
 }
 
-/* Table column width adjustments */
-.table th:nth-child(1), /* Name column */
-.table td:nth-child(1) {
-  width: 29.25%; /* Reduced by 10% from 32.5% */
+/* Table column width adjustments - fixed layout for consistent sizing */
+.table {
+  table-layout: fixed;
 }
 
-.table th:nth-child(5), /* Checksum column */
+.table th:nth-child(1), /* Checkbox column */
+.table td:nth-child(1) {
+  width: 5%;
+  min-width: 50px;
+}
+
+.table th:nth-child(2), /* Name column */
+.table td:nth-child(2) {
+  width: 29.25%; /* Reduced by 10% from 32.5% */
+  min-width: 200px;
+}
+
+.table th:nth-child(3), /* Type column */
+.table td:nth-child(3) {
+  width: 10%;
+  min-width: 80px;
+}
+
+.table th:nth-child(4), /* Size column */
+.table td:nth-child(4) {
+  width: 12%;
+  min-width: 80px;
+}
+
+.table th:nth-child(5), /* Modified column */
 .table td:nth-child(5) {
+  width: 18%;
+  min-width: 120px;
+}
+
+.table th:nth-child(6), /* Checksum column */
+.table td:nth-child(6) {
   width: 22.5%; /* Increased by 7.5% from 15% */
+  min-width: 150px;
+}
+
+.table th:nth-child(7), /* Actions column */
+.table td:nth-child(7) {
+  width: 8.25%;
+  min-width: 120px;
 }
 
 /* Improved striped row styling for better contrast */
