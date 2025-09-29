@@ -485,6 +485,101 @@ router.put('*splat', authenticateUploads, async (req, res, next) => {
   }
 });
 
+/**
+ * @swagger
+ * /search:
+ *   post:
+ *     summary: Search files from root directory
+ *     description: Search for files by name or checksum across all directories starting from root
+ *     tags: [Search]
+ *     security:
+ *       - ApiKeyAuth: []
+ *       - JwtAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [query]
+ *             properties:
+ *               query:
+ *                 type: string
+ *                 description: Search term to look for in filenames and checksums
+ *                 example: document
+ *               page:
+ *                 type: integer
+ *                 minimum: 1
+ *                 description: Page number for pagination
+ *                 example: 1
+ *                 default: 1
+ *               limit:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 1000
+ *                 description: Maximum number of results per page
+ *                 example: 100
+ *                 default: 100
+ *     responses:
+ *       200:
+ *         description: Search completed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 query:
+ *                   type: string
+ *                   description: The search term used
+ *                   example: document
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/File'
+ *                   description: Array of matching files
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                       example: 1
+ *                     limit:
+ *                       type: integer
+ *                       example: 100
+ *                     total:
+ *                       type: integer
+ *                       example: 25
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 1
+ *                     hasNext:
+ *                       type: boolean
+ *                       example: false
+ *                     hasPrev:
+ *                       type: boolean
+ *                       example: false
+ *       400:
+ *         description: Invalid search query
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 // Handle search requests from root directory
 router.post('/search', authenticateDownloads, async (req, res) => {
   try {
@@ -938,8 +1033,8 @@ router.post('*splat', (req, res, next) => {
  * @swagger
  * /{path}:
  *   put:
- *     summary: Rename file or folder
- *     description: Rename a file or folder to a new name
+ *     summary: Rename or move files/folders
+ *     description: Rename a file or folder to a new name, or move multiple files to parent directory
  *     tags: [Files]
  *     security:
  *       - ApiKeyAuth: []
@@ -950,49 +1045,83 @@ router.post('*splat', (req, res, next) => {
  *         required: true
  *         schema:
  *           type: string
- *         description: Current file or folder path
+ *         description: Current file/folder path (for rename) or directory path (for move)
  *         example: /uploads/oldname.txt
  *       - in: query
  *         name: action
  *         required: true
  *         schema:
  *           type: string
- *           enum: [rename]
- *         description: Must be 'rename' for rename operations
+ *           enum: [rename, move]
+ *         description: Action to perform - 'rename' for single item rename, 'move' for moving multiple items to parent directory
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required: [newName]
- *             properties:
- *               newName:
- *                 type: string
- *                 description: New name for the file or folder
- *                 example: newname.txt
+ *             oneOf:
+ *               - type: object
+ *                 title: Rename Request
+ *                 required: [newName]
+ *                 properties:
+ *                   newName:
+ *                     type: string
+ *                     description: New name for the file or folder (for rename action)
+ *                     example: newname.txt
+ *               - type: object
+ *                 title: Move Request
+ *                 required: [filePaths]
+ *                 properties:
+ *                   filePaths:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                     description: Array of file paths to move to parent directory (for move action)
+ *                     example: ["/uploads/subdir/file1.txt", "/uploads/subdir/file2.txt"]
  *     responses:
  *       200:
- *         description: File or folder renamed successfully
+ *         description: Operation completed successfully
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 oldName:
- *                   type: string
- *                   example: oldname.txt
- *                 newName:
- *                   type: string
- *                   example: newname.txt
- *                 message:
- *                   type: string
- *                   example: File renamed successfully
+ *               oneOf:
+ *                 - type: object
+ *                   title: Rename Response
+ *                   properties:
+ *                     success:
+ *                       type: boolean
+ *                       example: true
+ *                     oldName:
+ *                       type: string
+ *                       example: oldname.txt
+ *                     newName:
+ *                       type: string
+ *                       example: newname.txt
+ *                     message:
+ *                       type: string
+ *                       example: File renamed successfully
+ *                 - type: object
+ *                   title: Move Response
+ *                   properties:
+ *                     success:
+ *                       type: boolean
+ *                       example: true
+ *                     movedFiles:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           oldPath:
+ *                             type: string
+ *                             example: /uploads/subdir/file1.txt
+ *                           newPath:
+ *                             type: string
+ *                             example: /uploads/file1.txt
+ *                     message:
+ *                       type: string
+ *                       example: 2 items moved successfully
  *       400:
- *         description: Invalid request or name conflict
+ *         description: Invalid request, name conflict, or cannot move from root directory
  *         content:
  *           application/json:
  *             schema:
@@ -1199,7 +1328,7 @@ router.post('*splat', authenticateUploads, upload.single('file'), async (req, re
  * /{path}:
  *   delete:
  *     summary: Delete file or directory
- *     description: Delete a file or directory (recursively) at the specified path
+ *     description: Delete a file or directory (recursively) at the specified path. Requires upload permissions (admin level).
  *     tags: [Files]
  *     security:
  *       - ApiKeyAuth: []

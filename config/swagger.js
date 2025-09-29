@@ -18,6 +18,36 @@ const options = {
         url: 'https://github.com/STARTcloud/armor_private',
       },
     },
+      tags: [
+        {
+          name: 'Authentication',
+          description: 'User authentication and session management',
+        },
+        {
+          name: 'API Keys',
+          description: 'API key creation and management for programmatic access',
+        },
+        {
+          name: 'Files',
+          description: 'File and directory operations including upload, download, and management',
+        },
+        {
+          name: 'Search',
+          description: 'File search functionality',
+        },
+        {
+          name: 'Events',
+          description: 'Server-Sent Events for real-time updates',
+        },
+        {
+          name: 'API Documentation',
+          description: 'OpenAPI specification and documentation endpoints',
+        },
+        {
+          name: 'Static Resources',
+          description: 'Static file serving (favicon, robots.txt, etc.)',
+        },
+      ],
     servers: [
       {
         url: 'https://localhost:443',
@@ -51,7 +81,7 @@ const options = {
           properties: {
             name: {
               type: 'string',
-              description: 'File or directory name',
+              description: 'File or directory name (basename)',
               example: 'document.pdf',
             },
             path: {
@@ -61,23 +91,24 @@ const options = {
             },
             size: {
               type: 'integer',
+              format: 'int64',
               description: 'File size in bytes (0 for directories)',
               example: 1024000,
             },
             mtime: {
               type: 'string',
               format: 'date-time',
-              description: 'Last modified timestamp',
+              description: 'Last modified timestamp (mapped from database last_modified)',
               example: '2025-09-22T23:42:51.207Z',
             },
             checksum: {
               type: 'string',
-              description: 'SHA256 checksum (Pending for new files, N/A for directories)',
+              description: 'SHA256 checksum (mapped from checksum_sha256, "Pending" for new files, null for directories)',
               example: '1c8bdacfd9077738c1db053d82aefd3601dc091fe94363e5ce344bdc062bf508',
             },
             isDirectory: {
               type: 'boolean',
-              description: 'Whether the item is a directory',
+              description: 'Whether the item is a directory (mapped from is_directory)',
               example: false,
             },
           },
@@ -128,9 +159,15 @@ const options = {
               description: 'Creation timestamp',
               example: '2025-09-22T23:42:51.207Z',
             },
+            updated_at: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Last update timestamp',
+              example: '2025-09-22T23:42:51.207Z',
+            },
             is_expired: {
               type: 'boolean',
-              description: 'Whether the key has expired',
+              description: 'Whether the key has expired (computed field)',
               example: false,
             },
           },

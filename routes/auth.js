@@ -19,6 +19,22 @@ import {
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * /login:
+ *   get:
+ *     summary: Serve login page
+ *     description: Serves the main login page (React application) for user authentication
+ *     tags: [Authentication]
+ *     responses:
+ *       200:
+ *         description: Login page served successfully
+ *         content:
+ *           text/html:
+ *             schema:
+ *               type: string
+ *               description: HTML content of the login page
+ */
 router.get('/login', (req, res) => {
   console.log('Login page requested from:', req.ip);
   res.sendFile('index.html', { root: './web/dist' });
@@ -149,6 +165,46 @@ router.get('/auth/methods', (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /auth/oidc/callback:
+ *   get:
+ *     summary: OIDC authentication callback
+ *     description: Handles the OAuth2/OIDC callback from authentication providers after user authorization
+ *     tags: [Authentication]
+ *     parameters:
+ *       - in: query
+ *         name: code
+ *         schema:
+ *           type: string
+ *         description: Authorization code from OIDC provider
+ *         example: abc123...
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: State parameter for CSRF protection
+ *         example: xyz789...
+ *       - in: query
+ *         name: error
+ *         schema:
+ *           type: string
+ *         description: Error code if authentication failed
+ *         example: access_denied
+ *     responses:
+ *       302:
+ *         description: Redirect after successful or failed authentication
+ *         headers:
+ *           Location:
+ *             schema:
+ *               type: string
+ *               example: /?success=true
+ *           Set-Cookie:
+ *             schema:
+ *               type: string
+ *               description: JWT authentication cookie (on success)
+ *               example: auth_token=jwt.token.here; HttpOnly; Secure
+ */
 router.get('/auth/oidc/callback', async (req, res) => {
   logger.info('OIDC callback received', {
     sessionId: req.sessionID,
@@ -235,6 +291,37 @@ router.get('/auth/oidc/callback', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /auth/oidc/{provider}:
+ *   get:
+ *     summary: Initiate OIDC authentication
+ *     description: Start OAuth2/OIDC authentication flow with the specified provider
+ *     tags: [Authentication]
+ *     parameters:
+ *       - in: path
+ *         name: provider
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: OIDC provider identifier (configured in authentication settings)
+ *         example: google
+ *       - in: query
+ *         name: return
+ *         schema:
+ *           type: string
+ *         description: URL to redirect to after successful authentication
+ *         example: /files/uploads
+ *     responses:
+ *       302:
+ *         description: Redirect to OIDC provider authorization endpoint
+ *         headers:
+ *           Location:
+ *             schema:
+ *               type: string
+ *               description: Authorization URL for the OIDC provider
+ *               example: https://accounts.google.com/oauth/authorize?client_id=...
+ */
 router.get('/auth/oidc/:provider', async (req, res) => {
   const { provider } = req.params;
 
@@ -547,6 +634,23 @@ router.post('/auth/login/basic', (req, res) => {
   });
 });
 
+/**
+ * @swagger
+ * /logout:
+ *   get:
+ *     summary: Logout user via GET request
+ *     description: Clear authentication token and logout the user, with OIDC provider logout support
+ *     tags: [Authentication]
+ *     responses:
+ *       302:
+ *         description: Redirect after logout
+ *         headers:
+ *           Location:
+ *             schema:
+ *               type: string
+ *               description: Redirect location after logout
+ *               example: /login?logout=success
+ */
 router.get('/logout', (req, res) => {
   try {
     // Extract JWT token to determine authentication method
@@ -681,12 +785,63 @@ router.post('/auth/logout/local', (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /web/public/images/favicon.ico:
+ *   get:
+ *     summary: Serve favicon
+ *     description: Serves the application favicon with caching headers
+ *     tags: [Static Resources]
+ *     responses:
+ *       200:
+ *         description: Favicon served successfully
+ *         content:
+ *           image/x-icon:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *               description: Favicon image file
+ *         headers:
+ *           Cache-Control:
+ *             schema:
+ *               type: string
+ *               example: public, max-age=86400
+ */
 router.get('/web/public/images/favicon.ico', (req, res) => {
   logger.debug('Serving favicon', { ip: req.ip, userAgent: req.get('User-Agent') });
   res.set('Cache-Control', 'public, max-age=86400');
   return res.sendFile('/web/public/images/favicon.ico', { root: '.' });
 });
 
+/**
+ * @swagger
+ * /robots.txt:
+ *   get:
+ *     summary: Serve robots.txt
+ *     description: Serves the robots.txt file for search engine crawlers with caching headers
+ *     tags: [Static Resources]
+ *     responses:
+ *       200:
+ *         description: Robots.txt served successfully
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               description: Robots.txt directives for web crawlers
+ *               example: |
+ *                 User-agent: *
+ *                 Disallow: /api/
+ *                 Disallow: /auth/
+ *         headers:
+ *           Cache-Control:
+ *             schema:
+ *               type: string
+ *               example: public, max-age=86400
+ *           Content-Type:
+ *             schema:
+ *               type: string
+ *               example: text/plain
+ */
 router.get('/robots.txt', (req, res) => {
   logger.debug('Serving robots.txt', { ip: req.ip, userAgent: req.get('User-Agent') });
   res.set('Cache-Control', 'public, max-age=86400');

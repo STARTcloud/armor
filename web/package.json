@@ -19,7 +19,7 @@
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.3",
     "register-service-worker": "^1.7.2",
-    "swagger-ui-react": "^5.29.0",
+    "swagger-ui-react": "^5.28.0",
     "web-vitals": "^5.1.0"
   },
   "scripts": {
@@ -59,8 +59,8 @@
     "@eslint/js": "^9.36.0",
     "@eslint/json": "^0.13.2",
     "@eslint/markdown": "^7.3.0",
-    "@rollup/wasm-node": "^4.52.2",
-    "@vitejs/plugin-react": "^5.0.3",
+    "@rollup/wasm-node": "^4.52.3",
+    "@vitejs/plugin-react": "^5.0.4",
     "cross-env": "^10.0.0",
     "eslint": "^9.36.0",
     "eslint-config-prettier": "^10.1.8",
@@ -74,9 +74,26 @@
     "less-watch-compiler": "^1.16.3",
     "npm-run-all": "^4.1.5",
     "prettier": "^3.6.2",
-    "rollup": "npm:@rollup/wasm-node@^4.52.2",
+    "rollup": "npm:@rollup/wasm-node@^4.52.3",
     "sass": "^1.93.2",
     "vite": "^7.1.7",
     "yaml": "^2.8.1"
+  },
+  "overrides": {
+    "swagger-ui-react": {
+      "react-copy-to-clipboard": {
+        "react": "$react"
+      },
+      "react-debounce-input": {
+        "react": "$react"
+      },
+      "react-inspector": {
+        "react": "$react"
+      }
+    },
+    "@braintree/sanitize-url": "^6.0.4",
+    "dompurify": "^3.2.4",
+    "fast-json-patch": "^3.1.1",
+    "cookie": "^0.7.2"
   }
 }

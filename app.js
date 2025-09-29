@@ -120,7 +120,66 @@ const startServer = async () => {
 
   app.use('/api/api-keys', apiKeyRoutes);
 
-  // API endpoint to get user's API keys for Swagger
+  /**
+   * @swagger
+   * /api/user-api-keys:
+   *   get:
+   *     summary: Get user's API keys for Swagger UI
+   *     description: Retrieve the current user's API keys that can be used for authorization in Swagger UI
+   *     tags: [API Keys]
+   *     security:
+   *       - JwtAuth: []
+   *     responses:
+   *       200:
+   *         description: Successfully retrieved user API keys
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *                 api_keys:
+   *                   type: array
+   *                   items:
+   *                     $ref: '#/components/schemas/ApiKey'
+   *                   description: Array of user's API keys
+   *                 user_permissions:
+   *                   type: array
+   *                   items:
+   *                     type: string
+   *                     enum: [downloads, uploads, delete]
+   *                   description: User's current permissions
+   *                   example: ['downloads', 'uploads']
+   *                 swagger_config:
+   *                   type: object
+   *                   properties:
+   *                     allow_full_key_retrieval:
+   *                       type: boolean
+   *                       description: Whether full key retrieval is enabled
+   *                       example: true
+   *                     allow_temp_key_generation:
+   *                       type: boolean
+   *                       description: Whether temporary key generation is enabled
+   *                       example: true
+   *                     temp_key_expiration_hours:
+   *                       type: integer
+   *                       description: Hours until temporary keys expire
+   *                       example: 1
+   *       401:
+   *         description: Authentication required
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       500:
+   *         description: Server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   */
   app.get('/api/user-api-keys', async (req, res) => {
     try {
       let userApiKeys = [];
@@ -191,7 +250,80 @@ const startServer = async () => {
     }
   });
 
-  // Get full API key for Swagger authorization (when enabled in config)
+  /**
+   * @swagger
+   * /api/user-api-keys/{id}/full:
+   *   post:
+   *     summary: Get full API key for Swagger authorization
+   *     description: Retrieve the complete API key for use in Swagger UI when full key retrieval is enabled in configuration
+   *     tags: [API Keys]
+   *     security:
+   *       - JwtAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: integer
+   *         description: API key ID
+   *         example: 1
+   *     responses:
+   *       200:
+   *         description: Full API key retrieved successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *                 full_key:
+   *                   type: string
+   *                   description: Complete API key for authentication
+   *                   example: aL6uDnFgRRQJD0A6uKMNOf3K3jHnnt
+   *                 name:
+   *                   type: string
+   *                   description: API key name
+   *                   example: CI Pipeline
+   *                 permissions:
+   *                   type: array
+   *                   items:
+   *                     type: string
+   *                     enum: [downloads, uploads, delete]
+   *                   description: Key permissions
+   *                   example: ['downloads', 'uploads']
+   *       400:
+   *         description: Full key not available for this API key
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       401:
+   *         description: Authentication required
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       403:
+   *         description: Full key retrieval is disabled in configuration
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       404:
+   *         description: API key not found or not retrievable
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       500:
+   *         description: Server error or key decryption failed
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   */
   app.post('/api/user-api-keys/:id/full', async (req, res) => {
     try {
       const swaggerConfig = configLoader.getSwaggerConfig();
@@ -298,7 +430,72 @@ const startServer = async () => {
     }
   });
 
-  // Generate temporary API key for Swagger testing
+  /**
+   * @swagger
+   * /api/user-api-keys/temp:
+   *   post:
+   *     summary: Generate temporary API key for Swagger testing
+   *     description: Generate a temporary API key for testing API endpoints in Swagger UI. The key expires after a configured time period.
+   *     tags: [API Keys]
+   *     security:
+   *       - JwtAuth: []
+   *     responses:
+   *       200:
+   *         description: Temporary API key generated successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   example: true
+   *                 message:
+   *                   type: string
+   *                   example: Temporary API key generated for Swagger testing
+   *                 temp_key:
+   *                   type: object
+   *                   properties:
+   *                     key:
+   *                       type: string
+   *                       description: Temporary API key for authentication
+   *                       example: temp_aL6uDnFgRRQJD0A6uKMNOf3K3jHnnt
+   *                     permissions:
+   *                       type: array
+   *                       items:
+   *                         type: string
+   *                         enum: [downloads, uploads, delete]
+   *                       description: User's permissions granted to temp key
+   *                       example: ['downloads', 'uploads']
+   *                     expires_at:
+   *                       type: string
+   *                       format: date-time
+   *                       description: Temporary key expiration timestamp
+   *                       example: 2025-09-29T15:30:10.123Z
+   *                     type:
+   *                       type: string
+   *                       enum: [temporary]
+   *                       description: Key type identifier
+   *                       example: temporary
+   *       401:
+   *         description: Authentication required
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       403:
+   *         description: Temporary key generation is disabled in configuration
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   *       500:
+   *         description: Server error
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/ErrorResponse'
+   */
   app.post('/api/user-api-keys/temp', (req, res) => {
     try {
       const swaggerConfig = configLoader.getSwaggerConfig();
@@ -392,6 +589,41 @@ const startServer = async () => {
     logger.warn('Frontend dist directory not found. Run "npm run build" to build the frontend.');
   }
 
+  /**
+   * @swagger
+   * /api/swagger.json:
+   *   get:
+   *     summary: Get OpenAPI specification
+   *     description: Returns the complete OpenAPI 3.0 specification for this API in JSON format
+   *     tags: [API Documentation]
+   *     responses:
+   *       200:
+   *         description: OpenAPI specification retrieved successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               description: Complete OpenAPI 3.0 specification document
+   *               properties:
+   *                 openapi:
+   *                   type: string
+   *                   example: "3.0.4"
+   *                 info:
+   *                   type: object
+   *                   properties:
+   *                     title:
+   *                       type: string
+   *                       example: "File Server API"
+   *                     version:
+   *                       type: string
+   *                       example: "1.0.0"
+   *                 paths:
+   *                   type: object
+   *                   description: All API endpoints and their specifications
+   *                 components:
+   *                   type: object
+   *                   description: Reusable components including schemas and security schemes
+   */
   app.get('/api/swagger.json', (req, res) => {
     console.log('Serving OpenAPI spec for React Swagger UI', req.path);
     res.json(specs);

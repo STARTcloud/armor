@@ -88,3 +88,10 @@ authentication:
         values: ["file-admins"]
       - claim: "role"
         values: ["admin"]
+
+rate_limiting:
+  window_minutes: 10                                                        # Time window in minutes
+  max_requests: 100                                                         # Maximum requests per window (production default)
+  message: "Too many requests from this IP, please try again later."       # Error message shown to users
+  skip_successful_requests: false                                           # Whether to skip counting successful requests
+  skip_failed_requests: false                                               # Whether to skip counting failed requests
