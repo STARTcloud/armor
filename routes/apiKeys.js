@@ -459,7 +459,7 @@ router.put('/:id', async (req, res) => {
       });
     }
 
-    const currentUser = await getCurrentUser(req);
+    const currentUser = getCurrentUser(req);
     const ApiKey = getApiKeyModel();
 
     const whereClause = {

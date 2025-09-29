@@ -63,7 +63,6 @@ const SwaggerDocsPage = () => {
 
   return (
     <div className="swagger-container">
-
       <SwaggerUI
         spec={swaggerSpec}
         deepLinking

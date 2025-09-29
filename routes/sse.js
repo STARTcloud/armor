@@ -28,16 +28,16 @@ let clients = [];
  *               example: |
  *                 event: checksum-update
  *                 data: {"type":"checksum_complete","filePath":"/uploads/file.txt","checksum":"abc123...","timestamp":"2025-09-29T14:30:00.000Z"}
- *                 
+ *
  *                 event: file-deleted
  *                 data: {"type":"file_deleted","filePath":"/uploads/old.txt","isDirectory":false,"timestamp":"2025-09-29T14:31:00.000Z"}
- *                 
+ *
  *                 event: file-added
  *                 data: {"type":"file_added","filePath":"/uploads/new.txt","size":1024,"timestamp":"2025-09-29T14:32:00.000Z"}
- *                 
+ *
  *                 event: file-renamed
  *                 data: {"type":"file_renamed","oldPath":"/uploads/old.txt","newPath":"/uploads/new.txt","isDirectory":false,"timestamp":"2025-09-29T14:33:00.000Z"}
- *                 
+ *
  *                 event: folder-created
  *                 data: {"type":"folder_created","folderPath":"/uploads/new-folder","timestamp":"2025-09-29T14:34:00.000Z"}
  *         headers:

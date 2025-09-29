@@ -34,7 +34,12 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format:check": "prettier --check .",
-    "format:fix": "prettier --write ."
+    "format:fix": "prettier --write .",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest --watch"
   },
   "eslintConfig": {
     "extends": [
@@ -60,6 +65,8 @@
     "@eslint/json": "^0.13.2",
     "@eslint/markdown": "^7.3.0",
     "@rollup/wasm-node": "^4.52.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^5.0.4",
     "cross-env": "^10.0.0",
     "eslint": "^9.36.0",

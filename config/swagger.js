@@ -18,36 +18,36 @@ const options = {
         url: 'https://github.com/STARTcloud/armor_private',
       },
     },
-      tags: [
-        {
-          name: 'Authentication',
-          description: 'User authentication and session management',
-        },
-        {
-          name: 'API Keys',
-          description: 'API key creation and management for programmatic access',
-        },
-        {
-          name: 'Files',
-          description: 'File and directory operations including upload, download, and management',
-        },
-        {
-          name: 'Search',
-          description: 'File search functionality',
-        },
-        {
-          name: 'Events',
-          description: 'Server-Sent Events for real-time updates',
-        },
-        {
-          name: 'API Documentation',
-          description: 'OpenAPI specification and documentation endpoints',
-        },
-        {
-          name: 'Static Resources',
-          description: 'Static file serving (favicon, robots.txt, etc.)',
-        },
-      ],
+    tags: [
+      {
+        name: 'Authentication',
+        description: 'User authentication and session management',
+      },
+      {
+        name: 'API Keys',
+        description: 'API key creation and management for programmatic access',
+      },
+      {
+        name: 'Files',
+        description: 'File and directory operations including upload, download, and management',
+      },
+      {
+        name: 'Search',
+        description: 'File search functionality',
+      },
+      {
+        name: 'Events',
+        description: 'Server-Sent Events for real-time updates',
+      },
+      {
+        name: 'API Documentation',
+        description: 'OpenAPI specification and documentation endpoints',
+      },
+      {
+        name: 'Static Resources',
+        description: 'Static file serving (favicon, robots.txt, etc.)',
+      },
+    ],
     servers: [
       {
         url: 'https://localhost:443',
@@ -103,7 +103,8 @@ const options = {
             },
             checksum: {
               type: 'string',
-              description: 'SHA256 checksum (mapped from checksum_sha256, "Pending" for new files, null for directories)',
+              description:
+                'SHA256 checksum (mapped from checksum_sha256, "Pending" for new files, null for directories)',
               example: '1c8bdacfd9077738c1db053d82aefd3601dc091fe94363e5ce344bdc062bf508',
             },
             isDirectory: {

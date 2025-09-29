@@ -26,7 +26,14 @@
     "lint": "npm run lint:all",
     "lint:fix:all": "npm run lint:backend:fix && npm run lint:frontend:fix",
     "format:check": "prettier --check .",
-    "format:fix": "prettier --write ."
+    "format:fix": "prettier --write .",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest --watch",
+    "test:frontend": "cd web && npm run test",
+    "test:all": "npm run test:run && npm run test:frontend"
   },
   "dependencies": {
     "basic-auth": "^2.0.1",
@@ -59,10 +66,13 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@vitest/ui": "^3.2.4",
     "eslint": "^9.36.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "globals": "^16.4.0",
-    "prettier": "^3.6.2"
+    "prettier": "^3.6.2",
+    "supertest": "^7.1.4",
+    "vitest": "^3.2.4"
   }
 }

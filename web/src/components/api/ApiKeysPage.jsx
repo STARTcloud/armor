@@ -455,7 +455,9 @@ const ApiKeysPage = () => {
                       />
                     )}
                   </th>
-                  <th scope="col" width="120">Actions</th>
+                  <th scope="col" width="120">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -494,7 +496,9 @@ const ApiKeysPage = () => {
                         <td>
                           {key.name}
                           {expired && (
-                            <span className="badge bg-danger ms-2">Expired</span>
+                            <span className="badge bg-danger ms-2">
+                              Expired
+                            </span>
                           )}
                         </td>
                         <td>
@@ -526,7 +530,9 @@ const ApiKeysPage = () => {
                             }
                             tabIndex={key.is_retrievable && !expired ? 0 : -1}
                             role={
-                              key.is_retrievable && !expired ? "button" : undefined
+                              key.is_retrievable && !expired
+                                ? "button"
+                                : undefined
                             }
                             title={
                               key.is_retrievable && !expired
@@ -550,7 +556,9 @@ const ApiKeysPage = () => {
                           )}
                         </td>
                         <td>
-                          {key.expires_at ? formatDate(key.expires_at) : "Never"}
+                          {key.expires_at
+                            ? formatDate(key.expires_at)
+                            : "Never"}
                         </td>
                         <td>{formatDate(key.last_used || key.lastUsedAt)}</td>
                         <td>

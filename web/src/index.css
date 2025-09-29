@@ -476,7 +476,9 @@ body {
   border-color: #157347 !important;
 }
 
-.swagger-ui input, .swagger-ui select, .swagger-ui textarea {
+.swagger-ui input,
+.swagger-ui select,
+.swagger-ui textarea {
   background: #374151 !important;
   border: 1px solid #4a5568 !important;
   color: #fff !important;
