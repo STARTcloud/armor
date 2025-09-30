@@ -52,10 +52,17 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm run cinstall:all:nodev
+        run: npm run cinstall:all
 
       - name: Build frontend
         run: npm run build
+
+      - name: Remove dev dependencies for packaging
+        run: |
+          # Remove dev dependencies after building but before packaging
+          rm -rf node_modules
+          npm run cinstall:backend:nodev
+          cd web && rm -rf node_modules && npm run cinstall:nodev
 
       - name: Set Debian package variables
         run: |
