@@ -72,11 +72,11 @@ const CreateFolderModal = ({ show, onHide, onCreateFolder }) => {
           </div>
           <form onSubmit={handleSubmit}>
             <div className="modal-body">
-              {validationError && (
+              {validationError ? (
                 <div className="alert alert-danger" role="alert">
                   {validationError}
                 </div>
-              )}
+              ) : null}
               <div className="mb-3">
                 <label htmlFor="folderName" className="form-label text-light">
                   Folder Name

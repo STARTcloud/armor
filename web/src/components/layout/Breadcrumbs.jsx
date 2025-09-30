@@ -67,9 +67,9 @@ const Breadcrumbs = () => {
                     style={{ color: primaryColor }}
                   />
                 )}
-                {index !== 0 && crumb.isHome && (
+                {index !== 0 && crumb.isHome ? (
                   <i className="bi bi-house me-1 text-light" />
-                )}
+                ) : null}
                 {index !== 0 && !crumb.isHome && (
                   <i className="bi bi-folder2 me-1 text-light" />
                 )}
@@ -83,9 +83,9 @@ const Breadcrumbs = () => {
                     style={{ color: primaryColor }}
                   />
                 )}
-                {index !== 0 && crumb.isHome && (
+                {index !== 0 && crumb.isHome ? (
                   <i className="bi bi-house me-1 text-light" />
-                )}
+                ) : null}
                 {index !== 0 && !crumb.isHome && (
                   <i className="bi bi-folder2 me-1 text-light" />
                 )}

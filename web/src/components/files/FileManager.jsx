@@ -273,7 +273,7 @@ const FileManager = () => {
 
   return (
     <div className="container-fluid py-4">
-      {error && (
+      {Boolean(error) && (
         <div
           className="alert alert-danger alert-dismissible fade show"
           role="alert"
@@ -289,7 +289,7 @@ const FileManager = () => {
       )}
 
       {/* Upload Zone */}
-      {showUpload && (
+      {Boolean(showUpload) && (
         <UploadZone
           currentPath={currentPath}
           onUploadComplete={() => loadFiles()}

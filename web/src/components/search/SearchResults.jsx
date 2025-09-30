@@ -1,17 +1,38 @@
 import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 
-const SearchChecksumDisplay = ({
-  file,
-  query,
-  onCopyChecksum,
+import {
+  formatSize,
+  formatDate,
+  getFileIcon,
   highlightMatch,
-}) => {
+} from "../../utils/fileHelpers";
+
+const getFileLink = (file) => {
+  if (file.isDirectory) {
+    return `/browse${file.path}`;
+  }
+  return `/api/files${file.path}`;
+};
+
+const SearchChecksumDisplay = ({ file, query, onCopyChecksum }) => {
   if (file.checksum) {
+    const highlighted = highlightMatch(
+      `${file.checksum.substring(0, 16)}...`,
+      query
+    );
     return (
       <div className="d-flex align-items-center">
         <code className="text-success me-2" style={{ fontSize: "0.8em" }}>
-          {highlightMatch(`${file.checksum.substring(0, 16)}...`, query)}
+          {highlighted.map((part) =>
+            part.isHighlight ? (
+              <mark key={part.key} className="bg-warning text-dark">
+                {part.text}
+              </mark>
+            ) : (
+              <span key={part.key}>{part.text}</span>
+            )
+          )}
         </code>
         <button
           className="btn btn-sm btn-outline-secondary"
@@ -45,103 +66,9 @@ SearchChecksumDisplay.propTypes = {
   }).isRequired,
   query: PropTypes.string.isRequired,
   onCopyChecksum: PropTypes.func.isRequired,
-  highlightMatch: PropTypes.func.isRequired,
 };
 
 const SearchResults = ({ results, query, onClear }) => {
-  const formatSize = (bytes) => {
-    if (!bytes || bytes === 0) {
-      return "-";
-    }
-    const sizes = ["B", "KB", "MB", "GB", "TB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return `${Math.round((bytes / 1024 ** i) * 100) / 100} ${sizes[i]}`;
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) {
-      return "-";
-    }
-    return new Date(dateString).toLocaleString();
-  };
-
-  const getFileIcon = (file) => {
-    if (file.isDirectory) {
-      return "bi-folder2 text-light";
-    }
-
-    const ext = file.name?.split(".").pop()?.toLowerCase();
-    switch (ext) {
-      case "pdf":
-        return "bi-file-earmark-pdf text-danger";
-      case "jpg":
-      case "jpeg":
-      case "png":
-      case "gif":
-      case "svg":
-        return "bi-file-earmark-image text-info";
-      case "mp4":
-      case "avi":
-      case "mov":
-        return "bi-file-earmark-play text-primary";
-      case "mp3":
-      case "wav":
-      case "flac":
-        return "bi-file-earmark-music text-success";
-      case "zip":
-      case "rar":
-      case "7z":
-      case "tar":
-      case "gz":
-        return "bi-file-earmark-zip text-secondary";
-      case "txt":
-      case "md":
-        return "bi-file-earmark-text text-light";
-      case "js":
-      case "jsx":
-      case "ts":
-      case "tsx":
-      case "html":
-      case "css":
-      case "json":
-        return "bi-file-earmark-code text-info";
-      default:
-        return "bi-file-earmark text-light";
-    }
-  };
-
-  const getFileLink = (file) => {
-    if (file.isDirectory) {
-      return `/browse${file.path}`;
-    }
-    return `/api/files${file.path}`;
-  };
-
-  const highlightMatch = (text, searchQuery) => {
-    if (!searchQuery || !text) {
-      return text;
-    }
-
-    const regex = new RegExp(
-      `(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
-      "gi"
-    );
-    const parts = text.split(regex);
-
-    return parts.map((part, index) => {
-      const isHighlight = regex.test(part);
-      const key = isHighlight ? `highlight-${part}-${index}` : `text-${index}`;
-
-      return isHighlight ? (
-        <mark key={key} className="bg-warning text-dark">
-          {part}
-        </mark>
-      ) : (
-        <span key={key}>{part}</span>
-      );
-    });
-  };
-
   const handleCopyChecksum = async (checksum) => {
     try {
       await navigator.clipboard.writeText(checksum);
@@ -221,7 +148,18 @@ const SearchResults = ({ results, query, onClear }) => {
                         to={getFileLink(file)}
                         className="text-decoration-none text-light"
                       >
-                        {highlightMatch(file.name, query)}
+                        {highlightMatch(file.name, query).map((part) =>
+                          part.isHighlight ? (
+                            <mark
+                              key={part.key}
+                              className="bg-warning text-dark"
+                            >
+                              {part.text}
+                            </mark>
+                          ) : (
+                            <span key={part.key}>{part.text}</span>
+                          )
+                        )}
                       </Link>
                     ) : (
                       <a
@@ -230,7 +168,18 @@ const SearchResults = ({ results, query, onClear }) => {
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        {highlightMatch(file.name, query)}
+                        {highlightMatch(file.name, query).map((part) =>
+                          part.isHighlight ? (
+                            <mark
+                              key={part.key}
+                              className="bg-warning text-dark"
+                            >
+                              {part.text}
+                            </mark>
+                          ) : (
+                            <span key={part.key}>{part.text}</span>
+                          )
+                        )}
                       </a>
                     )}
                   </div>
@@ -241,13 +190,12 @@ const SearchResults = ({ results, query, onClear }) => {
                 <td className="text-muted">
                   {file.isDirectory ? "-" : formatSize(file.size)}
                 </td>
-                <td className="text-muted">{formatDate(file.mtime)}</td>
+                <td className="text-muted">{formatDate(file.mtime, "-")}</td>
                 <td>
                   <SearchChecksumDisplay
                     file={file}
                     query={query}
                     onCopyChecksum={handleCopyChecksum}
-                    highlightMatch={highlightMatch}
                   />
                 </td>
                 <td>
@@ -263,7 +211,7 @@ const SearchResults = ({ results, query, onClear }) => {
                         <i className="bi bi-download" />
                       </a>
                     )}
-                    {file.isDirectory ? (
+                    {Boolean(file.isDirectory) && (
                       <Link
                         to={getFileLink(file)}
                         className="btn btn-outline-primary"
@@ -271,7 +219,7 @@ const SearchResults = ({ results, query, onClear }) => {
                       >
                         <i className="bi bi-folder-open" />
                       </Link>
-                    ) : null}
+                    )}
                   </div>
                 </td>
               </tr>

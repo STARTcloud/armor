@@ -140,7 +140,7 @@ const LoginPage = () => {
                 <p className="powered-by-text mb-0">{subtitle}</p>
               </div>
 
-              {error && (
+              {Boolean(error) && (
                 <div className="alert alert-danger" role="alert">
                   {error}
                 </div>
@@ -175,14 +175,14 @@ const LoginPage = () => {
               )}
 
               {/* Divider between OIDC and Basic Auth */}
-              {oidcMethods.length > 0 && hasBasicAuth && (
+              {Boolean(oidcMethods.length > 0 && hasBasicAuth) && (
                 <div className="divider">
                   <span />
                 </div>
               )}
 
               {/* Basic Auth Form */}
-              {hasBasicAuth && (
+              {Boolean(hasBasicAuth) && (
                 <>
                   <h5 className="text-light mb-3 text-center">Basic Auth</h5>
                   <form onSubmit={handleBasicAuth}>

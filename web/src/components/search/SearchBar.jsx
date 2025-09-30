@@ -42,7 +42,7 @@ const SearchBar = ({ onSearch, onClear, value }) => {
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
         />
-        {query && (
+        {query ? (
           <button
             type="button"
             className="btn btn-outline-secondary position-absolute"
@@ -57,7 +57,7 @@ const SearchBar = ({ onSearch, onClear, value }) => {
           >
             <i className="bi bi-x" />
           </button>
-        )}
+        ) : null}
         <button
           type="button"
           className="btn btn-outline-light"

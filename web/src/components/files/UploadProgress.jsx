@@ -49,9 +49,9 @@ const UploadProgress = ({ upload, onRemove, onRetry }) => {
             <small className="text-muted">
               {formatFileSize(upload.file.size)}
               {upload.status === "uploading" && ` • ${upload.progress}%`}
-              {upload.status === "error" &&
-                upload.error &&
-                ` • ${upload.error}`}
+              {upload.status === "error" && upload.error
+                ? ` • ${upload.error}`
+                : null}
             </small>
           </div>
         </div>

@@ -2,6 +2,8 @@ import PropTypes from "prop-types";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
+import { getFileIcon, formatSize, formatDate } from "../../utils/fileHelpers";
+
 const FileNameLink = ({ file, getFileLink }) => {
   if (file.isDirectory) {
     return (
@@ -75,8 +77,6 @@ const FileRow = ({
   currentPath,
   onDelete,
   onRename,
-  formatSize,
-  formatDate,
   isSelected,
   onSelectionChange,
 }) => {
@@ -163,51 +163,6 @@ const FileRow = ({
     }
   };
 
-  const getFileIcon = () => {
-    if (file.isDirectory) {
-      return "bi-folder2 text-light";
-    }
-
-    const ext = file.name?.split(".").pop()?.toLowerCase();
-    switch (ext) {
-      case "pdf":
-        return "bi-file-earmark-pdf text-danger";
-      case "jpg":
-      case "jpeg":
-      case "png":
-      case "gif":
-      case "svg":
-        return "bi-file-earmark-image text-info";
-      case "mp4":
-      case "avi":
-      case "mov":
-        return "bi-file-earmark-play text-primary";
-      case "mp3":
-      case "wav":
-      case "flac":
-        return "bi-file-earmark-music text-success";
-      case "zip":
-      case "rar":
-      case "7z":
-      case "tar":
-      case "gz":
-        return "bi-file-earmark-zip text-secondary";
-      case "txt":
-      case "md":
-        return "bi-file-earmark-text text-light";
-      case "js":
-      case "jsx":
-      case "ts":
-      case "tsx":
-      case "html":
-      case "css":
-      case "json":
-        return "bi-file-earmark-code text-info";
-      default:
-        return "bi-file-earmark text-light";
-    }
-  };
-
   const getFileLink = () => {
     if (file.isDirectory) {
       const newPath =
@@ -242,7 +197,7 @@ const FileRow = ({
       <td>
         <div className="d-flex align-items-center">
           <i
-            className={`bi ${getFileIcon()} me-2`}
+            className={`bi ${getFileIcon(file)} me-2`}
             style={{ cursor: "pointer" }}
             onMouseDown={handleIconMouseDown}
             onMouseUp={handleIconMouseUp}
@@ -343,8 +298,6 @@ FileRow.propTypes = {
   currentPath: PropTypes.string.isRequired,
   onDelete: PropTypes.func.isRequired,
   onRename: PropTypes.func.isRequired,
-  formatSize: PropTypes.func.isRequired,
-  formatDate: PropTypes.func.isRequired,
   isSelected: PropTypes.bool.isRequired,
   onSelectionChange: PropTypes.func.isRequired,
 };
