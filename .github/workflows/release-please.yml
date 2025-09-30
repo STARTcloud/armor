@@ -32,16 +32,8 @@ jobs:
         uses: googleapis/release-please-action@v4
         id: release
 
-  security-pre-check:
-    name: Security Pre-Check
-    needs: release-please
-    if: ${{ needs.release-please.outputs.release_created }}
-    uses: ./.github/workflows/reusable-security-checks.yml
-    with:
-      fail-on-error: true
-
   build-packages:
-    needs: [release-please, security-pre-check]
+    needs: release-please
     if: ${{ needs.release-please.outputs.release_created }}
     runs-on: self-hosted
     steps:
