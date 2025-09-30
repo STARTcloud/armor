@@ -1,45 +1,83 @@
-name: Release Please
+name: Development Build
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
-  actions: write
+  contents: read
 
 jobs:
-  release-please:
+  check-trigger:
+    name: Check if triggered by Release Please
     runs-on: ubuntu-latest
     outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
-      major: ${{ steps.release.outputs.major }}
-      minor: ${{ steps.release.outputs.minor }}
-      patch: ${{ steps.release.outputs.patch }}
+      should_build: ${{ steps.check.outputs.should_build }}
+      dev_version: ${{ steps.version.outputs.dev_version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
 
-      - name: Release Please
-        uses: googleapis/release-please-action@v4
-        id: release
+      - name: Check if triggered by Release Please
+        id: check
+        run: |
+          # Get the commit message and author
+          COMMIT_MESSAGE=$(git log -1 --pretty=format:"%s")
+          COMMIT_AUTHOR=$(git log -1 --pretty=format:"%an")
+          
+          echo "Commit message: $COMMIT_MESSAGE"
+          echo "Commit author: $COMMIT_AUTHOR"
+          
+          # Skip if this is a release-please commit
+          if [[ "$COMMIT_MESSAGE" =~ ^chore\(main\): ]] || [[ "$COMMIT_AUTHOR" == "github-actions[bot]" ]]; then
+            echo "Skipping development build - triggered by Release Please"
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          else
+            echo "Proceeding with development build"
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Calculate development version
+        id: version
+        if: steps.check.outputs.should_build == 'true'
+        run: |
+          # Get current version from package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          
+          # Split version into parts
+          IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
+          MAJOR=${VERSION_PARTS[0]}
+          MINOR=${VERSION_PARTS[1]}
+          PATCH=${VERSION_PARTS[2]}
+          
+          # Increment patch version for development
+          NEW_PATCH=$((PATCH + 1))
+          DEV_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}-dev"
+          
+          echo "Current version: $CURRENT_VERSION"
+          echo "Development version: $DEV_VERSION"
+          echo "dev_version=$DEV_VERSION" >> $GITHUB_OUTPUT
 
   security-pre-check:
     name: Security Pre-Check
-    needs: release-please
-    if: ${{ needs.release-please.outputs.release_created }}
+    needs: check-trigger
+    if: needs.check-trigger.outputs.should_build == 'true'
     uses: ./.github/workflows/reusable/security-checks.yml
     with:
       fail-on-error: true
 
-  build-packages:
-    needs: [release-please, security-pre-check]
-    if: ${{ needs.release-please.outputs.release_created }}
+  build-development-packages:
+    name: Build Development Packages
+    needs: [check-trigger, security-pre-check]
+    if: needs.check-trigger.outputs.should_build == 'true'
     runs-on: self-hosted
+    env:
+      VERSION: ${{ needs.check-trigger.outputs.dev_version }}
+      PACKAGE_NAME: armor-dev
+      ARCH: amd64
     steps:
       # Debian Build Steps
       - name: Checkout for Debian build
@@ -56,12 +94,6 @@ jobs:
 
       - name: Build frontend
         run: npm run build
-
-      - name: Set Debian package variables
-        run: |
-          echo "VERSION=${{ needs.release-please.outputs.major }}.${{ needs.release-please.outputs.minor }}.${{ needs.release-please.outputs.patch }}" >> $GITHUB_ENV
-          echo "PACKAGE_NAME=armor" >> $GITHUB_ENV
-          echo "ARCH=amd64" >> $GITHUB_ENV
 
       - name: Create Debian package structure
         run: |
@@ -89,16 +121,18 @@ jobs:
       - name: Create Debian control file
         run: |
           cat > "${PACKAGE_NAME}_${VERSION}_${ARCH}/DEBIAN/control" << EOF
-          Package: armor
+          Package: armor-dev
           Version: ${VERSION}
           Section: misc
           Priority: optional
           Architecture: ${ARCH}
           Maintainer: MarkProminic <MarkProminic@users.noreply.github.com>
           Depends: nodejs (>= 22.0.0), sqlite3, openssl
-          Description: Armor - Armor Reliably Manages Online Resources
-           A secure Node.js file server that provides directory listings with SHA256 checksums and authenticated file upload capabilities over HTTPS..
-          Homepage: https://github.com/STARTcloud/armor
+          Conflicts: armor
+          Description: Armor (Development) - Armor Reliably Manages Online Resources
+           A secure Node.js file server that provides directory listings with SHA256 checksums and authenticated file upload capabilities over HTTPS.
+           This is a development version.
+          Homepage: https://github.com/STARTcloud/armor_private
           EOF
 
       - name: Set Debian package permissions
@@ -120,7 +154,7 @@ jobs:
 
       - name: Clean OmniOS build directory
         run: |
-          ssh ghrunner@omnios.packages.startcloud.com "rm -rf /local/builds/armor/* /local/builds/armor/.*" || true
+          ssh ghrunner@omnios.packages.startcloud.com "rm -rf /local/builds/armor-dev/* /local/builds/armor-dev/.*" || true
 
       - name: Sync source code to OmniOS
         run: |
@@ -130,80 +164,32 @@ jobs:
             --exclude='web/node_modules' \
             --exclude='web/dist' \
             --exclude='*.deb' \
-            omnios-source/ ghrunner@omnios.packages.startcloud.com:/local/builds/armor/
+            omnios-source/ ghrunner@omnios.packages.startcloud.com:/local/builds/armor-dev/
 
       - name: Build package on OmniOS
         run: |
           ssh ghrunner@omnios.packages.startcloud.com "
-            cd /local/builds/armor && 
+            cd /local/builds/armor-dev && 
             export PATH=/opt/ooce/bin:/opt/ooce/node-22/bin:\$PATH &&
             export MAKE=gmake &&
+            export DEV_VERSION=${VERSION} &&
             chmod +x packaging/omnios/build.sh &&
             ./packaging/omnios/build.sh
           "
 
       - name: Transfer OmniOS package back
         run: |
-          rsync -av ghrunner@omnios.packages.startcloud.com:/local/builds/armor/*.p5p ./ || echo "No .p5p files found"
-
-      - name: Install GitHub CLI
-        run: |
-          if ! command -v gh &> /dev/null; then
-            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-            sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
-            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-            sudo apt update
-            sudo apt install gh -y
-          fi
-
-      - name: Upload Debian package to release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release upload ${{ needs.release-please.outputs.tag_name }} "${PACKAGE_NAME}_${VERSION}_${ARCH}.deb" --clobber
-
-      - name: Upload OmniOS package to release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          for file in *.p5p; do
-            if [ -f "$file" ]; then
-              echo "Uploading $file..."
-              gh release upload ${{ needs.release-please.outputs.tag_name }} "$file" --clobber
-            fi
-          done
-
-      - name: Publish OmniOS package to repository
-        run: |
-          ssh ghrunner@omnios.packages.startcloud.com "
-            cd /local/builds/armor &&
-            pfexec pkgsend publish -d proto -s file:///local/public/r151054/pkg armor.p5m.final &&
-            pfexec pkgrepo refresh -s /local/public/r151054/pkg &&
-            pfexec svcadm restart pkg/server:r151054_STARTcloud
-          "
-
-      - name: Clean up OmniOS build directory
-        run: |
-          ssh ghrunner@omnios.packages.startcloud.com "rm -rf /local/builds/armor/*"
+          rsync -av ghrunner@omnios.packages.startcloud.com:/local/builds/armor-dev/*.p5p ./ || echo "No .p5p files found"
 
       - name: Upload Debian package to repository server
         run: |
-          rsync -av armor_*.deb startcloud@172.17.204.177:/tmp/
+          rsync -av ${PACKAGE_NAME}_*.deb startcloud@172.17.204.177:/tmp/
 
       - name: Add package to repository pool
         run: |
           ssh startcloud@172.17.204.177 "
-            mkdir -p /local/public/debian/pool/main/z/armor
-            cp /tmp/armor_*.deb /local/public/debian/pool/main/z/armor/
-          "
-
-      - name: Create multi-suite directory structure
-        run: |
-          ssh startcloud@172.17.204.177 "
-            cd /local/public/debian
-            # Create suite directories if they don't exist
-            mkdir -p dists/bookworm/main/binary-amd64
-            mkdir -p dists/trixie/main/binary-amd64
+            mkdir -p /local/public/debian/pool/main/z/armor-dev
+            cp /tmp/${PACKAGE_NAME}_*.deb /local/public/debian/pool/main/z/armor-dev/
           "
 
       - name: Update repository Packages files for all suites
@@ -255,22 +241,32 @@ jobs:
             done
           "
 
-      - name: Cleanup temporary files
+      - name: Publish OmniOS package to repository
         run: |
-          ssh startcloud@172.17.204.177 "rm -f /tmp/armor_*.deb"
+          ssh ghrunner@omnios.packages.startcloud.com "
+            cd /local/builds/armor-dev &&
+            pfexec pkgsend publish -d proto -s file:///local/public/r151054/pkg armor.p5m.final &&
+            pfexec pkgrepo refresh -s /local/public/r151054/pkg &&
+            pfexec svcadm restart pkg/server:r151054_STARTcloud
+          "
 
-  build-docs:
-    needs: [release-please, build-packages]
-    if: ${{ needs.release-please.outputs.release_created }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Documentation Build
-        uses: actions/github-script@v8
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'docs.yml',
-              ref: 'main'
-            });
+          name: 'development-packages'
+          path: |
+            *.deb
+            *.p5p
+          retention-days: 30
+
+      - name: Clean up
+        run: |
+          ssh ghrunner@omnios.packages.startcloud.com "rm -rf /local/builds/armor-dev/*"
+          ssh startcloud@172.17.204.177 "rm -f /tmp/${PACKAGE_NAME}_*.deb"
+
+      - name: Summary
+        run: |
+          echo "Development packages built and published:"
+          echo "- Version: ${VERSION}"
+          echo "- Debian package: ${PACKAGE_NAME}_${VERSION}_${ARCH}.deb"
+          echo "- Packages published to repositories"
