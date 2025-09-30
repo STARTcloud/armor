@@ -36,8 +36,16 @@ logerr() { echo "ERROR: $*" >&2; }
 SRCDIR="$(pwd)"
 DESTDIR="${SRCDIR}/proto"
 PROG=armor
-VER=$(node -p "require('./package.json').version" 2>/dev/null || echo "1.0.0")
-PKG=application/management/armor
+# Use DEV_VERSION if set (for development builds), otherwise use package.json version
+if [ -n "$DEV_VERSION" ]; then
+    VER="$DEV_VERSION"
+    PKG=application/management/armor-dev
+    PACKAGE_PREFIX="armor-dev"
+else
+    VER=$(node -p "require('./package.json').version" 2>/dev/null || echo "1.0.0")
+    PKG=application/management/armor
+    PACKAGE_PREFIX="armor"
+fi
 
 # Clean and create staging directory
 rm -rf "$DESTDIR"
@@ -184,7 +192,7 @@ pkgrepo set -s "$TEMP_REPO" publisher/prefix=Makr91
 pkgsend -s "file://${TEMP_REPO}" publish -d proto armor.p5m.final
 
 # Create .p5p package archive
-PACKAGE_FILE="armor-${VERSION}.p5p"
+PACKAGE_FILE="${PACKAGE_PREFIX}-${VERSION}.p5p"
 pkgrecv -s "file://${TEMP_REPO}" -a -d "${PACKAGE_FILE}" "${PKG}"
 
 # Clean up temporary repository
