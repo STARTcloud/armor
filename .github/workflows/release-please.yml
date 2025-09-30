@@ -32,7 +32,7 @@ jobs:
     name: Security Pre-Check
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created }}
-    uses: ./.github/workflows/reusable/security-checks.yml
+    uses: ./.github/workflows/reusable-security-checks.yml
     with:
       fail-on-error: true
 
