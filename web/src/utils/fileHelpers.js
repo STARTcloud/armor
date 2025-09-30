@@ -1,3 +1,8 @@
+/**
+ * Formats file size in bytes to human-readable format
+ * @param {number} bytes - Size in bytes
+ * @returns {string} Formatted size (e.g., "1.5 MB", "500 KB")
+ */
 export const formatSize = (bytes) => {
   if (!bytes || bytes === 0) {
     return "-";
@@ -7,6 +12,12 @@ export const formatSize = (bytes) => {
   return `${Math.round((bytes / 1024 ** i) * 100) / 100} ${sizes[i]}`;
 };
 
+/**
+ * Formats date string to localized format
+ * @param {string} dateString - ISO date string
+ * @param {string} defaultText - Text to show if date is empty
+ * @returns {string} Formatted date or default text
+ */
 export const formatDate = (dateString, defaultText = "Never") => {
   if (!dateString) {
     return defaultText;
@@ -14,6 +25,11 @@ export const formatDate = (dateString, defaultText = "Never") => {
   return new Date(dateString).toLocaleString();
 };
 
+/**
+ * Maps file extension to appropriate Bootstrap icon class
+ * @param {string} ext - File extension (lowercase)
+ * @returns {string} Bootstrap icon class with color
+ */
 const getIconByExtension = (ext) => {
   const imageExts = ["jpg", "jpeg", "png", "gif", "svg"];
   const videoExts = ["mp4", "avi", "mov"];
@@ -46,6 +62,11 @@ const getIconByExtension = (ext) => {
   return "bi-file-earmark text-light";
 };
 
+/**
+ * Gets appropriate icon for file or directory
+ * @param {Object} file - File object with name and isDirectory properties
+ * @returns {string} Bootstrap icon class
+ */
 export const getFileIcon = (file) => {
   if (file.isDirectory) {
     return "bi-folder2 text-light";
@@ -55,6 +76,11 @@ export const getFileIcon = (file) => {
   return getIconByExtension(ext);
 };
 
+/**
+ * Checks if API key has expired
+ * @param {string} expiresAt - ISO date string
+ * @returns {boolean} True if expired
+ */
 export const isExpired = (expiresAt) => {
   if (!expiresAt) {
     return false;
@@ -62,6 +88,11 @@ export const isExpired = (expiresAt) => {
   return new Date(expiresAt) < new Date();
 };
 
+/**
+ * Extracts permission badges from permissions object
+ * @param {Object|Array} permissions - Permissions object or array
+ * @returns {Array<string>} Array of permission names
+ */
 export const getPermissionBadges = (permissions) => {
   const badges = [];
   if (Array.isArray(permissions)) {
@@ -79,6 +110,13 @@ export const getPermissionBadges = (permissions) => {
   return badges;
 };
 
+/**
+ * Sorts API keys by specified field and direction
+ * @param {Array} keys - Array of API key objects
+ * @param {string} sortField - Field to sort by
+ * @param {string} sortDirection - 'asc' or 'desc'
+ * @returns {Array} Sorted array of keys
+ */
 export const sortApiKeys = (keys, sortField, sortDirection) =>
   keys.sort((a, b) => {
     let aVal = a[sortField];
@@ -102,6 +140,12 @@ export const sortApiKeys = (keys, sortField, sortDirection) =>
     return aVal < bVal ? 1 : -1;
   });
 
+/**
+ * Splits text and marks highlighted portions for search results
+ * @param {string} text - Text to process
+ * @param {string} searchQuery - Search query to highlight
+ * @returns {Array<Object>} Array of text parts with highlight info
+ */
 export const highlightMatch = (text, searchQuery) => {
   if (!searchQuery || !text) {
     return [{ text, isHighlight: false }];

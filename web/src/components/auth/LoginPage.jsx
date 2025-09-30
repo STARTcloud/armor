@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Navigate, useSearchParams } from "react-router-dom";
 
 import api from "../../utils/api";
@@ -8,6 +9,7 @@ import { useAuth } from "./AuthContext";
 const LoginPage = () => {
   const { isAuthenticated } = useAuth();
   const [searchParams] = useSearchParams();
+  const { t } = useTranslation(["auth", "common"]);
   const [authMethods, setAuthMethods] = useState(null);
   const [credentials, setCredentials] = useState({
     username: "",
@@ -48,9 +50,9 @@ const LoginPage = () => {
     if (errorParam === "invalid_credentials" && messageParam) {
       setError(decodeURIComponent(messageParam));
     } else if (errorParam === "network_error") {
-      setError("Network error occurred. Please try again.");
+      setError(t("auth:errors.networkError"));
     }
-  }, [searchParams, fetchAuthMethods]);
+  }, [searchParams, fetchAuthMethods, t]);
 
   const handleBasicAuth = async (e) => {
     e.preventDefault();
@@ -66,10 +68,12 @@ const LoginPage = () => {
           : "/";
         window.location.href = returnUrl;
       } else {
-        setError(response.data.message || "Login failed");
+        setError(response.data.message || t("auth:errors.loginFailed"));
       }
     } catch (loginError) {
-      setError(loginError.response?.data?.message || "Login failed");
+      setError(
+        loginError.response?.data?.message || t("auth:errors.loginFailed")
+      );
     } finally {
       setLoading(false);
     }
@@ -105,7 +109,7 @@ const LoginPage = () => {
     return (
       <div className="d-flex justify-content-center align-items-center min-vh-100 bg-dark">
         <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
+          <span className="visually-hidden">{t("common:status.loading")}</span>
         </div>
       </div>
     );
@@ -184,7 +188,9 @@ const LoginPage = () => {
               {/* Basic Auth Form */}
               {Boolean(hasBasicAuth) && (
                 <>
-                  <h5 className="text-light mb-3 text-center">Basic Auth</h5>
+                  <h5 className="text-light mb-3 text-center">
+                    {t("auth:login.basicAuth")}
+                  </h5>
                   <form onSubmit={handleBasicAuth}>
                     <div className="mb-3">
                       <input
@@ -192,7 +198,7 @@ const LoginPage = () => {
                         className="form-control bg-dark text-white border-secondary"
                         id="username"
                         name="username"
-                        placeholder="Username"
+                        placeholder={t("auth:login.username")}
                         value={credentials.username}
                         onChange={(e) =>
                           setCredentials({
@@ -210,7 +216,7 @@ const LoginPage = () => {
                         className="form-control bg-dark text-white border-secondary"
                         id="password"
                         name="password"
-                        placeholder="Password"
+                        placeholder={t("auth:login.password")}
                         value={credentials.password}
                         onChange={(e) =>
                           setCredentials({
@@ -238,11 +244,11 @@ const LoginPage = () => {
                             className="spinner-border spinner-border-sm me-2"
                             role="status"
                           />
-                          Signing in...
+                          {t("auth:login.signingIn")}
                         </>
                       ) : (
                         <>
-                          Login
+                          {t("auth:login.loginButton")}
                           <i className="bi bi-box-arrow-in-right ms-2" />
                         </>
                       )}
@@ -253,14 +259,14 @@ const LoginPage = () => {
 
               <div className="text-center mt-3">
                 <small className="powered-by-text">
-                  Powered by{" "}
+                  {t("auth:login.poweredBy")}{" "}
                   <a
                     href="https://startcloud.com"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-decoration-none text-light"
                   >
-                    STARTcloud
+                    {t("auth:login.poweredByCompany")}
                   </a>
                 </small>
               </div>

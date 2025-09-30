@@ -235,4 +235,32 @@ export const sendFileRenamed = (oldPath, newPath, isDirectory = false) => {
   logger.info('SSE: File rename event sent successfully');
 };
 
+// Function to broadcast checksum progress updates
+export const sendChecksumProgress = progressData => {
+  logger.info('SSE: Sending checksum progress event', {
+    total: progressData.total,
+    complete: progressData.complete,
+    percentage: progressData.percentage,
+  });
+
+  const eventData = JSON.stringify({
+    type: 'checksum_progress',
+    ...progressData,
+    timestamp: new Date().toISOString(),
+  });
+
+  // Send to all connected clients
+  clients.forEach(client => {
+    try {
+      client.response.write(`event: checksum-progress\n`);
+      client.response.write(`data: ${eventData}\n\n`);
+    } catch (error) {
+      logger.error('Error sending SSE progress message', { error: error.message });
+      clients = clients.filter(c => c.id !== client.id);
+    }
+  });
+
+  logger.info('SSE: Checksum progress event sent successfully');
+};
+
 export default router;

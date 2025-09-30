@@ -1,7 +1,9 @@
 import PropTypes from "prop-types";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const SearchBar = ({ onSearch, onClear, value }) => {
+  const { t } = useTranslation(["files", "api", "common"]);
   const [query, setQuery] = useState(value || "");
 
   const handleSubmit = (e) => {
@@ -37,7 +39,7 @@ const SearchBar = ({ onSearch, onClear, value }) => {
         <input
           type="text"
           className="form-control bg-dark text-light border-secondary"
-          placeholder="Search API keys..."
+          placeholder={t("api:search.searchPlaceholder")}
           value={query}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
@@ -53,7 +55,7 @@ const SearchBar = ({ onSearch, onClear, value }) => {
               background: "transparent",
             }}
             onClick={handleInputClear}
-            title="Clear input and search"
+            title={t("files:search.clearSearch")}
           >
             <i className="bi bi-x" />
           </button>
@@ -62,7 +64,7 @@ const SearchBar = ({ onSearch, onClear, value }) => {
           type="button"
           className="btn btn-outline-light"
           onClick={handleSubmit}
-          title="Search"
+          title={t("common:buttons.search")}
         >
           <i className="bi bi-search" />
         </button>

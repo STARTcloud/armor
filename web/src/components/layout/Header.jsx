@@ -1,5 +1,8 @@
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
 
+import { getSupportedLanguages } from "../../i18n";
 import { useAuth } from "../auth/AuthContext";
 
 import Breadcrumbs from "./Breadcrumbs";
@@ -7,26 +10,83 @@ import Breadcrumbs from "./Breadcrumbs";
 const Header = () => {
   const { user, logout, logoutLocal } = useAuth();
   const location = useLocation();
+  const { t, i18n } = useTranslation();
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
+
+  const changeLanguage = (lng) => {
+    i18n.changeLanguage(lng);
+    setShowLanguageModal(false);
+  };
+
+  // Get language display name
+  const getLanguageDisplayName = (languageCode) => {
+    const languageNames = {
+      en: "English",
+      es: "Español",
+      fr: "Français",
+      de: "Deutsch",
+      it: "Italiano",
+      pt: "Português",
+      ru: "Русский",
+      zh: "中文",
+      ja: "日本語",
+      ko: "한국어",
+      ar: "العربية",
+      hi: "हिन्दी",
+      nl: "Nederlands",
+      sv: "Svenska",
+      da: "Dansk",
+      no: "Norsk",
+      fi: "Suomi",
+      pl: "Polski",
+      cs: "Čeština",
+      hu: "Magyar",
+      ro: "Română",
+      bg: "Български",
+      hr: "Hrvatski",
+      sk: "Slovenčina",
+      sl: "Slovenščina",
+      et: "Eesti",
+      lv: "Latviešu",
+      lt: "Lietuvių",
+      el: "Ελληνικά",
+      tr: "Türkçe",
+      he: "עברית",
+      th: "ไทย",
+      vi: "Tiếng Việt",
+      id: "Bahasa Indonesia",
+      ms: "Bahasa Melayu",
+      tl: "Filipino",
+      sw: "Kiswahili",
+    };
+
+    return languageNames[languageCode] || languageCode.toUpperCase();
+  };
+
+  // Get supported languages from i18n
+  const supportedLanguages = getSupportedLanguages();
 
   const getUserDisplayName = (userInfo) => {
     if (!userInfo) {
-      return "Unknown User";
+      return t("user.unknownUser");
     }
 
     if (userInfo.authType === "api_key") {
-      return `API Key: ${userInfo.keyName || "Unnamed"}`;
+      return t("user.apiKey", { keyName: userInfo.keyName || "Unnamed" });
     }
 
     if (userInfo.authType === "basic") {
-      return userInfo.username || "Basic Auth User";
+      return userInfo.username || t("user.basicAuthUser");
     }
 
     if (userInfo.authType === "jwt" && userInfo.oidcUser) {
       const oidc = userInfo.oidcUser;
-      return oidc.name || oidc.email || oidc.preferred_username || "OIDC User";
+      return (
+        oidc.name || oidc.email || oidc.preferred_username || t("user.oidcUser")
+      );
     }
 
-    return userInfo.username || "User";
+    return userInfo.username || t("user.user");
   };
 
   return (
@@ -61,7 +121,7 @@ const Header = () => {
                         href="/?view=index"
                       >
                         <i className="bi bi-shield me-2" />
-                        Dashboard
+                        {t("navigation.dashboard")}
                       </a>
                     </li>
                   )}
@@ -69,7 +129,7 @@ const Header = () => {
                   <li>
                     <a className="dropdown-item text-light" href="/api-keys">
                       <i className="bi bi-key me-2" />
-                      API Keys
+                      {t("navigation.apiKeys")}
                     </a>
                   </li>
                 )}
@@ -82,7 +142,7 @@ const Header = () => {
                       rel="noopener noreferrer"
                     >
                       <i className="bi bi-book me-2" />
-                      API Documentation
+                      {t("navigation.apiDocumentation")}
                     </a>
                   </li>
                 )}
@@ -90,9 +150,21 @@ const Header = () => {
                   <hr className="dropdown-divider border-secondary" />
                 </li>
                 <li>
+                  <button
+                    className="dropdown-item text-light"
+                    onClick={() => setShowLanguageModal(true)}
+                  >
+                    <i className="bi bi-globe me-2" />
+                    {t("language.selectLanguage")}
+                  </button>
+                </li>
+                <li>
+                  <hr className="dropdown-divider border-secondary" />
+                </li>
+                <li>
                   <button className="dropdown-item text-light" onClick={logout}>
                     <i className="bi bi-box-arrow-right me-2" />
-                    Logout
+                    {t("navigation.logout")}
                   </button>
                 </li>
                 <li>
@@ -101,7 +173,7 @@ const Header = () => {
                     onClick={logoutLocal}
                   >
                     <i className="bi bi-box-arrow-left me-2" />
-                    Logout (Local)
+                    {t("navigation.logoutLocal")}
                   </button>
                 </li>
               </ul>
@@ -109,6 +181,63 @@ const Header = () => {
           </div>
         </div>
       </div>
+
+      {/* Language Selection Modal */}
+      {showLanguageModal ? (
+        <div
+          className="modal show d-block"
+          tabIndex="-1"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+        >
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content bg-dark border-secondary">
+              <div className="modal-header border-secondary">
+                <h5 className="modal-title text-light">
+                  <i className="bi bi-globe me-2" />
+                  {t("language.changeLanguage")}
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={() => setShowLanguageModal(false)}
+                  aria-label="Close"
+                />
+              </div>
+              <div className="modal-body">
+                <div className="list-group list-group-flush">
+                  {supportedLanguages.map((lang) => (
+                    <button
+                      key={lang}
+                      type="button"
+                      className={`list-group-item list-group-item-action bg-dark text-light border-secondary d-flex justify-content-between align-items-center ${
+                        i18n.language === lang ? "active" : ""
+                      }`}
+                      onClick={() => changeLanguage(lang)}
+                    >
+                      <span>
+                        <i className="bi bi-globe me-2" />
+                        {getLanguageDisplayName(lang)}
+                      </span>
+                      {i18n.language === lang && (
+                        <i className="bi bi-check-circle text-success" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="modal-footer border-secondary">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowLanguageModal(false)}
+                >
+                  {t("buttons.cancel")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </header>
   );
 };

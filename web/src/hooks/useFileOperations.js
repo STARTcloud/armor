@@ -2,6 +2,15 @@ import { useState } from "react";
 
 import api from "../utils/api";
 
+/**
+ * Custom hook for file operations with loading states and confirmations
+ * @param {Object} options - Configuration options
+ * @param {Function} options.onSuccess - Called when operation succeeds
+ * @param {Function} options.onError - Called when operation fails
+ * @param {Function} options.onConfirmDelete - Called to confirm delete operations
+ * @param {Function} options.onConfirmMove - Called to confirm move operations
+ * @returns {Object} File operation functions and loading state
+ */
 const useFileOperations = ({
   onSuccess,
   onError,
@@ -129,12 +138,47 @@ const useFileOperations = ({
     }
   };
 
+  const moveFilesToFolder = async (
+    filePaths,
+    destinationPath,
+    destinationName
+  ) => {
+    if (onConfirmMove) {
+      const fileCount = filePaths.length;
+      const confirmed = await onConfirmMove(
+        `Are you sure you want to move ${fileCount} selected item${fileCount > 1 ? "s" : ""} to the "${destinationName}" folder?`
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    try {
+      setLoading(true);
+      const apiPath =
+        destinationPath === "/"
+          ? "/api/files/"
+          : `/api/files${destinationPath}`;
+      await api.put(`${apiPath}?action=move`, {
+        filePaths,
+        destinationPath,
+      });
+      onSuccess?.();
+    } catch (error) {
+      console.error("Move files to folder failed:", error);
+      onError?.(error.response?.data?.message || "Move failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     deleteFile,
     renameFile,
     createFolder,
     deleteMultipleFiles,
     moveFilesToParent,
+    moveFilesToFolder,
     loading,
   };
 };

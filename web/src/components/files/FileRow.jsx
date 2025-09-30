@@ -1,5 +1,6 @@
 import PropTypes from "prop-types";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import { getFileIcon, formatSize, formatDate } from "../../utils/fileHelpers";
@@ -32,7 +33,7 @@ FileNameLink.propTypes = {
   getFileLink: PropTypes.func.isRequired,
 };
 
-const ChecksumDisplay = ({ file, onCopyChecksum }) => {
+const ChecksumDisplay = ({ file, onCopyChecksum, t }) => {
   if (file.isDirectory) {
     return <span className="text-muted">-</span>;
   }
@@ -46,7 +47,7 @@ const ChecksumDisplay = ({ file, onCopyChecksum }) => {
         <button
           className="btn btn-sm btn-outline-secondary"
           onClick={onCopyChecksum}
-          title="Copy full checksum"
+          title={t("files:file.copyFullChecksum")}
         >
           <i className="bi bi-clipboard" />
         </button>
@@ -59,7 +60,7 @@ const ChecksumDisplay = ({ file, onCopyChecksum }) => {
       className="spinner-border spinner-border-sm text-warning"
       role="status"
     >
-      <span className="visually-hidden">Calculating...</span>
+      <span className="visually-hidden">{t("files:file.calculating")}</span>
     </div>
   );
 };
@@ -70,6 +71,7 @@ ChecksumDisplay.propTypes = {
     isDirectory: PropTypes.bool.isRequired,
   }).isRequired,
   onCopyChecksum: PropTypes.func.isRequired,
+  t: PropTypes.func.isRequired,
 };
 
 const FileRow = ({
@@ -79,7 +81,12 @@ const FileRow = ({
   onRename,
   isSelected,
   onSelectionChange,
+  selectedFiles,
+  onMoveToFolder,
+  dragOverFolder,
+  setDragOverFolder,
 }) => {
+  const { t } = useTranslation(["files", "common"]);
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState(file.name || "");
   const [pressTimer, setPressTimer] = useState(null);
@@ -179,11 +186,71 @@ const FileRow = ({
     }
   };
 
+  // Folder drag and drop handlers
+  const handleFolderDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Only allow dropping on folders that aren't selected
+    if (
+      file.isDirectory &&
+      selectedFiles.length > 0 &&
+      !selectedFiles.includes(file.path)
+    ) {
+      setDragOverFolder(file.path);
+      e.dataTransfer.dropEffect = "move";
+    }
+  };
+
+  const handleFolderDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Only clear if we're actually leaving this folder row
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      if (dragOverFolder === file.path) {
+        setDragOverFolder(null);
+      }
+    }
+  };
+
+  const handleFolderDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (
+      file.isDirectory &&
+      selectedFiles.length > 0 &&
+      !selectedFiles.includes(file.path)
+    ) {
+      onMoveToFolder(file.path, file.name);
+    }
+
+    setDragOverFolder(null);
+  };
+
+  const isDraggedOver = dragOverFolder === file.path;
+  const canAcceptDrop =
+    file.isDirectory &&
+    selectedFiles.length > 0 &&
+    !selectedFiles.includes(file.path);
+
   return (
     <tr
-      className={isSelected ? "table-active" : ""}
+      className={`${isSelected ? "table-active" : ""} ${isDraggedOver ? "drag-over-folder" : ""}`}
       draggable={isSelected}
       onDragStart={handleDragStart}
+      onDragOver={canAcceptDrop ? handleFolderDragOver : undefined}
+      onDragLeave={canAcceptDrop ? handleFolderDragLeave : undefined}
+      onDrop={canAcceptDrop ? handleFolderDrop : undefined}
+      style={{
+        backgroundColor: isDraggedOver ? "rgba(25, 135, 84, 0.2)" : undefined,
+        cursor: canAcceptDrop && selectedFiles.length > 0 ? "copy" : undefined,
+      }}
     >
       <td style={{ width: "5%", padding: "8px" }}>
         <input
@@ -191,7 +258,7 @@ const FileRow = ({
           className="form-check-input"
           checked={isSelected}
           onChange={handleSelectionChange}
-          title="Select file"
+          title={t("files:file.selectFile")}
         />
       </td>
       <td>
@@ -213,13 +280,13 @@ const FileRow = ({
             tabIndex={0}
             aria-label={
               file.isDirectory
-                ? "Click to copy link"
-                : "Click to copy link, hold to download"
+                ? t("files:file.clickToCopyLink")
+                : t("files:file.clickToCopyLinkHoldToDownload")
             }
             title={
               file.isDirectory
-                ? "Click to copy link"
-                : "Click to copy link, hold to download"
+                ? t("files:file.clickToCopyLink")
+                : t("files:file.clickToCopyLinkHoldToDownload")
             }
           />
           {isRenaming ? (
@@ -246,20 +313,30 @@ const FileRow = ({
           )}
         </div>
       </td>
-      <td className="text-light">{file.isDirectory ? "Folder" : "File"}</td>
+      <td className="text-light">
+        {file.isDirectory ? t("files:file.folder") : t("files:file.file")}
+      </td>
       <td className="text-light">
         {file.isDirectory ? "-" : formatSize(file.size)}
       </td>
       <td className="text-light">{formatDate(file.mtime)}</td>
       <td>
-        <ChecksumDisplay file={file} onCopyChecksum={handleCopyChecksum} />
+        <ChecksumDisplay
+          file={file}
+          onCopyChecksum={handleCopyChecksum}
+          t={t}
+        />
       </td>
       <td>
         <div className="btn-group btn-group-sm" role="group">
           <button
             className="btn btn-outline-info"
             onClick={handleCopyLink}
-            title={file.isDirectory ? "Copy folder link" : "Copy download link"}
+            title={
+              file.isDirectory
+                ? t("files:file.copyFolderLink")
+                : t("files:file.copyDownloadLink")
+            }
           >
             <i className="bi bi-link-45deg" />
           </button>
@@ -269,14 +346,14 @@ const FileRow = ({
               setNewName(file.name || "");
               setIsRenaming(true);
             }}
-            title="Rename"
+            title={t("files:file.rename")}
           >
             <i className="bi bi-pencil" />
           </button>
           <button
             className="btn btn-outline-danger"
             onClick={() => onDelete(file.path)}
-            title="Delete"
+            title={t("files:file.delete")}
           >
             <i className="bi bi-trash" />
           </button>
@@ -300,6 +377,10 @@ FileRow.propTypes = {
   onRename: PropTypes.func.isRequired,
   isSelected: PropTypes.bool.isRequired,
   onSelectionChange: PropTypes.func.isRequired,
+  selectedFiles: PropTypes.arrayOf(PropTypes.string).isRequired,
+  onMoveToFolder: PropTypes.func.isRequired,
+  dragOverFolder: PropTypes.string,
+  setDragOverFolder: PropTypes.func.isRequired,
 };
 
 export default FileRow;

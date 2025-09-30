@@ -1,0 +1,107 @@
+{
+  "keys": {
+    "apiKeys": "API Keys",
+    "generateNewKey": "Generate New API Key",
+    "createApiKey": "Create API Key",
+    "deleteApiKey": "Delete API Key",
+    "keyName": "Key Name",
+    "keyPreview": "Key Preview",
+    "fullKey": "Full Key",
+    "permissions": "Permissions",
+    "createdAt": "Created",
+    "expiresAt": "Expires",
+    "status": "Status",
+    "actions": "Actions",
+    "apiKeysTotal": "API Keys ({{count}} total)",
+    "name": "Name",
+    "expires": "Expires",
+    "lastUsed": "Last Used",
+    "never": "Never"
+  },
+  "creation": {
+    "keyCreatedSuccessfully": "API Key Created Successfully",
+    "important": "Important",
+    "onlyTimeToSee": "This is the only time you'll see the full API key. Make sure to copy it now and store it securely.",
+    "usageExample": "Usage Example",
+    "iveSavedTheKey": "I've Saved the Key",
+    "keyNameRequired": "Key name is required",
+    "pleaseEnterKeyName": "Please enter a key name",
+    "selectPermissions": "Select Permissions",
+    "expirationDate": "Expiration Date",
+    "expirationDays": "Expiration Days",
+    "noExpiration": "No Expiration",
+    "customDate": "Custom Date",
+    "selectExpirationPeriod": "Select expiration period",
+    "sevenDays": "7 days",
+    "thirtyDays": "30 days",
+    "ninetyDays": "90 days",
+    "oneHundredEightyDays": "180 days",
+    "oneYear": "1 year",
+    "keysCannotNeverExpire": "API keys cannot be set to never expire"
+  },
+  "permissions": {
+    "downloads": "Downloads",
+    "uploads": "Uploads",
+    "delete": "Delete",
+    "readOnly": "Read Only",
+    "fullAccess": "Full Access",
+    "canDownloadFiles": "Can download files",
+    "canUploadFiles": "Can upload files",
+    "canDeleteFiles": "Can delete files"
+  },
+  "operations": {
+    "copyToClipboard": "Copy to clipboard",
+    "copyFullKey": "Copy Full Key",
+    "deleteKey": "Delete Key",
+    "retrieveFullKey": "Retrieve Full Key",
+    "searchApiKeys": "Search API keys",
+    "deleteSelected": "Delete Selected",
+    "bulkDelete": "Bulk Delete"
+  },
+  "messages": {
+    "loadingApiKeys": "Loading API keys...",
+    "failedToLoadKeys": "Failed to load API keys",
+    "keyCreated": "API key created successfully",
+    "keyDeleted": "API key deleted successfully",
+    "keyDeleteFailed": "Failed to delete API key",
+    "keyCopied": "API key copied to clipboard!",
+    "failedToCopyKey": "Failed to copy API key",
+    "failedToRetrieveKey": "Failed to retrieve full key",
+    "fullKeyRetrievalDisabled": "Full key retrieval is disabled",
+    "adminPrivilegesRequired": "Admin privileges required",
+    "noApiKeys": "No API Keys",
+    "confirmDeleteKey": "Are you sure you want to delete this API key? This action cannot be undone.",
+    "confirmDeleteMultipleKeys": "Are you sure you want to delete {{count}} API key{{count, plural, one {} other {s}}}? This action cannot be undone.",
+    "deleteMultipleKeys": "Delete {{count}} Key{{count, plural, one {} other {s}}}",
+    "keyCreationFailed": "Failed to create API key",
+    "createFirstApiKey": "Create your first API key to get started.",
+    "selectKey": "Select {{keyName}}",
+    "clickToViewCopyKey": "Click to view/copy full key",
+    "deleteApiKeyTooltip": "Delete API key"
+  },
+  "swagger": {
+    "loadingSwaggerUI": "Loading Swagger UI...",
+    "loadingApiDocumentation": "Loading API documentation...",
+    "failedToLoadApiDocumentation": "Failed to load API documentation",
+    "errorLoadingApiDocumentation": "Error Loading API Documentation"
+  },
+  "search": {
+    "searchPlaceholder": "Search by name, preview, or permissions...",
+    "noResults": "No API keys match your search",
+    "resultsFound": "{{count}} API key{{count, plural, one {} other {s}}} found"
+  },
+  "validation": {
+    "nameRequired": "Name is required",
+    "nameMinLength": "Name must be at least 3 characters",
+    "nameMaxLength": "Name must be less than 50 characters",
+    "invalidExpirationDate": "Invalid expiration date",
+    "expirationInPast": "Expiration date cannot be in the past",
+    "atLeastOnePermission": "At least one permission must be selected"
+  },
+  "status": {
+    "active": "Active",
+    "expired": "Expired",
+    "expiringSoon": "Expiring Soon",
+    "revoked": "Revoked"
+  }
+}

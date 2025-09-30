@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import api from "../../utils/api";
@@ -41,6 +42,7 @@ const getStyles = (primaryColor) => ({
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation(["common", "auth"]);
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -63,7 +65,7 @@ const LandingPage = () => {
     return (
       <div className="d-flex justify-content-center align-items-center vh-100">
         <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
+          <span className="visually-hidden">{t("common:status.loading")}</span>
         </div>
       </div>
     );
@@ -129,7 +131,7 @@ const LandingPage = () => {
                 cursor: "pointer",
                 fontSize: "inherit",
               }}
-              title="Click to access file index"
+              title={t("common:landing.clickToAccessFiles")}
             >
               {iconUrl ? (
                 <img src={iconUrl} alt={title} height="64" />
@@ -144,7 +146,7 @@ const LandingPage = () => {
           <hr className="my-4" />
           <p className="small" style={{ color: "#adb5bd" }}>
             <i className="bi bi-info-circle me-2" />
-            Access to resources requires proper authentication
+            {t("common:landing.authenticationRequired")}
           </p>
           <div className="mt-4">
             <a
@@ -157,7 +159,7 @@ const LandingPage = () => {
               }}
             >
               <i className="bi bi-envelope me-2" />
-              Contact Support
+              {t("common:landing.contactSupport")}
             </a>
           </div>
         </div>

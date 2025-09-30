@@ -1,5 +1,5 @@
 import { getFileModel } from '../models/File.js';
-import { sendChecksumUpdate } from '../routes/sse.js';
+import { sendChecksumUpdate, sendChecksumProgress } from '../routes/sse.js';
 import { fileWatcherLogger as logger, databaseLogger } from '../config/logger.js';
 import { withDatabaseRetry } from '../config/database.js';
 import { promises as fs } from 'fs';
@@ -16,7 +16,7 @@ class ChecksumService {
     this.activeChecksums = new Set();
   }
 
-  start() {
+  async start() {
     if (this.intervalId) {
       logger.warn('Checksum service already running');
       return;
@@ -24,6 +24,9 @@ class ChecksumService {
 
     this.config = configLoader.getFileWatcherConfig();
     this.checksumWorkerPool = new ChecksumWorkerPool(this.config.max_concurrent_checksums);
+
+    // Reset any interrupted files on startup
+    await this.resetInterruptedFiles();
 
     this.intervalId = setInterval(async () => {
       if (this.isRunning) {
@@ -43,6 +46,31 @@ class ChecksumService {
     logger.info('Checksum service started');
   }
 
+  async resetInterruptedFiles() {
+    try {
+      const File = getFileModel();
+
+      // Reset any non-final states (generating, error) to pending on startup
+      const result = await withDatabaseRetry(() =>
+        File.update(
+          { checksum_status: 'pending' },
+          {
+            where: {
+              checksum_status: ['generating', 'error'],
+              is_directory: false,
+            },
+          }
+        )
+      );
+
+      if (result[0] > 0) {
+        logger.info(`Reset ${result[0]} interrupted files to pending status on startup`);
+      }
+    } catch (error) {
+      logger.error('Failed to reset interrupted files:', error);
+    }
+  }
+
   async processPendingChecksums() {
     const File = getFileModel();
 
@@ -58,10 +86,15 @@ class ChecksumService {
     );
 
     if (pendingFiles.length === 0) {
+      // Send final completion event when no pending files
+      await this.broadcastProgress();
       return;
     }
 
     logger.info(`Found ${pendingFiles.length} files needing checksums`);
+
+    // Send initial progress update
+    await this.broadcastProgress();
 
     const filesToProcess = pendingFiles.filter(file => !this.activeChecksums.has(file.file_path));
 
@@ -70,6 +103,82 @@ class ChecksumService {
       .map(file => this.processFileChecksum(file.file_path));
 
     await Promise.allSettled(promises);
+
+    // Send final progress update after batch
+    await this.broadcastProgress();
+  }
+
+  async broadcastProgress() {
+    try {
+      const File = getFileModel();
+
+      // Get progress statistics for files only
+      const results = await withDatabaseRetry(() =>
+        File.findAll({
+          where: {
+            is_directory: false,
+          },
+          attributes: [
+            [File.sequelize.fn('COUNT', '*'), 'total'],
+            [
+              File.sequelize.fn(
+                'SUM',
+                File.sequelize.literal("CASE WHEN checksum_status = 'complete' THEN 1 ELSE 0 END")
+              ),
+              'complete',
+            ],
+            [
+              File.sequelize.fn(
+                'SUM',
+                File.sequelize.literal("CASE WHEN checksum_status = 'pending' THEN 1 ELSE 0 END")
+              ),
+              'pending',
+            ],
+            [
+              File.sequelize.fn(
+                'SUM',
+                File.sequelize.literal("CASE WHEN checksum_status = 'generating' THEN 1 ELSE 0 END")
+              ),
+              'generating',
+            ],
+            [
+              File.sequelize.fn(
+                'SUM',
+                File.sequelize.literal("CASE WHEN checksum_status = 'error' THEN 1 ELSE 0 END")
+              ),
+              'error',
+            ],
+          ],
+          raw: true,
+        })
+      );
+
+      const [stats] = results;
+      const total = parseInt(stats.total) || 0;
+      const complete = parseInt(stats.complete) || 0;
+      const pending = parseInt(stats.pending) || 0;
+      const generating = parseInt(stats.generating) || 0;
+      const error = parseInt(stats.error) || 0;
+
+      const percentage = total > 0 ? (complete / total) * 100 : 100;
+      const activeProcessing = this.activeChecksums.size;
+      const isActive = pending > 0 || generating > 0 || activeProcessing > 0;
+
+      const progressData = {
+        total,
+        complete,
+        pending,
+        generating,
+        error,
+        percentage: Math.round(percentage * 10) / 10,
+        isActive,
+        activeProcessing,
+      };
+
+      sendChecksumProgress(progressData);
+    } catch (error) {
+      logger.error('Failed to broadcast progress:', error);
+    }
   }
 
   async processFileChecksum(filePath) {
@@ -117,6 +226,9 @@ class ChecksumService {
       const stats = await fs.stat(filePath);
       sendChecksumUpdate(filePath, checksum, stats);
       logger.info(`Generated checksum for ${filePath}: ${checksum}`);
+
+      // Broadcast progress after each file completes
+      await this.broadcastProgress();
     } catch (error) {
       logger.error(`Checksum generation failed for ${filePath}: ${error.message}`);
 
@@ -126,6 +238,9 @@ class ChecksumService {
           updateFields: { checksum_status: 'error' },
         })
       );
+
+      // Broadcast progress even after errors
+      await this.broadcastProgress();
     } finally {
       this.activeChecksums.delete(filePath);
     }

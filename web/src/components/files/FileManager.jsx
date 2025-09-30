@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
 
 import useFileOperations from "../../hooks/useFileOperations";
@@ -8,12 +9,14 @@ import ConfirmModal from "../common/ConfirmModal";
 import SearchBar from "../search/SearchBar";
 import SearchResults from "../search/SearchResults";
 
+import ChecksumProgress from "./ChecksumProgress";
 import CreateFolderModal from "./CreateFolderModal";
 import FileTable from "./FileTable";
 import UploadZone from "./UploadZone";
 
 const FileManager = () => {
   const location = useLocation();
+  const { t } = useTranslation(["files", "common"]);
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -24,6 +27,7 @@ const FileManager = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [checksumProgress, setChecksumProgress] = useState(null);
 
   const getCurrentPath = () => {
     const { pathname } = location;
@@ -48,33 +52,20 @@ const FileManager = () => {
     } catch (err) {
       console.error("Failed to load files:", err);
       console.error("Error details:", err.response?.data, err.response?.status);
-      setError("Failed to load directory contents");
+      setError(t("files:messages.failedToLoad"));
     } finally {
       setLoading(false);
     }
-  }, [currentPath]);
+  }, [currentPath, t]);
 
-  useSSE({
-    onFileAdded: (data) => {
-      const webPath = data.filePath.replace("/local/www", "") || "/";
-      const fileDirectory =
-        webPath.substring(0, webPath.lastIndexOf("/")) || "/";
-      console.log(
-        "SSE onFileAdded - currentPath:",
-        currentPath,
-        "fileDirectory:",
-        fileDirectory,
-        "webPath:",
-        webPath
-      ); // (important-comment)
-      if (fileDirectory === currentPath || webPath.startsWith(currentPath)) {
-        console.log("SSE onFileAdded - MATCH! Calling loadFiles()"); // (important-comment)
-        loadFiles();
-      } else {
-        console.log("SSE onFileAdded - NO MATCH, ignoring event"); // (important-comment)
-      }
-    },
-    onFileDeleted: (data) => {
+  const handleFileAdded = useCallback(() => {
+    console.log(
+      "SSE onFileAdded - ignoring during scanning to prevent page reloads"
+    );
+  }, []);
+
+  const handleFileDeleted = useCallback(
+    (data) => {
       const webPath = data.filePath.replace("/local/www", "") || "/";
       const fileDirectory =
         webPath.substring(0, webPath.lastIndexOf("/")) || "/";
@@ -82,7 +73,11 @@ const FileManager = () => {
         loadFiles();
       }
     },
-    onFileRenamed: (data) => {
+    [currentPath, loadFiles]
+  );
+
+  const handleFileRenamed = useCallback(
+    (data) => {
       const oldWebPath = data.oldPath.replace("/local/www", "") || "/";
       const newWebPath = data.newPath.replace("/local/www", "") || "/";
       const oldDirectory =
@@ -93,7 +88,11 @@ const FileManager = () => {
         loadFiles();
       }
     },
-    onFolderCreated: (data) => {
+    [currentPath, loadFiles]
+  );
+
+  const handleFolderCreated = useCallback(
+    (data) => {
       const webPath = data.folderPath.replace("/local/www", "") || "/";
       const folderDirectory =
         webPath.substring(0, webPath.lastIndexOf("/")) || "/";
@@ -101,14 +100,29 @@ const FileManager = () => {
         loadFiles();
       }
     },
-    onChecksumUpdate: (data) => {
-      const webPath = data.filePath.replace("/local/www", "") || "/";
-      setFiles((prevFiles) =>
-        prevFiles.map((file) =>
-          file.path === webPath ? { ...file, checksum: data.checksum } : file
-        )
-      );
-    },
+    [currentPath, loadFiles]
+  );
+
+  const handleChecksumUpdate = useCallback((data) => {
+    const webPath = data.filePath.replace("/local/www", "") || "/";
+    setFiles((prevFiles) =>
+      prevFiles.map((file) =>
+        file.path === webPath ? { ...file, checksum: data.checksum } : file
+      )
+    );
+  }, []);
+
+  const handleChecksumProgress = useCallback((data) => {
+    setChecksumProgress(data);
+  }, []);
+
+  useSSE({
+    onFileAdded: handleFileAdded,
+    onFileDeleted: handleFileDeleted,
+    onFileRenamed: handleFileRenamed,
+    onFolderCreated: handleFolderCreated,
+    onChecksumUpdate: handleChecksumUpdate,
+    onChecksumProgress: handleChecksumProgress,
   });
 
   const handleConfirmDelete = (message) =>
@@ -116,8 +130,8 @@ const FileManager = () => {
       setConfirmAction({
         resolve,
         message,
-        title: "Delete Item",
-        confirmText: "Delete",
+        title: t("files:operations.delete"),
+        confirmText: t("common:buttons.delete"),
         variant: "danger",
       });
       setShowConfirm(true);
@@ -128,8 +142,8 @@ const FileManager = () => {
       setConfirmAction({
         resolve,
         message,
-        title: "Move Items",
-        confirmText: "Move",
+        title: t("files:operations.move"),
+        confirmText: t("common:buttons.move"),
         variant: "primary",
       });
       setShowConfirm(true);
@@ -157,6 +171,7 @@ const FileManager = () => {
     createFolder,
     deleteMultipleFiles,
     moveFilesToParent,
+    moveFilesToFolder,
   } = useFileOperations({
     onSuccess: () => {
       loadFiles();
@@ -196,7 +211,7 @@ const FileManager = () => {
       setSearchResults(response.data);
     } catch (err) {
       console.error("Search failed:", err);
-      setError("Search failed");
+      setError(t("files:search.searchError"));
     }
   };
 
@@ -259,12 +274,26 @@ const FileManager = () => {
     }
   };
 
+  const handleMoveToFolder = async (destinationPath, destinationName) => {
+    if (selectedFiles.length === 0) {
+      return;
+    }
+
+    try {
+      await moveFilesToFolder(selectedFiles, destinationPath, destinationName);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   if (loading) {
     return (
       <div className="container-fluid py-4">
         <div className="d-flex justify-content-center">
           <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
+            <span className="visually-hidden">
+              {t("files:messages.loadingFiles")}
+            </span>
           </div>
         </div>
       </div>
@@ -303,7 +332,7 @@ const FileManager = () => {
             type="button"
             className="btn btn-success"
             onClick={() => setShowCreateFolder(true)}
-            title="Create Folder"
+            title={t("files:folder.createFolderTooltip")}
           >
             <i className="bi bi-folder-plus" />
           </button>
@@ -311,7 +340,11 @@ const FileManager = () => {
             type="button"
             className={`btn ${showUpload ? "btn-primary" : "btn-outline-primary"}`}
             onClick={() => setShowUpload(!showUpload)}
-            title={showUpload ? "Hide Upload Section" : "Show Upload Section"}
+            title={
+              showUpload
+                ? t("common:actions.hideUploadSection")
+                : t("common:actions.showUploadSection")
+            }
           >
             <i className="bi bi-cloud-upload" />
           </button>
@@ -321,7 +354,9 @@ const FileManager = () => {
                 type="button"
                 className="btn btn-outline-danger"
                 onClick={handleDeleteSelected}
-                title={`Delete ${selectedFiles.length} selected files`}
+                title={t("common:actions.deleteSelectedTooltip", {
+                  count: selectedFiles.length,
+                })}
               >
                 <i className="bi bi-trash" />
               </button>
@@ -329,9 +364,9 @@ const FileManager = () => {
                 type="button"
                 className="btn btn-outline-secondary"
                 onClick={clearSelection}
-                title="Clear selection"
+                title={t("common:actions.clearSelectionTooltip")}
               >
-                <i className="bi bi-x-circle" /> Clear
+                <i className="bi bi-x-circle" /> {t("common:buttons.clear")}
               </button>
             </>
           )}
@@ -364,6 +399,7 @@ const FileManager = () => {
               onSelectionChange={handleSelectionChange}
               onSelectAll={handleSelectAll}
               onMoveToParent={handleMoveToParent}
+              onMoveToFolder={handleMoveToFolder}
             />
           )}
         </div>
@@ -379,14 +415,23 @@ const FileManager = () => {
       {/* Confirmation Modal */}
       <ConfirmModal
         show={showConfirm}
-        title={confirmAction?.title || "Confirm Action"}
-        message={confirmAction?.message || "Are you sure?"}
-        confirmText={confirmAction?.confirmText || "Confirm"}
-        cancelText="Cancel"
+        title={
+          confirmAction?.title || t("common:messages.confirmActionFallback")
+        }
+        message={
+          confirmAction?.message || t("common:messages.areYouSureFallback")
+        }
+        confirmText={
+          confirmAction?.confirmText || t("common:messages.confirmFallback")
+        }
+        cancelText={t("common:buttons.cancel")}
         variant={confirmAction?.variant || "primary"}
         onConfirm={handleConfirm}
         onCancel={handleCancel}
       />
+
+      {/* Checksum Progress */}
+      <ChecksumProgress progressData={checksumProgress} />
     </div>
   );
 };

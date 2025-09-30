@@ -1,6 +1,8 @@
 import PropTypes from "prop-types";
+import { useTranslation } from "react-i18next";
 
 const UploadProgress = ({ upload, onRemove, onRetry }) => {
+  const { t } = useTranslation(["files", "common"]);
   const getStatusIcon = () => {
     switch (upload.status) {
       case "pending":
@@ -60,7 +62,7 @@ const UploadProgress = ({ upload, onRemove, onRetry }) => {
             <button
               className="btn btn-outline-warning"
               onClick={() => onRetry(upload)}
-              title="Retry upload"
+              title={t("files:upload.retryUploadTooltip")}
             >
               <i className="bi bi-arrow-clockwise" />
             </button>
@@ -68,7 +70,7 @@ const UploadProgress = ({ upload, onRemove, onRetry }) => {
           <button
             className="btn btn-outline-secondary"
             onClick={() => onRemove(upload.id)}
-            title="Remove from list"
+            title={t("files:upload.removeFromList")}
           >
             <i className="bi bi-x" />
           </button>

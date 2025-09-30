@@ -1,5 +1,6 @@
 import PropTypes from "prop-types";
 import { createContext, useContext, useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 import api from "../../utils/api";
 
@@ -14,6 +15,7 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
+  const { t } = useTranslation(["auth", "common"]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -51,7 +53,7 @@ export const AuthProvider = ({ children }) => {
       console.error("Login failed:", error);
       return {
         success: false,
-        error: error.response?.data?.message || "Login failed",
+        error: error.response?.data?.message || t("auth:errors.loginFailed"),
       };
     }
   };

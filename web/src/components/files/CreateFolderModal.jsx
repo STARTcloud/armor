@@ -1,7 +1,9 @@
 import PropTypes from "prop-types";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 const CreateFolderModal = ({ show, onHide, onCreateFolder }) => {
+  const { t } = useTranslation(["files", "common"]);
   const [folderName, setFolderName] = useState("");
   const [loading, setLoading] = useState(false);
   const [validationError, setValidationError] = useState("");
@@ -18,13 +20,13 @@ const CreateFolderModal = ({ show, onHide, onCreateFolder }) => {
     e.preventDefault();
 
     if (!folderName.trim()) {
-      setValidationError("Please enter a folder name");
+      setValidationError(t("files:messages.nameRequired"));
       return;
     }
 
     const invalidChars = /[<>:"/\\|?*]/;
     if (invalidChars.test(folderName)) {
-      setValidationError("Folder name contains invalid characters");
+      setValidationError(t("files:messages.invalidName"));
       return;
     }
 
@@ -33,7 +35,9 @@ const CreateFolderModal = ({ show, onHide, onCreateFolder }) => {
       setValidationError("");
       await onCreateFolder(folderName.trim());
     } catch (error) {
-      setValidationError(error.message || "Failed to create folder");
+      setValidationError(
+        error.message || t("files:folder.folderCreationFailed")
+      );
     } finally {
       setLoading(false);
     }
@@ -61,7 +65,7 @@ const CreateFolderModal = ({ show, onHide, onCreateFolder }) => {
           <div className="modal-header border-secondary">
             <h5 className="modal-title text-light">
               <i className="bi bi-folder-plus me-2" />
-              Create New Folder
+              {t("files:folder.createFolder")}
             </h5>
             <button
               type="button"
@@ -79,7 +83,7 @@ const CreateFolderModal = ({ show, onHide, onCreateFolder }) => {
               ) : null}
               <div className="mb-3">
                 <label htmlFor="folderName" className="form-label text-light">
-                  Folder Name
+                  {t("files:folder.folderName")}
                 </label>
                 <input
                   type="text"
@@ -88,11 +92,11 @@ const CreateFolderModal = ({ show, onHide, onCreateFolder }) => {
                   value={folderName}
                   onChange={(e) => setFolderName(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Enter folder name"
+                  placeholder={t("files:folder.enterFolderName")}
                   disabled={loading}
                 />
                 <div className="form-text text-muted">
-                  Folder names cannot contain: &lt; &gt; : &quot; / \ | ? *
+                  {t("files:folder.nameRestrictions")}
                 </div>
               </div>
             </div>
@@ -103,7 +107,7 @@ const CreateFolderModal = ({ show, onHide, onCreateFolder }) => {
                 onClick={onHide}
                 disabled={loading}
               >
-                Cancel
+                {t("common:buttons.cancel")}
               </button>
               <button
                 type="submit"
@@ -116,12 +120,12 @@ const CreateFolderModal = ({ show, onHide, onCreateFolder }) => {
                       className="spinner-border spinner-border-sm me-2"
                       role="status"
                     />
-                    Creating...
+                    {t("common:status.processing")}...
                   </>
                 ) : (
                   <>
                     <i className="bi bi-folder-plus me-2" />
-                    Create
+                    {t("common:buttons.create")}
                   </>
                 )}
               </button>

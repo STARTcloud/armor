@@ -1,5 +1,6 @@
 import PropTypes from "prop-types";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import FileRow from "./FileRow";
 
@@ -12,10 +13,13 @@ const FileTable = ({
   onSelectionChange,
   onSelectAll,
   onMoveToParent,
+  onMoveToFolder,
 }) => {
+  const { t } = useTranslation(["files", "common"]);
   const [sortField, setSortField] = useState("name");
   const [sortDirection, setSortDirection] = useState("asc");
   const [dragOver, setDragOver] = useState(false);
+  const [dragOverFolder, setDragOverFolder] = useState(null);
 
   const handleSort = (field) => {
     if (sortField === field) {
@@ -113,7 +117,7 @@ const FileTable = ({
       <div className="card-header bg-dark border-secondary">
         <h5 className="mb-0 text-light">
           <i className="bi bi-folder-fill me-2" />
-          Directory Contents ({files?.length || 0} items)
+          {t("files:table.directoryContents", { count: files?.length || 0 })}
         </h5>
       </div>
       <div className="table-responsive">
@@ -131,7 +135,7 @@ const FileTable = ({
                     }
                   }}
                   onChange={handleSelectAllChange}
-                  title="Select all files"
+                  title={t("files:table.selectAllFiles")}
                 />
               </th>
               <th
@@ -139,26 +143,29 @@ const FileTable = ({
                 className="cursor-pointer user-select-none"
                 onClick={() => handleSort("name")}
               >
-                Name <i className={`bi ${getSortIcon("name")} ms-1`} />
+                {t("files:table.name")}{" "}
+                <i className={`bi ${getSortIcon("name")} ms-1`} />
               </th>
-              <th scope="col">Type</th>
+              <th scope="col">{t("files:table.type")}</th>
               <th
                 scope="col"
                 className="cursor-pointer user-select-none"
                 onClick={() => handleSort("size")}
               >
-                Size <i className={`bi ${getSortIcon("size")} ms-1`} />
+                {t("files:table.size")}{" "}
+                <i className={`bi ${getSortIcon("size")} ms-1`} />
               </th>
               <th
                 scope="col"
                 className="cursor-pointer user-select-none"
                 onClick={() => handleSort("modified")}
               >
-                Modified <i className={`bi ${getSortIcon("modified")} ms-1`} />
+                {t("files:table.modified")}{" "}
+                <i className={`bi ${getSortIcon("modified")} ms-1`} />
               </th>
-              <th scope="col">Checksum</th>
+              <th scope="col">{t("files:table.checksum")}</th>
               <th scope="col" width="120">
-                Actions
+                {t("files:table.actions")}
               </th>
             </tr>
           </thead>
@@ -179,9 +186,11 @@ const FileTable = ({
                 <td style={{ width: "5%" }} />
                 <td>
                   <i className="bi bi-folder-up me-2 text-warning" />
-                  <span className="text-muted">Parent Directory</span>
+                  <span className="text-muted">
+                    {t("files:table.parentDirectory")}
+                  </span>
                 </td>
-                <td className="text-muted">Folder</td>
+                <td className="text-muted">{t("files:table.folder")}</td>
                 <td className="text-muted">-</td>
                 <td className="text-muted">-</td>
                 <td className="text-muted">-</td>
@@ -192,9 +201,11 @@ const FileTable = ({
               <tr>
                 <td colSpan="7" className="text-center py-5">
                   <i className="bi bi-folder2-open display-4 text-muted mb-3 d-block" />
-                  <h5 className="text-muted">This directory is empty</h5>
+                  <h5 className="text-muted">
+                    {t("files:messages.emptyDirectory")}
+                  </h5>
                   <p className="text-muted">
-                    Upload files or create folders to get started.
+                    {t("files:messages.uploadOrCreateToStart")}
                   </p>
                 </td>
               </tr>
@@ -210,6 +221,10 @@ const FileTable = ({
                   formatDate={formatDate}
                   isSelected={selectedFiles.includes(file.path)}
                   onSelectionChange={onSelectionChange}
+                  selectedFiles={selectedFiles}
+                  onMoveToFolder={onMoveToFolder}
+                  dragOverFolder={dragOverFolder}
+                  setDragOverFolder={setDragOverFolder}
                 />
               ))
             )}
@@ -229,6 +244,7 @@ FileTable.propTypes = {
   onSelectionChange: PropTypes.func.isRequired,
   onSelectAll: PropTypes.func.isRequired,
   onMoveToParent: PropTypes.func.isRequired,
+  onMoveToFolder: PropTypes.func.isRequired,
 };
 
 export default FileTable;

@@ -1,14 +1,13 @@
 import express from 'express';
 import path from 'path';
 import { existsSync } from 'fs';
-import crypto from 'crypto';
-import jwt from 'jsonwebtoken';
 import helmet from 'helmet';
 import cors from 'cors';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import configLoader from './config/configLoader.js';
+import { configAwareI18nMiddleware } from './config/i18n.js';
 import { initializeDatabase } from './config/database.js';
 import { setupPassportStrategies } from './config/passport.js';
 import { SERVED_DIR } from './config/paths.js';
@@ -20,13 +19,11 @@ import fileServerRoutes from './routes/fileServer.js';
 import authRoutes from './routes/auth.js';
 import sseRoutes from './routes/sse.js';
 import apiKeyRoutes from './routes/apiKeys.js';
+import checksumProgressRoutes from './routes/checksumProgress.js';
+import swaggerRoutes from './routes/swagger.js';
 import { setupHTTPSServer } from './utils/sslManager.js';
-import { specs } from './config/swagger.js';
-import { getApiKeyModel } from './models/ApiKey.js';
-import { getUserPermissions } from './utils/auth.js';
 import maintenanceService from './services/maintenanceService.js';
 import checksumService from './services/checksumService.js';
-import { generateApiKey } from './utils/apiKeyUtils.js';
 
 const app = express();
 
@@ -79,12 +76,72 @@ const startServer = async () => {
   app.use(cors(corsOptions));
   app.options('*splat', cors(corsOptions));
 
-  // Use helmet without CSP to avoid blocking configured logo URLs
-  app.use(
-    helmet({
-      contentSecurityPolicy: false, // Disable CSP to allow configured logo URLs
-    })
-  );
+  // Enhanced security headers with configurable CSP
+  const securityConfig = configLoader.getSecurityConfig();
+  const serverConfig = configLoader.getServerConfig();
+
+  const helmetConfig = {};
+
+  // Configure CSP if enabled
+  if (securityConfig.content_security_policy.enabled) {
+    // Start with base CSP configuration
+    const cspDirectives = {
+      defaultSrc: [...securityConfig.content_security_policy.default_src],
+      scriptSrc: [...securityConfig.content_security_policy.script_src],
+      styleSrc: [...securityConfig.content_security_policy.style_src],
+      fontSrc: [...securityConfig.content_security_policy.font_src],
+      imgSrc: [...securityConfig.content_security_policy.img_src],
+      connectSrc: [...securityConfig.content_security_policy.connect_src],
+      objectSrc: [...securityConfig.content_security_policy.object_src],
+      mediaSrc: [...securityConfig.content_security_policy.media_src],
+      frameSrc: [...securityConfig.content_security_policy.frame_src],
+      childSrc: [...securityConfig.content_security_policy.child_src],
+      workerSrc: [...securityConfig.content_security_policy.worker_src],
+      manifestSrc: [...securityConfig.content_security_policy.manifest_src],
+    };
+
+    // Auto-add configured icon URLs to img-src
+    const iconUrls = [serverConfig.login_icon_url, serverConfig.landing_icon_url].filter(Boolean);
+
+    for (const iconUrl of iconUrls) {
+      if (iconUrl.startsWith('https://') || iconUrl.startsWith('http://')) {
+        try {
+          const url = new URL(iconUrl);
+          const domain = `${url.protocol}//${url.hostname}`;
+          if (!cspDirectives.imgSrc.includes(domain)) {
+            cspDirectives.imgSrc.push(domain);
+            logger.info(`Auto-added ${domain} to CSP img-src for configured icon`);
+          }
+        } catch {
+          logger.warn(`Invalid icon URL in config: ${iconUrl}`);
+        }
+      }
+    }
+
+    helmetConfig.contentSecurityPolicy = { directives: cspDirectives };
+  } else {
+    helmetConfig.contentSecurityPolicy = false;
+  }
+
+  // Configure HSTS if enabled
+  if (securityConfig.hsts.enabled) {
+    helmetConfig.hsts = {
+      maxAge: securityConfig.hsts.max_age,
+      includeSubDomains: securityConfig.hsts.include_subdomains,
+      preload: securityConfig.hsts.preload,
+    };
+  } else {
+    helmetConfig.hsts = false;
+  }
+
+  // Configure additional security headers
+  helmetConfig.noSniff = securityConfig.headers.x_content_type_nosniff;
+  helmetConfig.frameguard = { action: securityConfig.headers.x_frame_options.toLowerCase() };
+  helmetConfig.xssFilter = securityConfig.headers.x_xss_protection;
+  helmetConfig.referrerPolicy = { policy: securityConfig.headers.referrer_policy };
+  helmetConfig.crossOriginEmbedderPolicy = securityConfig.headers.cross_origin_embedder_policy;
+
+  app.use(helmet(helmetConfig));
   app.use((req, res, next) => {
     if (req.path === '/api/events') {
       logger.debug('Skipping compression for SSE endpoint', { path: req.path });
@@ -111,6 +168,7 @@ const startServer = async () => {
 
   app.use(morganMiddleware);
   app.use(rateLimiterMiddleware());
+  app.use(configAwareI18nMiddleware);
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
@@ -120,453 +178,10 @@ const startServer = async () => {
 
   app.use('/api/api-keys', apiKeyRoutes);
 
-  /**
-   * @swagger
-   * /api/user-api-keys:
-   *   get:
-   *     summary: Get user's API keys for Swagger UI
-   *     description: Retrieve the current user's API keys that can be used for authorization in Swagger UI
-   *     tags: [API Keys]
-   *     security:
-   *       - JwtAuth: []
-   *     responses:
-   *       200:
-   *         description: Successfully retrieved user API keys
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 success:
-   *                   type: boolean
-   *                   example: true
-   *                 api_keys:
-   *                   type: array
-   *                   items:
-   *                     $ref: '#/components/schemas/ApiKey'
-   *                   description: Array of user's API keys
-   *                 user_permissions:
-   *                   type: array
-   *                   items:
-   *                     type: string
-   *                     enum: [downloads, uploads, delete]
-   *                   description: User's current permissions
-   *                   example: ['downloads', 'uploads']
-   *                 swagger_config:
-   *                   type: object
-   *                   properties:
-   *                     allow_full_key_retrieval:
-   *                       type: boolean
-   *                       description: Whether full key retrieval is enabled
-   *                       example: true
-   *                     allow_temp_key_generation:
-   *                       type: boolean
-   *                       description: Whether temporary key generation is enabled
-   *                       example: true
-   *                     temp_key_expiration_hours:
-   *                       type: integer
-   *                       description: Hours until temporary keys expire
-   *                       example: 1
-   *       401:
-   *         description: Authentication required
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
-   *       500:
-   *         description: Server error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
-   */
-  app.get('/api/user-api-keys', async (req, res) => {
-    try {
-      let userApiKeys = [];
-      let userPermissions = [];
-      const swaggerConfig = configLoader.getSwaggerConfig();
+  app.use('/api/checksum', checksumProgressRoutes);
 
-      if (req.cookies?.auth_token) {
-        try {
-          const authConfigForJWT = configLoader.getAuthenticationConfig();
-          const decoded = jwt.verify(req.cookies.auth_token, authConfigForJWT.jwt_secret);
-
-          userPermissions = decoded.permissions || [];
-
-          if (decoded) {
-            const ApiKey = getApiKeyModel();
-            let whereClause = {};
-
-            if (decoded.userId) {
-              whereClause = { user_type: 'oidc', user_id: decoded.userId };
-            } else if (decoded.username) {
-              const localUsers = configLoader.getAuthUsers();
-              const localUser = localUsers.find(u => u.username === decoded.username);
-              if (localUser?.id) {
-                whereClause = { user_type: 'local', local_user_id: localUser.id };
-              }
-            }
-
-            if (Object.keys(whereClause).length > 0) {
-              // If full key retrieval is enabled, only show retrievable keys
-              if (swaggerConfig.allow_full_key_retrieval) {
-                whereClause.is_retrievable = true;
-              }
-
-              const apiKeys = await ApiKey.findAll({
-                where: whereClause,
-                attributes: [
-                  'id',
-                  'name',
-                  'key_preview',
-                  'permissions',
-                  'expires_at',
-                  'is_retrievable',
-                ],
-                order: [['created_at', 'DESC']],
-              });
-
-              userApiKeys = apiKeys.map(key => key.toJSON());
-            }
-          }
-        } catch (error) {
-          logger.debug('Could not fetch user API keys', { error: error.message });
-        }
-      }
-
-      res.json({
-        success: true,
-        api_keys: userApiKeys,
-        user_permissions: userPermissions,
-        swagger_config: {
-          allow_full_key_retrieval: swaggerConfig.allow_full_key_retrieval,
-          allow_temp_key_generation: swaggerConfig.allow_temp_key_generation,
-          temp_key_expiration_hours: swaggerConfig.temp_key_expiration_hours,
-        },
-      });
-    } catch (error) {
-      logger.error('User API keys error', { error: error.message });
-      res.status(500).json({ success: false, message: 'Failed to get API keys' });
-    }
-  });
-
-  /**
-   * @swagger
-   * /api/user-api-keys/{id}/full:
-   *   post:
-   *     summary: Get full API key for Swagger authorization
-   *     description: Retrieve the complete API key for use in Swagger UI when full key retrieval is enabled in configuration
-   *     tags: [API Keys]
-   *     security:
-   *       - JwtAuth: []
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         required: true
-   *         schema:
-   *           type: integer
-   *         description: API key ID
-   *         example: 1
-   *     responses:
-   *       200:
-   *         description: Full API key retrieved successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 success:
-   *                   type: boolean
-   *                   example: true
-   *                 full_key:
-   *                   type: string
-   *                   description: Complete API key for authentication
-   *                   example: aL6uDnFgRRQJD0A6uKMNOf3K3jHnnt
-   *                 name:
-   *                   type: string
-   *                   description: API key name
-   *                   example: CI Pipeline
-   *                 permissions:
-   *                   type: array
-   *                   items:
-   *                     type: string
-   *                     enum: [downloads, uploads, delete]
-   *                   description: Key permissions
-   *                   example: ['downloads', 'uploads']
-   *       400:
-   *         description: Full key not available for this API key
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
-   *       401:
-   *         description: Authentication required
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
-   *       403:
-   *         description: Full key retrieval is disabled in configuration
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
-   *       404:
-   *         description: API key not found or not retrievable
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
-   *       500:
-   *         description: Server error or key decryption failed
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
-   */
-  app.post('/api/user-api-keys/:id/full', async (req, res) => {
-    try {
-      const swaggerConfig = configLoader.getSwaggerConfig();
-
-      if (!swaggerConfig.allow_full_key_retrieval) {
-        return res.status(403).json({
-          success: false,
-          message: 'Full key retrieval is disabled',
-        });
-      }
-
-      if (!req.cookies?.auth_token) {
-        return res.status(401).json({
-          success: false,
-          message: 'Authentication required',
-        });
-      }
-
-      const authConfigForFull = configLoader.getAuthenticationConfig();
-      const decoded = jwt.verify(req.cookies.auth_token, authConfigForFull.jwt_secret);
-
-      if (!decoded) {
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid authentication',
-        });
-      }
-
-      const ApiKey = getApiKeyModel();
-      const keyId = parseInt(req.params.id);
-
-      const whereClause = { id: keyId };
-      if (decoded.userId) {
-        whereClause.user_type = 'oidc';
-        whereClause.user_id = decoded.userId;
-      } else if (decoded.username) {
-        const localUsers = configLoader.getAuthUsers();
-        const localUser = localUsers.find(u => u.username === decoded.username);
-        if (localUser?.id) {
-          whereClause.user_type = 'local';
-          whereClause.local_user_id = localUser.id;
-        }
-      }
-
-      const apiKey = await ApiKey.findOne({
-        where: { ...whereClause, is_retrievable: true },
-        attributes: ['id', 'name', 'permissions', 'encrypted_full_key'],
-      });
-
-      if (!apiKey) {
-        return res.status(404).json({
-          success: false,
-          message: 'API key not found or not retrievable',
-        });
-      }
-
-      if (!apiKey.encrypted_full_key) {
-        return res.status(400).json({
-          success: false,
-          message: 'Full key not available for this API key',
-        });
-      }
-
-      // Decrypt the stored full key
-      try {
-        // Parse IV and encrypted data
-        const [ivHex, encryptedData] = apiKey.encrypted_full_key.split(':');
-        const iv = Buffer.from(ivHex, 'hex');
-
-        const decipher = crypto.createDecipheriv(
-          'aes-256-cbc',
-          Buffer.from(authConfigForFull.jwt_secret).subarray(0, 32),
-          iv
-        );
-        let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
-        decrypted += decipher.final('utf8');
-
-        res.json({
-          success: true,
-          full_key: decrypted,
-          name: apiKey.name,
-          permissions: apiKey.permissions,
-        });
-      } catch (decryptError) {
-        logger.error('Key decryption error', { error: decryptError.message });
-        return res.status(500).json({
-          success: false,
-          message: 'Failed to decrypt API key',
-        });
-      }
-
-      logger.info('Full API key retrieved for Swagger', {
-        user: decoded.username || decoded.userId,
-        keyId,
-        keyName: apiKey.name,
-      });
-      return undefined;
-    } catch (error) {
-      logger.error('Full API key retrieval error', { error: error.message });
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve full key',
-      });
-    }
-  });
-
-  /**
-   * @swagger
-   * /api/user-api-keys/temp:
-   *   post:
-   *     summary: Generate temporary API key for Swagger testing
-   *     description: Generate a temporary API key for testing API endpoints in Swagger UI. The key expires after a configured time period.
-   *     tags: [API Keys]
-   *     security:
-   *       - JwtAuth: []
-   *     responses:
-   *       200:
-   *         description: Temporary API key generated successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 success:
-   *                   type: boolean
-   *                   example: true
-   *                 message:
-   *                   type: string
-   *                   example: Temporary API key generated for Swagger testing
-   *                 temp_key:
-   *                   type: object
-   *                   properties:
-   *                     key:
-   *                       type: string
-   *                       description: Temporary API key for authentication
-   *                       example: temp_aL6uDnFgRRQJD0A6uKMNOf3K3jHnnt
-   *                     permissions:
-   *                       type: array
-   *                       items:
-   *                         type: string
-   *                         enum: [downloads, uploads, delete]
-   *                       description: User's permissions granted to temp key
-   *                       example: ['downloads', 'uploads']
-   *                     expires_at:
-   *                       type: string
-   *                       format: date-time
-   *                       description: Temporary key expiration timestamp
-   *                       example: 2025-09-29T15:30:10.123Z
-   *                     type:
-   *                       type: string
-   *                       enum: [temporary]
-   *                       description: Key type identifier
-   *                       example: temporary
-   *       401:
-   *         description: Authentication required
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
-   *       403:
-   *         description: Temporary key generation is disabled in configuration
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
-   *       500:
-   *         description: Server error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
-   */
-  app.post('/api/user-api-keys/temp', (req, res) => {
-    try {
-      const swaggerConfig = configLoader.getSwaggerConfig();
-
-      if (!swaggerConfig.allow_temp_key_generation) {
-        return res.status(403).json({
-          success: false,
-          message: 'Temporary key generation is disabled',
-        });
-      }
-
-      if (!req.cookies?.auth_token) {
-        return res.status(401).json({
-          success: false,
-          message: 'Authentication required',
-        });
-      }
-
-      const authConfigForTemp = configLoader.getAuthenticationConfig();
-      const decoded = jwt.verify(req.cookies.auth_token, authConfigForTemp.jwt_secret);
-
-      if (!decoded) {
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid authentication',
-        });
-      }
-
-      // Get user permissions based on user type
-      let userPermissions = [];
-      if (decoded.userId) {
-        // OIDC user - use permissions from JWT token directly
-        userPermissions = decoded.permissions || ['downloads'];
-      } else if (decoded.username) {
-        const localUsers = configLoader.getAuthUsers();
-        const localUser = localUsers.find(u => u.username === decoded.username);
-        if (localUser) {
-          userPermissions = getUserPermissions(localUser) || ['downloads'];
-        }
-      }
-
-      // Generate temporary key
-      const tempKey = `temp_${generateApiKey()}`;
-      const expirationHours = swaggerConfig.temp_key_expiration_hours || 1;
-      const expiresAt = new Date(Date.now() + expirationHours * 60 * 60 * 1000);
-
-      res.json({
-        success: true,
-        message: 'Temporary API key generated for Swagger testing',
-        temp_key: {
-          key: tempKey,
-          permissions: userPermissions,
-          expires_at: expiresAt,
-          type: 'temporary',
-        },
-      });
-
-      logger.info('Temporary API key generated for Swagger', {
-        user: decoded.username || decoded.userId,
-        permissions: userPermissions,
-        expires_at: expiresAt,
-      });
-      return undefined;
-    } catch (error) {
-      logger.error('Temporary API key generation error', { error: error.message });
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to generate temporary key',
-      });
-    }
-  });
+  // Swagger and API documentation routes
+  app.use('/api', swaggerRoutes);
 
   // Serve static CSS files for Swagger theming
   app.use(
@@ -588,46 +203,6 @@ const startServer = async () => {
   } else {
     logger.warn('Frontend dist directory not found. Run "npm run build" to build the frontend.');
   }
-
-  /**
-   * @swagger
-   * /api/swagger.json:
-   *   get:
-   *     summary: Get OpenAPI specification
-   *     description: Returns the complete OpenAPI 3.0 specification for this API in JSON format
-   *     tags: [API Documentation]
-   *     responses:
-   *       200:
-   *         description: OpenAPI specification retrieved successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               description: Complete OpenAPI 3.0 specification document
-   *               properties:
-   *                 openapi:
-   *                   type: string
-   *                   example: "3.0.4"
-   *                 info:
-   *                   type: object
-   *                   properties:
-   *                     title:
-   *                       type: string
-   *                       example: "File Server API"
-   *                     version:
-   *                       type: string
-   *                       example: "1.0.0"
-   *                 paths:
-   *                   type: object
-   *                   description: All API endpoints and their specifications
-   *                 components:
-   *                   type: object
-   *                   description: Reusable components including schemas and security schemes
-   */
-  app.get('/api/swagger.json', (req, res) => {
-    console.log('Serving OpenAPI spec for React Swagger UI', req.path);
-    res.json(specs);
-  });
 
   if (configLoader.getServerConfig().enable_api_docs) {
     logger.info('API documentation enabled at /api-docs (React implementation)');

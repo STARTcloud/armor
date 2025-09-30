@@ -1,4 +1,5 @@
 import PropTypes from "prop-types";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import {
@@ -10,13 +11,19 @@ import {
 
 const getFileLink = (file) => {
   if (file.isDirectory) {
-    return `/browse${file.path}`;
+    return file.path === "/" ? "/" : file.path;
   }
   return `/api/files${file.path}`;
 };
 
-const SearchChecksumDisplay = ({ file, query, onCopyChecksum }) => {
-  if (file.checksum) {
+const SearchChecksumDisplay = ({ file, query, onCopyChecksum, t }) => {
+  // Always show "-" for directories, regardless of checksum value
+  if (file.isDirectory) {
+    return <span className="text-muted">-</span>;
+  }
+
+  // For files, check if checksum exists and is not "Pending"
+  if (file.checksum && file.checksum !== "Pending") {
     const highlighted = highlightMatch(
       `${file.checksum.substring(0, 16)}...`,
       query
@@ -37,7 +44,7 @@ const SearchChecksumDisplay = ({ file, query, onCopyChecksum }) => {
         <button
           className="btn btn-sm btn-outline-secondary"
           onClick={() => onCopyChecksum(file.checksum)}
-          title="Copy full checksum"
+          title={t("files:file.copyFullChecksum")}
         >
           <i className="bi bi-clipboard" />
         </button>
@@ -45,16 +52,13 @@ const SearchChecksumDisplay = ({ file, query, onCopyChecksum }) => {
     );
   }
 
-  if (file.isDirectory) {
-    return <span className="text-muted">-</span>;
-  }
-
+  // For files without valid checksum, show calculating spinner
   return (
     <div
       className="spinner-border spinner-border-sm text-warning"
       role="status"
     >
-      <span className="visually-hidden">Calculating...</span>
+      <span className="visually-hidden">{t("files:file.calculating")}</span>
     </div>
   );
 };
@@ -66,9 +70,12 @@ SearchChecksumDisplay.propTypes = {
   }).isRequired,
   query: PropTypes.string.isRequired,
   onCopyChecksum: PropTypes.func.isRequired,
+  t: PropTypes.func.isRequired,
 };
 
 const SearchResults = ({ results, query, onClear }) => {
+  const { t } = useTranslation(["files", "common"]);
+
   const handleCopyChecksum = async (checksum) => {
     try {
       await navigator.clipboard.writeText(checksum);
@@ -77,18 +84,35 @@ const SearchResults = ({ results, query, onClear }) => {
     }
   };
 
+  const handleCopyLink = async (file) => {
+    try {
+      const url = `${window.location.origin}${getFileLink(file)}`;
+      await navigator.clipboard.writeText(url);
+    } catch (error) {
+      console.error("Failed to copy link:", error);
+    }
+  };
+
+  const getContainingFolder = (filePath) => {
+    const lastSlash = filePath.lastIndexOf("/");
+    if (lastSlash <= 0) {
+      return "/";
+    }
+    return filePath.substring(0, lastSlash);
+  };
+
   if (!results || !results.success) {
     return (
       <div className="card bg-dark border-0">
         <div className="card-body text-center py-5">
           <i className="bi bi-exclamation-triangle display-4 text-warning mb-3" />
-          <h5 className="text-light">Search Failed</h5>
+          <h5 className="text-light">{t("files:search.searchFailed")}</h5>
           <p className="text-muted">
-            Unable to perform search. Please try again.
+            {t("files:search.unableToPerformSearch")}
           </p>
           <button className="btn btn-outline-primary" onClick={onClear}>
             <i className="bi bi-arrow-left me-2" />
-            Back to Files
+            {t("files:search.backToFiles")}
           </button>
         </div>
       </div>
@@ -103,14 +127,13 @@ const SearchResults = ({ results, query, onClear }) => {
       <div className="card bg-dark border-0">
         <div className="card-body text-center py-5">
           <i className="bi bi-search display-4 text-muted mb-3" />
-          <h5 className="text-light">No Results Found</h5>
+          <h5 className="text-light">{t("files:search.noResultsFound")}</h5>
           <p className="text-muted">
-            No files or checksums found matching &quot;
-            <strong>{query}</strong>&quot;
+            {t("files:search.noFilesOrChecksumsFound", { query })}
           </p>
           <button className="btn btn-outline-primary" onClick={onClear}>
             <i className="bi bi-arrow-left me-2" />
-            Back to Files
+            {t("files:search.backToFiles")}
           </button>
         </div>
       </div>
@@ -122,19 +145,19 @@ const SearchResults = ({ results, query, onClear }) => {
       <div className="card-header bg-dark border-0">
         <h5 className="mb-0 text-light">
           <i className="bi bi-search me-2" />
-          Search Results for &quot;{query}&quot; ({totalResults} found)
+          {t("files:search.searchResultsFor", { query, count: totalResults })}
         </h5>
       </div>
       <div className="table-responsive">
-        <table className="table table-dark table-hover mb-0">
+        <table className="table table-dark table-hover mb-0 search-results-table">
           <thead>
             <tr>
-              <th scope="col">Name</th>
-              <th scope="col">Path</th>
-              <th scope="col">Size</th>
-              <th scope="col">Modified</th>
-              <th scope="col">Checksum</th>
-              <th scope="col">Actions</th>
+              <th scope="col">{t("files:search.name")}</th>
+              <th scope="col">{t("files:search.path")}</th>
+              <th scope="col">{t("files:search.size")}</th>
+              <th scope="col">{t("files:search.modified")}</th>
+              <th scope="col">{t("files:search.checksum")}</th>
+              <th scope="col">{t("files:search.actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -196,28 +219,50 @@ const SearchResults = ({ results, query, onClear }) => {
                     file={file}
                     query={query}
                     onCopyChecksum={handleCopyChecksum}
+                    t={t}
                   />
                 </td>
                 <td>
                   <div className="btn-group btn-group-sm" role="group">
-                    {!file.isDirectory && (
+                    <button
+                      className="btn btn-outline-info"
+                      onClick={() => handleCopyLink(file)}
+                      title={
+                        file.isDirectory
+                          ? t("files:file.copyFolderLink")
+                          : t("files:file.copyDownloadLink")
+                      }
+                    >
+                      <i className="bi bi-link-45deg" />
+                    </button>
+
+                    {file.isDirectory ? (
+                      <Link
+                        to={getFileLink(file)}
+                        className="btn btn-outline-primary"
+                        title={t("files:search.openFolder")}
+                      >
+                        <i className="bi bi-folder2-open" />
+                      </Link>
+                    ) : (
                       <a
                         href={getFileLink(file)}
-                        className="btn btn-outline-info"
+                        className="btn btn-outline-success"
                         target="_blank"
                         rel="noopener noreferrer"
-                        title="Download file"
+                        title={t("files:search.downloadFile")}
                       >
                         <i className="bi bi-download" />
                       </a>
                     )}
-                    {Boolean(file.isDirectory) && (
+
+                    {file.path !== "/" && (
                       <Link
-                        to={getFileLink(file)}
-                        className="btn btn-outline-primary"
-                        title="Open folder"
+                        to={getContainingFolder(file.path)}
+                        className="btn btn-outline-secondary"
+                        title={t("files:search.goToContainingFolder")}
                       >
-                        <i className="bi bi-folder-open" />
+                        <i className="bi bi-folder" />
                       </Link>
                     )}
                   </div>

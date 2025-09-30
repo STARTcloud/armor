@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import api from "../../utils/api";
 import { getPermissionBadges, sortApiKeys } from "../../utils/fileHelpers";
@@ -9,6 +10,7 @@ import ApiKeysTable from "./ApiKeysTable";
 import CreateKeyModal from "./CreateKeyModal";
 
 const ApiKeysPage = () => {
+  const { t } = useTranslation(["api", "common"]);
   const [apiKeys, setApiKeys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -35,7 +37,7 @@ const ApiKeysPage = () => {
     expirationDays: 30,
   });
 
-  const loadApiKeys = async () => {
+  const loadApiKeys = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -43,15 +45,15 @@ const ApiKeysPage = () => {
       if (response.data.success) {
         setApiKeys(response.data.api_keys || []);
       } else {
-        setError(response.data.message || "Failed to load API keys");
+        setError(response.data.message || t("api:messages.failedToLoadKeys"));
       }
     } catch (loadError) {
       console.error("Failed to load API keys:", loadError);
-      setError("Failed to load API keys");
+      setError(t("api:messages.failedToLoadKeys"));
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
   const loadUserPermissions = async () => {
     try {
@@ -89,7 +91,7 @@ const ApiKeysPage = () => {
     e.preventDefault();
 
     if (!createForm.name.trim()) {
-      setError("Please enter a key name");
+      setError(t("api:creation.pleaseEnterKeyName"));
       return;
     }
 
@@ -113,7 +115,8 @@ const ApiKeysPage = () => {
     } catch (createError) {
       console.error("Failed to create API key:", createError);
       setError(
-        createError.response?.data?.message || "Failed to create API key"
+        createError.response?.data?.message ||
+          t("api:messages.keyCreationFailed")
       );
     }
   };
@@ -139,7 +142,7 @@ const ApiKeysPage = () => {
       setShowBulkDeleteConfirm(false);
     } catch (deleteError) {
       console.error("Failed to delete API keys:", deleteError);
-      setError("Failed to delete some API keys");
+      setError(t("api:messages.keyDeleteFailed"));
       setShowBulkDeleteConfirm(false);
     }
   };
@@ -179,7 +182,7 @@ const ApiKeysPage = () => {
     } catch (deleteError) {
       console.error("Failed to delete API key:", deleteError);
       setError(
-        deleteError.response?.data?.message || "Failed to delete API key"
+        deleteError.response?.data?.message || t("api:messages.keyDeleteFailed")
       );
     }
   };
@@ -243,8 +246,7 @@ const ApiKeysPage = () => {
         toast.className =
           "position-fixed top-0 start-50 translate-middle-x mt-3 alert alert-success";
         toast.style.zIndex = "9999";
-        toast.innerHTML =
-          '<i class="bi bi-check-circle me-2"></i>API key copied to clipboard!';
+        toast.innerHTML = `<i class="bi bi-check-circle me-2"></i>${t("api:messages.keyCopied")}`;
         document.body.appendChild(toast);
 
         setTimeout(() => {
@@ -253,24 +255,30 @@ const ApiKeysPage = () => {
           }
         }, 3000);
       } else {
-        setError(`Failed to retrieve full key: ${response.data.message}`);
+        setError(
+          `${t("api:messages.failedToRetrieveKey")}: ${response.data.message}`
+        );
       }
     } catch (retrieveError) {
-      setError(`Failed to retrieve full key: ${retrieveError.message}`);
+      setError(
+        `${t("api:messages.failedToRetrieveKey")}: ${retrieveError.message}`
+      );
     }
   };
 
   useEffect(() => {
     loadApiKeys();
     loadUserPermissions();
-  }, []);
+  }, [loadApiKeys]);
 
   if (loading) {
     return (
       <div className="container-fluid py-4">
         <div className="d-flex justify-content-center">
           <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
+            <span className="visually-hidden">
+              {t("api:messages.loadingApiKeys")}
+            </span>
           </div>
         </div>
       </div>
@@ -285,7 +293,7 @@ const ApiKeysPage = () => {
             type="button"
             className="btn btn-success"
             onClick={() => setShowCreateModal(true)}
-            title="Generate New API Key"
+            title={t("api:keys.generateNewKey")}
           >
             <i className="bi bi-key" />
           </button>
@@ -294,7 +302,7 @@ const ApiKeysPage = () => {
               type="button"
               className="btn btn-outline-danger"
               onClick={handleBulkDelete}
-              title={`Delete ${selectedKeys.length} selected API key${selectedKeys.length > 1 ? "s" : ""}`}
+              title={t("api:operations.deleteSelected")}
             >
               <i className="bi bi-trash me-1" />({selectedKeys.length})
             </button>
@@ -356,7 +364,7 @@ const ApiKeysPage = () => {
               <div className="modal-header border-secondary">
                 <h5 className="modal-title text-light">
                   <i className="bi bi-check-circle text-success me-2" />
-                  API Key Created Successfully
+                  {t("api:creation.keyCreatedSuccessfully")}
                 </h5>
                 <button
                   type="button"
@@ -368,9 +376,8 @@ const ApiKeysPage = () => {
               <div className="modal-body">
                 <div className="alert alert-warning" role="alert">
                   <i className="bi bi-exclamation-triangle me-2" />
-                  <strong>Important:</strong> This is the only time you&apos;ll
-                  see the full API key. Make sure to copy it now and store it
-                  securely.
+                  <strong>{t("api:creation.important")}:</strong>{" "}
+                  {t("api:creation.onlyTimeToSee")}
                 </div>
 
                 <div className="mb-3">
@@ -378,7 +385,7 @@ const ApiKeysPage = () => {
                     htmlFor="api-key-display"
                     className="form-label text-light"
                   >
-                    API Key
+                    {t("api:keys.fullKey")}
                   </label>
                   <div className="input-group">
                     <input
@@ -391,7 +398,7 @@ const ApiKeysPage = () => {
                     <button
                       className="btn btn-outline-primary"
                       onClick={() => handleCopyKey(newKeyData.key)}
-                      title="Copy to clipboard"
+                      title={t("api:operations.copyToClipboard")}
                     >
                       <i className="bi bi-clipboard" />
                     </button>
@@ -399,7 +406,9 @@ const ApiKeysPage = () => {
                 </div>
 
                 <div className="mb-3">
-                  <h6 className="text-light">Usage Example:</h6>
+                  <h6 className="text-light">
+                    {t("api:creation.usageExample")}:
+                  </h6>
                   <pre
                     className="bg-secondary p-3 rounded"
                     style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}
@@ -417,7 +426,7 @@ const ApiKeysPage = () => {
                   className="btn btn-primary"
                   onClick={() => setShowKeyModal(false)}
                 >
-                  I&apos;ve Saved the Key
+                  {t("api:creation.iveSavedTheKey")}
                 </button>
               </div>
             </div>
@@ -428,10 +437,10 @@ const ApiKeysPage = () => {
       {/* Delete Confirmation Modal */}
       <ConfirmModal
         show={showDeleteConfirm}
-        title="Delete API Key"
-        message="Are you sure you want to delete this API key? This action cannot be undone."
-        confirmText="Delete"
-        cancelText="Cancel"
+        title={t("api:keys.deleteApiKey")}
+        message={t("api:messages.confirmDeleteKey")}
+        confirmText={t("common:buttons.delete")}
+        cancelText={t("common:buttons.cancel")}
         variant="danger"
         onConfirm={confirmDeleteKey}
         onCancel={cancelDeleteKey}
@@ -440,10 +449,16 @@ const ApiKeysPage = () => {
       {/* Bulk Delete Confirmation Modal */}
       <ConfirmModal
         show={showBulkDeleteConfirm}
-        title="Delete Multiple API Keys"
-        message={`Are you sure you want to delete ${selectedKeys.length} API key${selectedKeys.length > 1 ? "s" : ""}? This action cannot be undone.`}
-        confirmText={`Delete ${selectedKeys.length} Key${selectedKeys.length > 1 ? "s" : ""}`}
-        cancelText="Cancel"
+        title={t("api:messages.deleteMultipleKeys", {
+          count: selectedKeys.length,
+        })}
+        message={t("api:messages.confirmDeleteMultipleKeys", {
+          count: selectedKeys.length,
+        })}
+        confirmText={t("api:messages.deleteMultipleKeys", {
+          count: selectedKeys.length,
+        })}
+        cancelText={t("common:buttons.cancel")}
         variant="danger"
         onConfirm={confirmBulkDelete}
         onCancel={cancelBulkDelete}

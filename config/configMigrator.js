@@ -53,6 +53,7 @@ class ConfigMigrator {
         configVersion,
       };
     } catch (error) {
+      // Use fallback logging since logger might not be initialized yet
       console.warn('Config migration check failed:', error.message);
       return { needed: false, reason: 'error', error: error.message };
     }

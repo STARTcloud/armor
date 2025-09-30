@@ -90,8 +90,61 @@ authentication:
         values: ["admin"]
 
 rate_limiting:
-  window_minutes: 10                                                        # Time window in minutes
-  max_requests: 100                                                         # Maximum requests per window (production default)
+  window_minutes: 15                                                        # Time window in minutes
+  max_requests: 500                                                         # Maximum requests per window (increased for SSE)
   message: "Too many requests from this IP, please try again later."       # Error message shown to users
   skip_successful_requests: false                                           # Whether to skip counting successful requests
   skip_failed_requests: false                                               # Whether to skip counting failed requests
+
+internationalization:
+  default_language: "en"                                                    # Default language for backend API responses
+  supported_languages: []                                                   # Auto-detected from translation files (leave empty for auto-detection)
+  fallback_language: "en"                                                   # Fallback language if requested language not available
+  auto_detect: true                                                         # Auto-detect user language from Accept-Language header
+  force_language: null                                                      # Force specific language for all responses (overrides auto-detection)
+
+security:
+  # Content Security Policy (CSP) configuration
+  content_security_policy:
+    enabled: true                                                           # Enable/disable CSP entirely
+    default_src: ["'self'"]                                                # Default source restrictions
+    script_src:                                                             # Script source restrictions
+      - "'self'"
+      - "'unsafe-inline'"                                                   # Required for React and Vite
+      - "'unsafe-eval'"                                                     # Required for development mode
+      - "https://cdn.jsdelivr.net"                                          # Bootstrap CDN (actually used)
+    style_src:                                                              # Style source restrictions  
+      - "'self'"
+      - "'unsafe-inline'"                                                   # Required for Bootstrap and dynamic styles
+    font_src:                                                               # Font source restrictions
+      - "'self'"
+      - "data:"                                                             # Base64 fonts (Bootstrap Icons)
+    img_src:                                                                # Image source restrictions
+      - "'self'"
+      - "data:"                                                             # Base64 images
+      - "blob:"                                                             # Generated images
+      - "https://startcloud.com"                                            # STARTcloud logo (actually used)
+    connect_src:                                                            # Connection restrictions (AJAX, WebSocket)
+      - "'self'"
+      - "wss:"                                                              # WebSocket for SSE
+    object_src: ["'none'"]                                                  # Block object/embed elements
+    media_src: ["'self'"]                                                   # Media source restrictions
+    frame_src: ["'self'"]                                                   # Frame source restrictions
+    child_src: ["'self'"]                                                   # Child frame restrictions
+    worker_src: ["'self'", "blob:"]                                         # Service worker restrictions
+    manifest_src: ["'self'"]                                                # Web app manifest restrictions
+
+  # HTTP Strict Transport Security (HSTS)
+  hsts:
+    enabled: true                                                           # Enable HSTS
+    max_age: 31536000                                                       # 1 year in seconds
+    include_subdomains: true                                                # Apply to all subdomains
+    preload: true                                                           # Submit to HSTS preload list
+
+  # Additional security headers
+  headers:
+    x_content_type_nosniff: true                                            # Prevent MIME type sniffing
+    x_frame_options: "SAMEORIGIN"                                           # Clickjacking protection
+    x_xss_protection: true                                                  # XSS filter (legacy browsers)
+    referrer_policy: "strict-origin-when-cross-origin"                     # Referrer information control
+    cross_origin_embedder_policy: false                                     # COEP (disable for iframe compatibility)

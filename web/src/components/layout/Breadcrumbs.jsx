@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, Link, useSearchParams } from "react-router-dom";
 
 import api from "../../utils/api";
@@ -6,6 +7,7 @@ import api from "../../utils/api";
 const Breadcrumbs = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const { t } = useTranslation(["common"]);
   const [primaryColor, setPrimaryColor] = useState("#198754");
 
   useEffect(() => {
@@ -27,15 +29,19 @@ const Breadcrumbs = () => {
     const viewIndex = searchParams.get("view") === "index";
 
     if (!pathname || pathname === "/") {
-      const breadcrumbs = [{ name: "Armor", path: "/" }];
+      const breadcrumbs = [{ name: t("common:breadcrumbs.armor"), path: "/" }];
       if (viewIndex) {
-        breadcrumbs.push({ name: "Home", path: "/?view=index", isHome: true });
+        breadcrumbs.push({
+          name: t("common:breadcrumbs.home"),
+          path: "/?view=index",
+          isHome: true,
+        });
       }
       return breadcrumbs;
     }
 
     const parts = pathname.split("/").filter(Boolean);
-    const breadcrumbs = [{ name: "Armor", path: "/" }];
+    const breadcrumbs = [{ name: t("common:breadcrumbs.armor"), path: "/" }];
 
     let currentPath = "";
     parts.forEach((part) => {

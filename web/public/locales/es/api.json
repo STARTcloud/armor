@@ -1,0 +1,107 @@
+{
+  "keys": {
+    "apiKeys": "Claves API",
+    "generateNewKey": "Generar Nueva Clave API",
+    "createApiKey": "Crear Clave API",
+    "deleteApiKey": "Eliminar Clave API",
+    "keyName": "Nombre de Clave",
+    "keyPreview": "Vista Previa de Clave",
+    "fullKey": "Clave Completa",
+    "permissions": "Permisos",
+    "createdAt": "Creado",
+    "expiresAt": "Expira",
+    "status": "Estado",
+    "actions": "Acciones",
+    "apiKeysTotal": "Claves API ({{count}} total)",
+    "name": "Nombre",
+    "expires": "Expira",
+    "lastUsed": "Último Uso",
+    "never": "Nunca"
+  },
+  "creation": {
+    "keyCreatedSuccessfully": "Clave API Creada Exitosamente",
+    "important": "Importante",
+    "onlyTimeToSee": "Esta es la única vez que verás la clave API completa. Asegúrate de copiarla ahora y almacenarla de forma segura.",
+    "usageExample": "Ejemplo de Uso",
+    "iveSavedTheKey": "He Guardado la Clave",
+    "keyNameRequired": "El nombre de clave es requerido",
+    "pleaseEnterKeyName": "Por favor ingresa un nombre de clave",
+    "selectPermissions": "Seleccionar Permisos",
+    "expirationDate": "Fecha de Expiración",
+    "expirationDays": "Días de Expiración",
+    "noExpiration": "Sin Expiración",
+    "customDate": "Fecha Personalizada",
+    "selectExpirationPeriod": "Seleccionar período de expiración",
+    "sevenDays": "7 días",
+    "thirtyDays": "30 días",
+    "ninetyDays": "90 días",
+    "oneHundredEightyDays": "180 días",
+    "oneYear": "1 año",
+    "keysCannotNeverExpire": "Las claves API no pueden configurarse para no expirar nunca"
+  },
+  "permissions": {
+    "downloads": "Descargas",
+    "uploads": "Subidas",
+    "delete": "Eliminar",
+    "readOnly": "Solo Lectura",
+    "fullAccess": "Acceso Completo",
+    "canDownloadFiles": "Puede descargar archivos",
+    "canUploadFiles": "Puede subir archivos",
+    "canDeleteFiles": "Puede eliminar archivos"
+  },
+  "operations": {
+    "copyToClipboard": "Copiar al portapapeles",
+    "copyFullKey": "Copiar Clave Completa",
+    "deleteKey": "Eliminar Clave",
+    "retrieveFullKey": "Recuperar Clave Completa",
+    "searchApiKeys": "Buscar claves API",
+    "deleteSelected": "Eliminar Seleccionadas",
+    "bulkDelete": "Eliminación Masiva"
+  },
+  "messages": {
+    "loadingApiKeys": "Cargando claves API...",
+    "failedToLoadKeys": "Falló la carga de claves API",
+    "keyCreated": "Clave API creada exitosamente",
+    "keyDeleted": "Clave API eliminada exitosamente",
+    "keyDeleteFailed": "Falló la eliminación de clave API",
+    "keyCopied": "¡Clave API copiada al portapapeles!",
+    "failedToCopyKey": "Falló la copia de clave API",
+    "failedToRetrieveKey": "Falló la recuperación de clave completa",
+    "fullKeyRetrievalDisabled": "La recuperación de clave completa está deshabilitada",
+    "adminPrivilegesRequired": "Se requieren privilegios de administrador",
+    "noApiKeys": "No hay Claves API",
+    "confirmDeleteKey": "¿Estás seguro de que quieres eliminar esta clave API? Esta acción no se puede deshacer.",
+    "confirmDeleteMultipleKeys": "¿Estás seguro de que quieres eliminar {{count}} clave{{count, plural, one {} other {s}}} API? Esta acción no se puede deshacer.",
+    "deleteMultipleKeys": "Eliminar {{count}} Clave{{count, plural, one {} other {s}}}",
+    "keyCreationFailed": "Falló la creación de clave API",
+    "createFirstApiKey": "Crea tu primera clave API para comenzar.",
+    "selectKey": "Seleccionar {{keyName}}",
+    "clickToViewCopyKey": "Haz clic para ver/copiar clave completa",
+    "deleteApiKeyTooltip": "Eliminar clave API"
+  },
+  "swagger": {
+    "loadingSwaggerUI": "Cargando Swagger UI...",
+    "loadingApiDocumentation": "Cargando documentación API...",
+    "failedToLoadApiDocumentation": "Falló la carga de documentación API",
+    "errorLoadingApiDocumentation": "Error Cargando Documentación API"
+  },
+  "search": {
+    "searchPlaceholder": "Buscar por nombre, vista previa, o permisos...",
+    "noResults": "Ninguna clave API coincide con tu búsqueda",
+    "resultsFound": "{{count}} clave{{count, plural, one {} other {s}}} API encontrada{{count, plural, one {} other {s}}}"
+  },
+  "validation": {
+    "nameRequired": "El nombre es requerido",
+    "nameMinLength": "El nombre debe tener al menos 3 caracteres",
+    "nameMaxLength": "El nombre debe tener menos de 50 caracteres",
+    "invalidExpirationDate": "Fecha de expiración inválida",
+    "expirationInPast": "La fecha de expiración no puede estar en el pasado",
+    "atLeastOnePermission": "Debe seleccionarse al menos un permiso"
+  },
+  "status": {
+    "active": "Activo",
+    "expired": "Expirado",
+    "expiringSoon": "Expirando Pronto",
+    "revoked": "Revocado"
+  }
+}

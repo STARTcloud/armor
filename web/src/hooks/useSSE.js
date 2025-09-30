@@ -1,11 +1,24 @@
 import { useEffect, useRef } from "react";
 
+/**
+ * Custom hook for Server-Sent Events (SSE) connection
+ * Manages real-time file system event notifications
+ * @param {Object} callbacks - Event handler callbacks
+ * @param {Function} callbacks.onFileAdded - Called when file is added
+ * @param {Function} callbacks.onFileDeleted - Called when file is deleted
+ * @param {Function} callbacks.onFileRenamed - Called when file is renamed
+ * @param {Function} callbacks.onFolderCreated - Called when folder is created
+ * @param {Function} callbacks.onChecksumUpdate - Called when checksum is updated
+ * @param {Function} callbacks.onChecksumProgress - Called when checksum progress updates
+ * @returns {EventSource|null} EventSource instance or null
+ */
 const useSSE = ({
   onFileAdded,
   onFileDeleted,
   onFileRenamed,
   onFolderCreated,
   onChecksumUpdate,
+  onChecksumProgress,
 }) => {
   const eventSourceRef = useRef(null);
 
@@ -63,6 +76,18 @@ const useSSE = ({
           }
         });
 
+        eventSourceRef.current.addEventListener(
+          "checksum-progress",
+          (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              onChecksumProgress?.(data);
+            } catch (error) {
+              console.error("Error parsing checksum-progress event:", error);
+            }
+          }
+        );
+
         eventSourceRef.current.onerror = (error) => {
           console.error("SSE connection error:", error);
 
@@ -92,6 +117,7 @@ const useSSE = ({
     onFileRenamed,
     onFolderCreated,
     onChecksumUpdate,
+    onChecksumProgress,
   ]);
 
   return eventSourceRef.current;

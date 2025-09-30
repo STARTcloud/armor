@@ -1,7 +1,7 @@
 {
   "short_name": "Armor",
-  "name": "Armor",
-  "description": "Client Side Code using Vite, faciliates communication with the Armor Backend",
+  "name": "Armor File Server",
+  "description": "ARMOR Reliably Manages Online Resources - Secure file sharing and management platform",
   "icons": [
     {
       "src": "favicon.ico",
@@ -11,17 +11,58 @@
     {
       "src": "images/logo192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "images/logo512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
-  "scope": "/ui/",
-  "start_url": "/ui/",
+  "scope": "/",
+  "start_url": "/",
   "display": "standalone",
-  "theme_color": "#f69435",
-  "background_color": "#4a4a4a"
+  "orientation": "portrait-primary",
+  "theme_color": "#198754",
+  "background_color": "#212529",
+  "categories": ["productivity", "utilities", "business"],
+  "lang": "en",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Upload Files",
+      "short_name": "Upload",
+      "description": "Quick file upload",
+      "url": "/?action=upload",
+      "icons": [
+        {
+          "src": "images/logo192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "API Keys",
+      "short_name": "Keys",
+      "description": "Manage API keys",
+      "url": "/api-keys",
+      "icons": [
+        {
+          "src": "images/logo192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "images/logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "form_factor": "wide"
+    }
+  ]
 }

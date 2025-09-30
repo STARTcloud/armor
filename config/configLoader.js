@@ -185,6 +185,53 @@ class ConfigLoader {
     );
   }
 
+  getSecurityConfig() {
+    return (
+      this.getConfig().security || {
+        content_security_policy: {
+          enabled: true,
+          default_src: ["'self'"],
+          script_src: ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://cdn.jsdelivr.net'],
+          style_src: ["'self'", "'unsafe-inline'"],
+          font_src: ["'self'", 'data:'],
+          img_src: ["'self'", 'data:', 'blob:', 'https://startcloud.com'],
+          connect_src: ["'self'", 'wss:'],
+          object_src: ["'none'"],
+          media_src: ["'self'"],
+          frame_src: ["'self'"],
+          child_src: ["'self'"],
+          worker_src: ["'self'", 'blob:'],
+          manifest_src: ["'self'"],
+        },
+        hsts: {
+          enabled: true,
+          max_age: 31536000,
+          include_subdomains: true,
+          preload: true,
+        },
+        headers: {
+          x_content_type_nosniff: true,
+          x_frame_options: 'SAMEORIGIN',
+          x_xss_protection: true,
+          referrer_policy: 'strict-origin-when-cross-origin',
+          cross_origin_embedder_policy: false,
+        },
+      }
+    );
+  }
+
+  getI18nConfig() {
+    return (
+      this.getConfig().internationalization || {
+        default_language: 'en',
+        supported_languages: [], // Auto-detected from translation files
+        fallback_language: 'en',
+        auto_detect: true,
+        force_language: null,
+      }
+    );
+  }
+
   getPackageInfo() {
     try {
       const packageContent = fs.readFileSync(join(__dirname, '../package.json'), 'utf8');

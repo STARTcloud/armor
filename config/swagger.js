@@ -10,8 +10,8 @@ const options = {
       description:
         'API for Armor - ARMOR Reliably Manages Online Resources. A secure file management system with authentication and API key support.',
       license: {
-        name: 'MIT',
-        url: 'https://opensource.org/licenses/MIT',
+        name: 'GPL-3.0',
+        url: 'https://www.gnu.org/licenses/gpl-3.0.html',
       },
       contact: {
         name: 'Armor Project',
@@ -46,6 +46,14 @@ const options = {
       {
         name: 'Static Resources',
         description: 'Static file serving (favicon, robots.txt, etc.)',
+      },
+      {
+        name: 'Checksum',
+        description: 'File checksum processing and progress monitoring',
+      },
+      {
+        name: 'Internationalization',
+        description: 'Multi-language support and locale management',
       },
     ],
     servers: [

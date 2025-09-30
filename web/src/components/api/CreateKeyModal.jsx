@@ -1,4 +1,5 @@
 import PropTypes from "prop-types";
+import { useTranslation } from "react-i18next";
 
 const CreateKeyModal = ({
   show,
@@ -9,6 +10,8 @@ const CreateKeyModal = ({
   onFormChange,
   error,
 }) => {
+  const { t } = useTranslation(["api", "common"]);
+
   if (!show) {
     return null;
   }
@@ -24,7 +27,7 @@ const CreateKeyModal = ({
           <div className="modal-header border-secondary">
             <h5 className="modal-title text-light">
               <i className="bi bi-plus-circle me-2" />
-              Create New API Key
+              {t("api:keys.createApiKey")}
             </h5>
             <button
               type="button"
@@ -42,7 +45,7 @@ const CreateKeyModal = ({
               ) : null}
               <div className="mb-3">
                 <label htmlFor="keyName" className="form-label text-light">
-                  Key Name
+                  {t("api:keys.keyName")}
                 </label>
                 <input
                   type="text"
@@ -52,7 +55,7 @@ const CreateKeyModal = ({
                   onChange={(e) =>
                     onFormChange({ ...createForm, name: e.target.value })
                   }
-                  placeholder="Enter a descriptive name"
+                  placeholder={t("api:creation.pleaseEnterKeyName")}
                   required
                 />
               </div>
@@ -62,7 +65,7 @@ const CreateKeyModal = ({
                   htmlFor="keyPermissions"
                   className="form-label text-light"
                 >
-                  Permissions
+                  {t("api:keys.permissions")}
                 </label>
                 <div id="keyPermissions">
                   <div className="form-check">
@@ -86,10 +89,10 @@ const CreateKeyModal = ({
                       className="form-check-label text-light"
                       htmlFor="perm-downloads"
                     >
-                      Downloads
+                      {t("api:permissions.downloads")}
                     </label>
                     <small className="form-text text-muted d-block">
-                      Access to download files
+                      {t("api:permissions.canDownloadFiles")}
                     </small>
                   </div>
                   <div className="form-check">
@@ -119,10 +122,10 @@ const CreateKeyModal = ({
                           : "1",
                       }}
                     >
-                      Uploads
+                      {t("api:permissions.uploads")}
                     </label>
                     <small className="form-text text-muted d-block">
-                      Access to upload files
+                      {t("api:permissions.canUploadFiles")}
                     </small>
                   </div>
                   <div className="form-check">
@@ -152,10 +155,10 @@ const CreateKeyModal = ({
                           : "1",
                       }}
                     >
-                      Delete
+                      {t("api:permissions.delete")}
                     </label>
                     <small className="form-text text-muted d-block">
-                      Access to delete files
+                      {t("api:permissions.canDeleteFiles")}
                     </small>
                   </div>
                 </div>
@@ -165,7 +168,7 @@ const CreateKeyModal = ({
                   htmlFor="keyExpiration"
                   className="form-label text-light"
                 >
-                  Expiration
+                  {t("api:creation.expirationDate")}
                 </label>
                 <select
                   className="form-select bg-dark text-light border-secondary"
@@ -179,15 +182,19 @@ const CreateKeyModal = ({
                   }
                   required
                 >
-                  <option value="">Select expiration period</option>
-                  <option value="7">7 days</option>
-                  <option value="30">30 days</option>
-                  <option value="90">90 days</option>
-                  <option value="180">180 days</option>
-                  <option value="365">1 year</option>
+                  <option value="">
+                    {t("api:creation.selectExpirationPeriod")}
+                  </option>
+                  <option value="7">{t("api:creation.sevenDays")}</option>
+                  <option value="30">{t("api:creation.thirtyDays")}</option>
+                  <option value="90">{t("api:creation.ninetyDays")}</option>
+                  <option value="180">
+                    {t("api:creation.oneHundredEightyDays")}
+                  </option>
+                  <option value="365">{t("api:creation.oneYear")}</option>
                 </select>
                 <small className="form-text text-muted">
-                  API keys cannot be set to never expire
+                  {t("api:creation.keysCannotNeverExpire")}
                 </small>
               </div>
             </div>
@@ -197,11 +204,11 @@ const CreateKeyModal = ({
                 className="btn btn-secondary"
                 onClick={onClose}
               >
-                Cancel
+                {t("common:buttons.cancel")}
               </button>
               <button type="submit" className="btn btn-primary">
                 <i className="bi bi-plus-circle me-2" />
-                Create Key
+                {t("common:buttons.create")} Key
               </button>
             </div>
           </form>

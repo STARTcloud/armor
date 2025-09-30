@@ -353,7 +353,7 @@ router.put('*splat', authenticateUploads, async (req, res, next) => {
         message: `${stats.isDirectory() ? 'Folder' : 'File'} renamed successfully`,
       });
     } else if (req.query.action === 'move') {
-      const { filePaths } = req.body;
+      const { filePaths, destinationPath } = req.body;
 
       if (!filePaths || !Array.isArray(filePaths) || filePaths.length === 0) {
         return res.status(400).json({
@@ -366,15 +366,55 @@ router.put('*splat', authenticateUploads, async (req, res, next) => {
         ? req.params.splat.join('/')
         : req.params.splat || '';
 
-      if (currentPath === '' || currentPath === '/') {
-        return res.status(400).json({
-          success: false,
-          message: 'Cannot move files from root directory',
-        });
-      }
+      let targetDir;
+      let moveDescription;
 
-      const parentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
-      const targetDir = getSecurePath(parentPath);
+      if (destinationPath) {
+        // Moving to a specific folder
+        targetDir = getSecurePath(destinationPath);
+
+        // Validate that destination is a directory and exists
+        try {
+          const destStats = await fs.stat(targetDir);
+          if (!destStats.isDirectory()) {
+            return res.status(400).json({
+              success: false,
+              message: 'Destination must be a directory',
+            });
+          }
+        } catch {
+          return res.status(400).json({
+            success: false,
+            message: 'Destination directory does not exist',
+          });
+        }
+
+        // Prevent moving items into themselves
+        const invalidMoves = filePaths.filter(
+          filePath => destinationPath.startsWith(filePath) || filePath === destinationPath
+        );
+
+        if (invalidMoves.length > 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'Cannot move items into themselves',
+          });
+        }
+
+        moveDescription = `to ${basename(targetDir)}`;
+      } else {
+        // Moving to parent directory (original behavior)
+        if (currentPath === '' || currentPath === '/') {
+          return res.status(400).json({
+            success: false,
+            message: 'Cannot move files from root directory',
+          });
+        }
+
+        const parentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+        targetDir = getSecurePath(parentPath);
+        moveDescription = 'to parent directory';
+      }
 
       const movePromises = filePaths.map(async filePath => {
         const oldFullPath = getSecurePath(filePath);
@@ -462,12 +502,12 @@ router.put('*splat', authenticateUploads, async (req, res, next) => {
 
       const movedFiles = await Promise.all(movePromises);
 
-      logAccess(req, 'MOVE_SUCCESS', `Moved ${filePaths.length} items to parent directory`);
+      logAccess(req, 'MOVE_SUCCESS', `Moved ${filePaths.length} items ${moveDescription}`);
 
       return res.json({
         success: true,
         movedFiles,
-        message: `${filePaths.length} item${filePaths.length > 1 ? 's' : ''} moved successfully`,
+        message: `${filePaths.length} item${filePaths.length > 1 ? 's' : ''} moved successfully ${moveDescription}`,
       });
     }
     return res.status(400).json({

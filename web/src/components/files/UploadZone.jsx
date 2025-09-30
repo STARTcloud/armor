@@ -1,9 +1,11 @@
 import PropTypes from "prop-types";
 import { useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 import UploadProgress from "./UploadProgress";
 
 const UploadZone = ({ currentPath, onUploadComplete }) => {
+  const { t } = useTranslation(["files", "common"]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploads, setUploads] = useState([]);
   const fileInputRef = useRef(null);
@@ -48,7 +50,7 @@ const UploadZone = ({ currentPath, onUploadComplete }) => {
         );
         onUploadComplete?.();
       } else {
-        let errorMessage = "Upload failed";
+        let errorMessage = t("files:upload.uploadFailed");
         try {
           const response = JSON.parse(xhr.responseText);
           errorMessage = response.message || errorMessage;
@@ -70,7 +72,7 @@ const UploadZone = ({ currentPath, onUploadComplete }) => {
       setUploads((prev) =>
         prev.map((u) =>
           u.id === upload.id
-            ? { ...u, status: "error", error: "Network error" }
+            ? { ...u, status: "error", error: t("auth:errors.networkError") }
             : u
         )
       );
@@ -156,9 +158,13 @@ const UploadZone = ({ currentPath, onUploadComplete }) => {
       >
         <div className="upload-drop-zone__prompt">
           <i className="bi bi-cloud-upload display-4" />
-          <div>{isDragOver ? "Drop files here" : "Drag & drop files here"}</div>
           <div>
-            or <span>click to browse</span>
+            {isDragOver
+              ? t("files:upload.dropFilesHere")
+              : t("files:upload.dropFilesHere")}
+          </div>
+          <div>
+            or <span>{t("files:upload.clickToSelect")}</span>
           </div>
         </div>
         <input
@@ -175,7 +181,7 @@ const UploadZone = ({ currentPath, onUploadComplete }) => {
         <div className="upload-list">
           <div className="d-flex justify-content-between align-items-center mb-3">
             <h6 className="text-light mb-0">
-              Upload Progress (
+              {t("files:upload.uploadProgress")} (
               {uploads.filter((u) => u.status === "completed").length}/
               {uploads.length})
             </h6>
@@ -184,7 +190,7 @@ const UploadZone = ({ currentPath, onUploadComplete }) => {
                 className="btn btn-sm btn-outline-secondary"
                 onClick={clearCompleted}
               >
-                Clear Completed
+                {t("common:actions.clear")} {t("common:status.completed")}
               </button>
             )}
           </div>
