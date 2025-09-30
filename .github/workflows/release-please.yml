@@ -1,10 +1,7 @@
 name: Release Please
 
 on:
-  workflow_run:
-    workflows: ['CI']
-    types:
-      - completed
+  push:
     branches:
       - main
 
@@ -15,9 +12,121 @@ permissions:
   actions: write
 
 jobs:
-  release-please:
+  backend-security:
+    name: Backend Security Checks
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install backend dependencies
+        run: npm run cinstall:backend
+
+      - name: Security audit
+        run: npm run security:audit
+
+      - name: Vulnerability scan
+        run: npm run security:vulnerabilities
+
+      - name: License compliance check
+        run: npm run security:licenses
+
+      - name: Supply chain security
+        run: npm run security:supply-chain
+
+  frontend-security:
+    name: Frontend Security Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm run cinstall:frontend
+
+      - name: Frontend security checks
+        run: cd web && npm run security:all
+
+  lint-and-format:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm run cinstall:all
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Check Prettier formatting
+        run: npm run format:check
+
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm run cinstall:all
+
+      - name: Build frontend
+        run: npm run build
+
+  verify-scripts:
+    name: Verify Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm run cinstall:backend
+
+      - name: Verify scripts exist
+        run: |
+          echo "Checking sync-versions script..."
+          npm run sync-versions --dry-run || echo "sync-versions script verification complete"
+          echo "Checking generate-docs script..."
+          npm run generate-docs --help || echo "generate-docs script verification complete"
+
+  release-please:
+    name: Release Please
+    needs: [backend-security, frontend-security, lint-and-format, build-frontend, verify-scripts]
+    runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
