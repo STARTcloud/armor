@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import { promises as fs } from 'fs';
-import { join, basename } from 'path';
+import { join, basename, extname } from 'path';
 import { Op } from 'sequelize';
 import auth from 'basic-auth';
 import { SERVED_DIR, getSecurePath } from '../config/paths.js';
@@ -9,21 +9,9 @@ import {
   authenticateDownloads,
   authenticateUploads,
   authenticateDelete,
-  authenticateApiKeyAccess,
 } from '../middleware/auth.middleware.js';
-import {
-  isValidUser,
-  isAllowedDirectory,
-  isStaticDirectory,
-  getStaticContent,
-} from '../utils/auth.js';
+import { isAllowedDirectory, getStaticContent } from '../utils/auth.js';
 import { getDirectoryItems } from '../utils/fileUtils.js';
-import {
-  generateDirectoryListing,
-  getSecuredSiteMessage,
-  generate404Page,
-  getUserDisplayName,
-} from '../utils/htmlGenerator.js';
 import { logAccess, logger, accessLogger, databaseLogger } from '../config/logger.js';
 import configLoader from '../config/configLoader.js';
 import { getFileModel } from '../models/File.js';
@@ -31,18 +19,6 @@ import { withDatabaseRetry } from '../config/database.js';
 import { sendFileDeleted, sendFileRenamed, sendFolderCreated } from './sse.js';
 
 // Helper function to create landing config
-const createLandingConfig = () => {
-  const serverConfig = configLoader.getServerConfig();
-  return {
-    title: serverConfig.landing_title || 'Prominic Armor',
-    subtitle: serverConfig.landing_subtitle || 'ARMOR Reliably Manages Online Resources',
-    description: serverConfig.landing_description || 'This is a secured download site',
-    iconClass: serverConfig.landing_icon_class || 'bi bi-shield-check',
-    iconUrl: serverConfig.landing_icon_url || null,
-    supportEmail: serverConfig.support_email || 'support@prominic.net',
-    primaryColor: serverConfig.landing_primary_color || '#198754',
-  };
-};
 
 // Helper function to handle JSON directory response
 const handleJsonDirectoryResponse = async (req, res, fullPath, relativePath) => {
@@ -71,39 +47,20 @@ const shouldShowLandingPage = (isRoot, serverConfig, isAdmin, viewIndex, query) 
   isRoot && !serverConfig.show_root_index && !(isAdmin && viewIndex) && !query.sort && !query.order;
 
 // Helper function to handle landing page response
-const handleLandingPageResponse = (req, res, uploadCredentials) => {
-  accessLogger.info('Showing landing page for root access');
-  logAccess(req, 'LANDING_PAGE', 'showing secured site message');
-  const landingConfig = createLandingConfig();
-  landingConfig.packageInfo = configLoader.getPackageInfo();
-  const userInfo =
-    req.oidcUser || (uploadCredentials ? { username: uploadCredentials.name } : null);
-  return res.send(getSecuredSiteMessage(landingConfig, userInfo));
+const handleLandingPageResponse = (req, res) => {
+  accessLogger.info('Redirecting to React app for root access');
+  logAccess(req, 'LANDING_PAGE', 'redirecting to React app');
+  return res.redirect('/');
 };
 
 // Helper function to handle directory listing
 const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
   const uploadCredentials = auth(req);
   const isAllowed = isAllowedDirectory(fullPath, SERVED_DIR);
-  const isStatic = isStaticDirectory(fullPath, SERVED_DIR);
 
   if (!isAllowed) {
     logAccess(req, 'ACCESS_DENIED', 'directory not in allowed list');
-    const landingConfig = createLandingConfig();
-    landingConfig.packageInfo = configLoader.getPackageInfo();
-    const userInfo =
-      req.oidcUser || (uploadCredentials ? { username: uploadCredentials.name } : null);
-    return res.send(getSecuredSiteMessage(landingConfig, userInfo));
-  }
-
-  if (isStatic) {
-    const staticContent = await getStaticContent(fullPath);
-    if (staticContent) {
-      const baseUrl = requestPath.endsWith('/') ? requestPath : `${requestPath}/`;
-      const contentWithBase = staticContent.replace('</head>', `<base href="${baseUrl}"></head>`);
-      logAccess(req, 'STATIC_PAGE', 'serving static index.html');
-      return res.send(contentWithBase);
-    }
+    return res.redirect('/');
   }
 
   const serverConfig = configLoader.getServerConfig();
@@ -127,36 +84,21 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
     return handleJsonDirectoryResponse(req, res, fullPath, relativePath);
   }
 
+  const staticContent = await getStaticContent(fullPath);
+  if (staticContent) {
+    const baseUrl = requestPath.endsWith('/') ? requestPath : `${requestPath}/`;
+    const contentWithBase = staticContent.replace('</head>', `<base href="${baseUrl}"></head>`);
+    logAccess(req, 'STATIC_PAGE', 'serving static index.html');
+    return res.send(contentWithBase);
+  }
+
   if (shouldShowLandingPage(isRoot, serverConfig, isAdmin, viewIndex, req.query)) {
     return handleLandingPageResponse(req, res, uploadCredentials);
   }
 
-  const hasBasicUploadAccess = uploadCredentials && isValidUser(uploadCredentials, 'uploads');
-  const hasOidcUploadAccess = req.oidcUser && req.oidcUser.permissions.includes('uploads');
-  const hasUploadAccess = hasBasicUploadAccess || hasOidcUploadAccess;
-
-  const itemsInfo = await getDirectoryItems(fullPath, req.fileWatcher);
-  logAccess(req, 'LIST_DIRECTORY', `size: ${itemsInfo.length} items`);
-
-  let indexContent = '';
-  if (fullPath !== SERVED_DIR) {
-    indexContent = (await getStaticContent(fullPath)) || '';
-  }
-
-  const userInfo =
-    req.oidcUser || (uploadCredentials ? { username: uploadCredentials.name } : null);
-
-  const html = generateDirectoryListing(
-    hasUploadAccess ? 'uploads' : 'downloads',
-    req.query,
-    itemsInfo,
-    relativePath,
-    indexContent,
-    userInfo,
-    serverConfig,
-    configLoader.getPackageInfo()
-  );
-  return res.send(html);
+  // Serve React app for directory listing
+  const indexPath = join(process.cwd(), 'web', 'dist', 'index.html');
+  return res.sendFile(indexPath);
 };
 
 /**
@@ -193,549 +135,6 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
-
-router.get('/api-keys', authenticateApiKeyAccess, (req, res) => {
-  try {
-    const serverConfig = configLoader.getServerConfig();
-    const userInfo = req.oidcUser || null;
-
-    const html = `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>API Keys - Armor</title>
-    <link rel="icon" type="image/x-icon" href="/web/public/images/favicon.ico">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        html, body { 
-            height: 100%;
-            background-color: #212529; 
-            color: #fff;
-        }
-        body {
-            padding-top: 1.5rem;
-        }
-        .table { color: #fff; }
-        .table td { vertical-align: middle; }
-        .key-preview { font-family: monospace; }
-        .expired { opacity: 0.6; }
-        .badge { font-size: 0.75em; }
-        .modal-content { background-color: #343a40; }
-        .form-control, .form-select { 
-            background-color: #495057; 
-            border-color: #6c757d; 
-            color: #fff; 
-        }
-        .form-control:focus, .form-select:focus {
-            background-color: #495057;
-            border-color: #198754;
-            color: #fff;
-            box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
-        }
-        #generatedKey {
-            background-color: #343a40 !important;
-            color: #fff !important;
-            border-color: #495057 !important;
-        }
-        .auth-status {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .breadcrumb {
-            background-color: transparent;
-            margin-bottom: 0;
-        }
-        .breadcrumb-item > a {
-            color: #6c757d;
-            text-decoration: none;
-        }
-        .breadcrumb-item > a:hover {
-            color: #fff;
-        }
-        .breadcrumb-item.active {
-            color: #fff;
-        }
-        .breadcrumb-item + .breadcrumb-item::before {
-            color: #6c757d;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="d-flex align-items-center justify-content-between mb-4">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item">
-                        <span style="color: ${serverConfig.login_primary_color || '#198754'};">
-                            <i class="bi bi-key me-1"></i>API Key Management
-                        </span>
-                    </li>
-                </ol>
-            </nav>
-            <div class="auth-status">
-                <div class="dropdown">
-                    <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-person-circle me-1"></i> ${getUserDisplayName(userInfo)}
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="profileDropdown">
-                        <li><a class="dropdown-item" href="/"><i class="bi bi-shield me-2"></i>Dashboard</a></li>
-                        ${serverConfig?.enable_api_docs ? '<li><a class="dropdown-item" href="/api-docs"><i class="bi bi-book me-2"></i>API Documentation</a></li>' : ''}
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="/logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-                        <li><a class="dropdown-item" href="/logout/local"><i class="bi bi-box-arrow-left me-2"></i>Logout (Local)</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createKeyModal" title="Generate New API Key">
-                <i class="bi bi-key"></i>
-            </button>
-            <div class="d-flex align-items-center gap-2">
-                <div class="input-group" style="width: 300px;">
-                    <input type="text" class="form-control bg-dark text-light border-secondary" id="searchInput" placeholder="Search API keys...">
-                    <button type="button" class="btn btn-outline-light" id="searchButton" title="Search">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </div>
-                <button type="button" class="btn btn-outline-secondary" id="clearSearchButton" style="display: none;" title="Clear search">
-                    <i class="bi bi-x"></i>
-                </button>
-            </div>
-        </div>
-
-        <div id="apiKeysTable">
-            <div class="text-center py-4">
-                <div class="spinner-border text-success" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-2 text-muted">Loading API keys...</p>
-            </div>
-        </div>
-
-        <!-- Create API Key Modal -->
-        <div class="modal fade" id="createKeyModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title"><i class="bi bi-key me-2"></i>Generate New API Key</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="createKeyForm">
-                            <div class="mb-3">
-                                <label for="keyName" class="form-label">Key Name</label>
-                                <input type="text" class="form-control bg-dark text-light border-secondary" id="keyName" placeholder="e.g., CI Pipeline, Mobile App" required>
-                                <small class="form-text text-muted">Choose a descriptive name to identify this key</small>
-                            </div>
-                            <div class="mb-3">
-                                <label for="keyPermissions" class="form-label">Permissions</label>
-                                <div id="keyPermissions">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" value="downloads" id="perm-downloads" checked>
-                                        <label class="form-check-label" for="perm-downloads">Downloads</label>
-                                        <small class="form-text text-muted d-block">Access to download files</small>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" value="uploads" id="perm-uploads">
-                                        <label class="form-check-label" for="perm-uploads">Uploads</label>
-                                        <small class="form-text text-muted d-block">Access to upload files</small>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" value="delete" id="perm-delete">
-                                        <label class="form-check-label" for="perm-delete">Delete</label>
-                                        <small class="form-text text-muted d-block">Access to delete files</small>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label for="keyExpiration" class="form-label">Expiration</label>
-                                <select class="form-select" id="keyExpiration" required>
-                                    <option value="">Select expiration period</option>
-                                    <option value="7">7 days</option>
-                                    <option value="30" selected>30 days</option>
-                                    <option value="90">90 days</option>
-                                    <option value="180">180 days</option>
-                                    <option value="365">1 year</option>
-                                </select>
-                                <small class="form-text text-muted">API keys cannot be set to never expire</small>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" form="createKeyForm" class="btn btn-success">Generate Key</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Key Display Modal -->
-        <div class="modal fade" id="keyDisplayModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title text-success"><i class="bi bi-check-circle me-2"></i>API Key Generated</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="alert alert-warning">
-                            <i class="bi bi-exclamation-triangle me-2"></i>
-                            <strong>Important:</strong> This is the only time you'll see this key. Please copy it now and store it securely.
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Your API Key:</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control font-monospace" id="generatedKey" readonly>
-                                <button class="btn btn-outline-success" type="button" id="copyKeyButton">
-                                    <i class="bi bi-clipboard"></i> Copy
-                                </button>
-                            </div>
-                        </div>
-                        <div class="card bg-dark border-secondary">
-                            <div class="card-header">
-                                <h6 class="mb-0">Usage Example</h6>
-                            </div>
-                            <div class="card-body">
-                                <code class="text-light" id="usageExample">
-                                    curl -H "Authorization: Bearer YOUR_API_KEY" https://your-domain.com/path/to/file
-                                </code>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-success" data-bs-dismiss="modal">Got it!</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        let userPermissions = [];
-        let allApiKeys = [];
-        
-        // Load API keys on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            loadApiKeys();
-            filterPermissionCheckboxes();
-            setupSearch();
-        });
-
-        async function loadApiKeys() {
-            try {
-                const response = await fetch('/api/api-keys');
-                const result = await response.json();
-                
-                if (result.success) {
-                    allApiKeys = result.api_keys;
-                    displayApiKeys(allApiKeys);
-                } else {
-                    showError('Failed to load API keys: ' + result.message);
-                }
-            } catch (error) {
-                showError('Failed to load API keys: ' + error.message);
-            }
-        }
-
-        function displayApiKeys(keys) {
-            const tableContainer = document.getElementById('apiKeysTable');
-            
-            if (keys.length === 0) {
-                tableContainer.innerHTML = 
-                    '<div class="text-center py-4">' +
-                    '<i class="bi bi-key display-4 text-muted"></i>' +
-                    '<h5 class="mt-3 text-muted">No API Keys</h5>' +
-                    '<p class="text-muted">Create your first API key to get started</p>' +
-                    '</div>';
-                return;
-            }
-
-            let tableRows = '';
-            keys.forEach(key => {
-                const isExpired = key.is_expired;
-                const expiresDate = new Date(key.expires_at);
-                const lastUsed = key.last_used ? new Date(key.last_used).toLocaleString() : 'Never';
-                const expiredClass = isExpired ? 'expired' : '';
-                const expiredBadge = isExpired ? '<span class="badge bg-danger ms-2">Expired</span>' : '';
-                const permissionBadges = key.permissions.map(perm => 
-                    '<span class="badge bg-secondary me-1">' + perm + '</span>'
-                ).join('');
-                
-                const keyPreviewCell = isExpired ? 
-                    '<td class="' + expiredClass + '"><code class="key-preview">' + key.key_preview + '...</code></td>' :
-                    (key.is_retrievable ? 
-                        '<td><code class="key-preview" style="cursor: pointer; text-decoration: underline;" onclick="retrieveFullKey(' + "'" + key.id + "'" + ')" title="Click to view/copy full key">' + key.key_preview + '...</code></td>' :
-                        '<td><code class="key-preview">' + key.key_preview + '...</code></td>');
-                
-                tableRows += '<tr class="' + expiredClass + '">' +
-                    '<td>' + key.name + expiredBadge + '</td>' +
-                    keyPreviewCell +
-                    '<td>' + permissionBadges + '</td>' +
-                    '<td>' + expiresDate.toLocaleDateString() + '</td>' +
-                    '<td>' + lastUsed + '</td>' +
-                    '<td><button class="btn btn-outline-danger btn-sm delete-key-btn" data-key-id="' + key.id + '" data-key-name="' + key.name + '">' +
-                    '<i class="bi bi-trash"></i></button></td>' +
-                    '</tr>';
-            });
-
-            const table = '<table class="table table-dark table-striped">' +
-                '<thead>' +
-                '<tr>' +
-                '<th>Name</th>' +
-                '<th>Key Preview</th>' +
-                '<th>Permissions</th>' +
-                '<th>Expires</th>' +
-                '<th>Last Used</th>' +
-                '<th>Actions</th>' +
-                '</tr>' +
-                '</thead>' +
-                '<tbody>' + tableRows + '</tbody>' +
-                '</table>';
-            
-            tableContainer.innerHTML = table;
-        }
-
-        function filterPermissionCheckboxes() {
-            // Get user permissions from the current user context
-            const checkboxes = document.querySelectorAll('#keyPermissions input[type="checkbox"]');
-            
-            // Only show permissions the user actually has
-            fetch('/api/user-api-keys')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Check user's actual permissions from JWT token
-                        const userPermissions = data.user_permissions || [];
-                        const userHasUploads = userPermissions.includes('uploads');
-                        const userHasDelete = userPermissions.includes('delete');
-                        
-                        checkboxes.forEach(checkbox => {
-                            const permission = checkbox.value;
-                            if (permission === 'downloads') {
-                                // Everyone can have downloads
-                                checkbox.disabled = false;
-                            } else if (permission === 'uploads') {
-                                // Only enable if user has upload keys (admin user)
-                                checkbox.disabled = !userHasUploads;
-                                if (!userHasUploads) {
-                                    checkbox.checked = false;
-                                    checkbox.parentElement.style.opacity = '0.5';
-                                }
-                            } else if (permission === 'delete') {
-                                // Only enable if user has delete keys (admin user)
-                                checkbox.disabled = !userHasDelete;
-                                if (!userHasDelete) {
-                                    checkbox.checked = false;
-                                    checkbox.parentElement.style.opacity = '0.5';
-                                }
-                            }
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Failed to fetch user permissions:', error);
-                    // Default to downloads only on error
-                    checkboxes.forEach(checkbox => {
-                        if (checkbox.value !== 'downloads') {
-                            checkbox.disabled = true;
-                            checkbox.checked = false;
-                            checkbox.parentElement.style.opacity = '0.5';
-                        }
-                    });
-                });
-        }
-
-        document.getElementById('createKeyForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const name = document.getElementById('keyName').value;
-            const expirationDays = parseInt(document.getElementById('keyExpiration').value);
-            const permissions = Array.from(document.querySelectorAll('#keyPermissions input:checked'))
-                .map(cb => cb.value);
-            
-            if (!name || !expirationDays || permissions.length === 0) {
-                showError('Please fill in all fields');
-                return;
-            }
-            
-            const expirationDate = new Date();
-            expirationDate.setDate(expirationDate.getDate() + expirationDays);
-            
-            try {
-                const response = await fetch('/api/api-keys', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name,
-                        permissions,
-                        expires_at: expirationDate.toISOString()
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    // Close create modal
-                    const createModal = bootstrap.Modal.getInstance(document.getElementById('createKeyModal'));
-                    createModal.hide();
-                    
-                    // Show the generated key
-                    document.getElementById('generatedKey').value = result.api_key.key;
-                    
-                    // Update the usage example with the actual key
-                    const usageExample = document.getElementById('usageExample');
-                    usageExample.textContent = 'curl -H "Authorization: Bearer ' + result.api_key.key + '" https://your-domain.com/path/to/file';
-                    
-                    const keyModal = new bootstrap.Modal(document.getElementById('keyDisplayModal'));
-                    keyModal.show();
-                    
-                    // Reset form
-                    document.getElementById('createKeyForm').reset();
-                    document.getElementById('perm-downloads').checked = true;
-                    document.getElementById('keyExpiration').value = '30';
-                    
-                    // Reload keys
-                    loadApiKeys();
-                } else {
-                    showError('Failed to create API key: ' + result.message);
-                }
-            } catch (error) {
-                showError('Failed to create API key: ' + error.message);
-            }
-        });
-
-        document.getElementById('copyKeyButton').addEventListener('click', () => {
-            const keyInput = document.getElementById('generatedKey');
-            keyInput.select();
-            document.execCommand('copy');
-            
-            const button = document.getElementById('copyKeyButton');
-            const originalText = button.innerHTML;
-            button.innerHTML = '<i class="bi bi-check"></i> Copied!';
-            button.classList.remove('btn-outline-success');
-            button.classList.add('btn-success');
-            
-            setTimeout(() => {
-                button.innerHTML = originalText;
-                button.classList.remove('btn-success');
-                button.classList.add('btn-outline-success');
-            }, 2000);
-        });
-
-        async function deleteKey(keyId, keyName) {
-            if (!confirm('Are you sure you want to delete the API key "' + keyName + '"? This action cannot be undone.')) {
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/api-keys/' + keyId, {
-                    method: 'DELETE'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    loadApiKeys(); // Reload the table
-                } else {
-                    showError('Failed to delete API key: ' + result.message);
-                }
-            } catch (error) {
-                showError('Failed to delete API key: ' + error.message);
-            }
-        }
-
-        function showError(message) {
-            // Simple error display - in production you might want a toast or better UX
-            alert(message);
-        }
-
-        // Event delegation for delete buttons (CSP-compliant)
-        document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('delete-key-btn') || e.target.closest('.delete-key-btn')) {
-                const button = e.target.classList.contains('delete-key-btn') ? e.target : e.target.closest('.delete-key-btn');
-                const keyId = button.getAttribute('data-key-id');
-                const keyName = button.getAttribute('data-key-name');
-                if (keyId && keyName) {
-                    deleteKey(keyId, keyName);
-                }
-            }
-        });
-
-        // Search functionality
-        function setupSearch() {
-            const searchInput = document.getElementById('searchInput');
-            const searchButton = document.getElementById('searchButton');
-            const clearSearchButton = document.getElementById('clearSearchButton');
-
-            function performSearch() {
-                const query = searchInput.value.toLowerCase().trim();
-                
-                if (query === '') {
-                    displayApiKeys(allApiKeys);
-                    clearSearchButton.style.display = 'none';
-                    return;
-                }
-
-                const filteredKeys = allApiKeys.filter(key => 
-                    key.name.toLowerCase().includes(query) ||
-                    key.key_preview.toLowerCase().includes(query) ||
-                    key.permissions.some(perm => perm.toLowerCase().includes(query))
-                );
-
-                displayApiKeys(filteredKeys);
-                clearSearchButton.style.display = 'inline-block';
-            }
-
-            searchInput.addEventListener('input', performSearch);
-            searchButton.addEventListener('click', performSearch);
-            clearSearchButton.addEventListener('click', () => {
-                searchInput.value = '';
-                performSearch();
-            });
-        }
-
-        async function retrieveFullKey(keyId) {
-            try {
-                const response = await fetch('/api/api-keys/' + keyId + '/full');
-                const result = await response.json();
-                
-                if (result.success) {
-                    await navigator.clipboard.writeText(result.full_key);
-                    
-                    const toast = document.createElement('div');
-                    toast.className = 'position-fixed top-0 start-50 translate-middle-x mt-3 alert alert-success';
-                    toast.style.zIndex = '9999';
-                    toast.innerHTML = '<i class="bi bi-check-circle me-2"></i>API key copied to clipboard!';
-                    document.body.appendChild(toast);
-                    
-                    setTimeout(() => {
-                        document.body.removeChild(toast);
-                    }, 3000);
-                } else {
-                    showError('Failed to retrieve full key: ' + result.message);
-                }
-            } catch (error) {
-                showError('Failed to retrieve full key: ' + error.message);
-            }
-        }
-    </script>
-</body>
-</html>
-    `;
-
-    logAccess(req, 'API_KEYS_PAGE', 'API key management page accessed');
-    return res.send(html);
-  } catch (error) {
-    logger.error('API keys page error', { error: error.message });
-    return res.status(500).send('Internal server error');
-  }
-});
 
 /**
  * @swagger
@@ -810,20 +209,21 @@ router.get('*splat', authenticateDownloads, async (req, res) => {
       await fs.access(fullPath);
     } catch {
       logAccess(req, 'NOT_FOUND', fullPath);
-      const serverConfig = configLoader.getServerConfig();
-      const errorConfig = {
-        title: serverConfig.login_title || 'Armor',
-        subtitle: serverConfig.login_subtitle || 'ARMOR Reliably Manages Online Resources',
-        primaryColor: serverConfig.login_primary_color || '#198754',
-      };
-      return res.status(404).send(generate404Page(errorConfig));
+      if (req.headers.accept && req.headers.accept.includes('application/json')) {
+        return res.status(404).json({ error: 'File not found' });
+      }
+      const indexPath = join(process.cwd(), 'web', 'dist', 'index.html');
+      return res.sendFile(indexPath);
     }
 
     const stats = await fs.stat(fullPath);
 
     if (stats.isDirectory()) {
       if (!requestPath.endsWith('/')) {
-        return res.redirect(301, `${requestPath}/`);
+        const redirectPath = req.originalUrl.endsWith('/')
+          ? req.originalUrl
+          : `${req.originalUrl}/`;
+        return res.redirect(301, redirectPath);
       }
       return handleDirectoryListing(req, res, fullPath, requestPath);
     }
@@ -839,128 +239,387 @@ router.get('*splat', authenticateDownloads, async (req, res) => {
 });
 
 router.put('*splat', authenticateUploads, async (req, res, next) => {
-  if (req.query.action !== 'rename') {
+  if (req.query.action !== 'rename' && req.query.action !== 'move') {
     return next();
   }
 
   try {
-    const { newName } = req.body;
+    if (req.query.action === 'rename') {
+      const { newName } = req.body;
 
-    if (!newName || newName.trim() === '') {
-      return res.status(400).json({
-        success: false,
-        message: 'New name is required',
-      });
-    }
+      if (!newName || newName.trim() === '') {
+        return res.status(400).json({
+          success: false,
+          message: 'New name is required',
+        });
+      }
 
-    const sanitizedNewName = newName.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const requestPath = Array.isArray(req.params.splat)
-      ? req.params.splat.join('/')
-      : req.params.splat || '';
-    const oldFullPath = getSecurePath(requestPath);
-    const parentDir = oldFullPath.substring(
-      0,
-      oldFullPath.lastIndexOf('/') || oldFullPath.lastIndexOf('\\')
-    );
-    const newFullPath = join(parentDir, sanitizedNewName);
-
-    // Check if old file/folder exists
-    try {
-      await fs.access(oldFullPath);
-    } catch {
-      return res.status(404).json({
-        success: false,
-        message: 'File or folder not found',
-      });
-    }
-
-    // Check if new name already exists
-    try {
-      await fs.access(newFullPath);
-      return res.status(400).json({
-        success: false,
-        message: 'A file or folder with that name already exists',
-      });
-    } catch {
-      // Good - new name doesn't exist
-    }
-
-    const oldName = basename(oldFullPath);
-
-    // Perform the rename
-    await fs.rename(oldFullPath, newFullPath);
-
-    // Update database records
-    const File = getFileModel();
-
-    const stats = await fs.stat(newFullPath);
-
-    if (stats.isDirectory()) {
-      // For directories, update all files within
-      await withDatabaseRetry(() =>
-        File.update(
-          {
-            file_path: newFullPath,
-          },
-          {
-            where: { file_path: oldFullPath },
-          }
-        )
+      const sanitizedNewName = newName.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const requestPath = Array.isArray(req.params.splat)
+        ? req.params.splat.join('/')
+        : req.params.splat || '';
+      const oldFullPath = getSecurePath(requestPath);
+      const parentDir = oldFullPath.substring(
+        0,
+        oldFullPath.lastIndexOf('/') || oldFullPath.lastIndexOf('\\')
       );
+      const newFullPath = join(parentDir, sanitizedNewName);
 
-      // Update all files within the directory
-      const filesInDir = await withDatabaseRetry(() =>
-        File.findAll({
-          where: {
-            file_path: {
-              [Op.like]: `${oldFullPath}%`,
+      // Check if old file/folder exists
+      try {
+        await fs.access(oldFullPath);
+      } catch {
+        return res.status(404).json({
+          success: false,
+          message: 'File or folder not found',
+        });
+      }
+
+      // Check if new name already exists
+      try {
+        await fs.access(newFullPath);
+        return res.status(400).json({
+          success: false,
+          message: 'A file or folder with that name already exists',
+        });
+      } catch {
+        // Good - new name doesn't exist
+      }
+
+      const oldName = basename(oldFullPath);
+
+      // Perform the rename
+      await fs.rename(oldFullPath, newFullPath);
+
+      // Update database records
+      const File = getFileModel();
+
+      const stats = await fs.stat(newFullPath);
+
+      if (stats.isDirectory()) {
+        // For directories, update all files within
+        await withDatabaseRetry(() =>
+          File.update(
+            {
+              file_path: newFullPath,
             },
-          },
-        })
-      );
+            {
+              where: { file_path: oldFullPath },
+            }
+          )
+        );
 
-      const updatePromises = filesInDir.map(file => {
-        const newFilePath = file.file_path.replace(oldFullPath, newFullPath);
-        return withDatabaseRetry(() => file.update({ file_path: newFilePath }));
+        // Update all files within the directory
+        const filesInDir = await withDatabaseRetry(() =>
+          File.findAll({
+            where: {
+              file_path: {
+                [Op.like]: `${oldFullPath}%`,
+              },
+            },
+          })
+        );
+
+        const updatePromises = filesInDir.map(file => {
+          const newFilePath = file.file_path.replace(oldFullPath, newFullPath);
+          return withDatabaseRetry(() => file.update({ file_path: newFilePath }));
+        });
+
+        await Promise.all(updatePromises);
+      } else {
+        // For files, just update the single record
+        await withDatabaseRetry(() =>
+          File.update(
+            {
+              file_path: newFullPath,
+            },
+            {
+              where: { file_path: oldFullPath },
+            }
+          )
+        );
+      }
+
+      // Send SSE event for real-time UI update
+      // sendFileRenamed imported at top of file
+      sendFileRenamed(oldFullPath, newFullPath, stats.isDirectory());
+
+      logAccess(req, 'RENAME_SUCCESS', `${oldName} → ${sanitizedNewName}`);
+
+      return res.json({
+        success: true,
+        oldName,
+        newName: sanitizedNewName,
+        message: `${stats.isDirectory() ? 'Folder' : 'File'} renamed successfully`,
+      });
+    } else if (req.query.action === 'move') {
+      const { filePaths, destinationPath } = req.body;
+
+      if (!filePaths || !Array.isArray(filePaths) || filePaths.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'File paths array is required',
+        });
+      }
+
+      const currentPath = Array.isArray(req.params.splat)
+        ? req.params.splat.join('/')
+        : req.params.splat || '';
+
+      let targetDir;
+      let moveDescription;
+
+      if (destinationPath) {
+        // Moving to a specific folder
+        targetDir = getSecurePath(destinationPath);
+
+        // Validate that destination is a directory and exists
+        try {
+          const destStats = await fs.stat(targetDir);
+          if (!destStats.isDirectory()) {
+            return res.status(400).json({
+              success: false,
+              message: 'Destination must be a directory',
+            });
+          }
+        } catch {
+          return res.status(400).json({
+            success: false,
+            message: 'Destination directory does not exist',
+          });
+        }
+
+        // Prevent moving items into themselves
+        const invalidMoves = filePaths.filter(
+          filePath => destinationPath.startsWith(filePath) || filePath === destinationPath
+        );
+
+        if (invalidMoves.length > 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'Cannot move items into themselves',
+          });
+        }
+
+        moveDescription = `to ${basename(targetDir)}`;
+      } else {
+        // Moving to parent directory (original behavior)
+        if (currentPath === '' || currentPath === '/') {
+          return res.status(400).json({
+            success: false,
+            message: 'Cannot move files from root directory',
+          });
+        }
+
+        const parentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+        targetDir = getSecurePath(parentPath);
+        moveDescription = 'to parent directory';
+      }
+
+      const movePromises = filePaths.map(async filePath => {
+        const oldFullPath = getSecurePath(filePath);
+        const fileName = basename(oldFullPath);
+        let newFullPath = join(targetDir, fileName);
+
+        logger.debug('Move operation paths', {
+          filePath,
+          oldFullPath,
+          fileName,
+          targetDir,
+          newFullPath,
+        });
+
+        try {
+          await fs.access(oldFullPath);
+        } catch {
+          throw new Error(`File not found: ${filePath}`);
+        }
+
+        try {
+          await fs.access(newFullPath);
+          const ext = extname(fileName);
+          const baseName = basename(fileName, ext);
+
+          const potentialNames = [];
+          for (let counter = 1; counter < 1000; counter++) {
+            potentialNames.push(`${baseName}_${counter}${ext}`);
+          }
+
+          const checkPromises = potentialNames.map(async uniqueFileName => {
+            const uniqueFullPath = join(targetDir, uniqueFileName);
+            try {
+              await fs.access(uniqueFullPath);
+              return { fileName: uniqueFileName, exists: true, path: uniqueFullPath };
+            } catch {
+              return { fileName: uniqueFileName, exists: false, path: uniqueFullPath };
+            }
+          });
+
+          const results = await Promise.all(checkPromises);
+          const availableFile = results.find(result => !result.exists);
+          if (availableFile) {
+            newFullPath = availableFile.path;
+          }
+        } catch {
+          // File doesn't exist in target directory, no conflict
+        }
+
+        await fs.rename(oldFullPath, newFullPath);
+
+        const File = getFileModel();
+        const stats = await fs.stat(newFullPath);
+
+        if (stats.isDirectory()) {
+          await withDatabaseRetry(() =>
+            File.update({ file_path: newFullPath }, { where: { file_path: oldFullPath } })
+          );
+
+          const filesInDir = await withDatabaseRetry(() =>
+            File.findAll({
+              where: {
+                file_path: {
+                  [Op.like]: `${oldFullPath}%`,
+                },
+              },
+            })
+          );
+
+          const updatePromises = filesInDir.map(file => {
+            const newFilePath = file.file_path.replace(oldFullPath, newFullPath);
+            return withDatabaseRetry(() => file.update({ file_path: newFilePath }));
+          });
+
+          await Promise.all(updatePromises);
+        } else {
+          await withDatabaseRetry(() =>
+            File.update({ file_path: newFullPath }, { where: { file_path: oldFullPath } })
+          );
+        }
+
+        sendFileRenamed(oldFullPath, newFullPath, stats.isDirectory());
+        return { oldPath: filePath, newPath: newFullPath.replace(getSecurePath(''), '') };
       });
 
-      await Promise.all(updatePromises);
-    } else {
-      // For files, just update the single record
-      await withDatabaseRetry(() =>
-        File.update(
-          {
-            file_path: newFullPath,
-          },
-          {
-            where: { file_path: oldFullPath },
-          }
-        )
-      );
+      const movedFiles = await Promise.all(movePromises);
+
+      logAccess(req, 'MOVE_SUCCESS', `Moved ${filePaths.length} items ${moveDescription}`);
+
+      return res.json({
+        success: true,
+        movedFiles,
+        message: `${filePaths.length} item${filePaths.length > 1 ? 's' : ''} moved successfully ${moveDescription}`,
+      });
     }
-
-    // Send SSE event for real-time UI update
-    // sendFileRenamed imported at top of file
-    sendFileRenamed(oldFullPath, newFullPath, stats.isDirectory());
-
-    logAccess(req, 'RENAME_SUCCESS', `${oldName} → ${sanitizedNewName}`);
-
-    return res.json({
-      success: true,
-      oldName,
-      newName: sanitizedNewName,
-      message: `${stats.isDirectory() ? 'Folder' : 'File'} renamed successfully`,
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid action. Must be "rename" or "move"',
     });
   } catch (error) {
-    logger.error('Rename error', { error: error.message });
-    logAccess(req, 'RENAME_ERROR', error.message);
+    const action = req.query.action === 'move' ? 'Move' : 'Rename';
+    logger.error(`${action} error`, { error: error.message });
+    logAccess(req, `${action.toUpperCase()}_ERROR`, error.message);
     return res.status(500).json({
       success: false,
-      message: 'Failed to rename item',
+      message: `Failed to ${action.toLowerCase()} item${req.query.action === 'move' ? 's' : ''}`,
     });
   }
 });
 
+/**
+ * @swagger
+ * /search:
+ *   post:
+ *     summary: Search files from root directory
+ *     description: Search for files by name or checksum across all directories starting from root
+ *     tags: [Search]
+ *     security:
+ *       - ApiKeyAuth: []
+ *       - JwtAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [query]
+ *             properties:
+ *               query:
+ *                 type: string
+ *                 description: Search term to look for in filenames and checksums
+ *                 example: document
+ *               page:
+ *                 type: integer
+ *                 minimum: 1
+ *                 description: Page number for pagination
+ *                 example: 1
+ *                 default: 1
+ *               limit:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 1000
+ *                 description: Maximum number of results per page
+ *                 example: 100
+ *                 default: 100
+ *     responses:
+ *       200:
+ *         description: Search completed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 query:
+ *                   type: string
+ *                   description: The search term used
+ *                   example: document
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/File'
+ *                   description: Array of matching files
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                       example: 1
+ *                     limit:
+ *                       type: integer
+ *                       example: 100
+ *                     total:
+ *                       type: integer
+ *                       example: 25
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 1
+ *                     hasNext:
+ *                       type: boolean
+ *                       example: false
+ *                     hasPrev:
+ *                       type: boolean
+ *                       example: false
+ *       400:
+ *         description: Invalid search query
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
 // Handle search requests from root directory
 router.post('/search', authenticateDownloads, async (req, res) => {
   try {
@@ -1414,8 +1073,8 @@ router.post('*splat', (req, res, next) => {
  * @swagger
  * /{path}:
  *   put:
- *     summary: Rename file or folder
- *     description: Rename a file or folder to a new name
+ *     summary: Rename or move files/folders
+ *     description: Rename a file or folder to a new name, or move multiple files to parent directory
  *     tags: [Files]
  *     security:
  *       - ApiKeyAuth: []
@@ -1426,49 +1085,83 @@ router.post('*splat', (req, res, next) => {
  *         required: true
  *         schema:
  *           type: string
- *         description: Current file or folder path
+ *         description: Current file/folder path (for rename) or directory path (for move)
  *         example: /uploads/oldname.txt
  *       - in: query
  *         name: action
  *         required: true
  *         schema:
  *           type: string
- *           enum: [rename]
- *         description: Must be 'rename' for rename operations
+ *           enum: [rename, move]
+ *         description: Action to perform - 'rename' for single item rename, 'move' for moving multiple items to parent directory
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required: [newName]
- *             properties:
- *               newName:
- *                 type: string
- *                 description: New name for the file or folder
- *                 example: newname.txt
+ *             oneOf:
+ *               - type: object
+ *                 title: Rename Request
+ *                 required: [newName]
+ *                 properties:
+ *                   newName:
+ *                     type: string
+ *                     description: New name for the file or folder (for rename action)
+ *                     example: newname.txt
+ *               - type: object
+ *                 title: Move Request
+ *                 required: [filePaths]
+ *                 properties:
+ *                   filePaths:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                     description: Array of file paths to move to parent directory (for move action)
+ *                     example: ["/uploads/subdir/file1.txt", "/uploads/subdir/file2.txt"]
  *     responses:
  *       200:
- *         description: File or folder renamed successfully
+ *         description: Operation completed successfully
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 oldName:
- *                   type: string
- *                   example: oldname.txt
- *                 newName:
- *                   type: string
- *                   example: newname.txt
- *                 message:
- *                   type: string
- *                   example: File renamed successfully
+ *               oneOf:
+ *                 - type: object
+ *                   title: Rename Response
+ *                   properties:
+ *                     success:
+ *                       type: boolean
+ *                       example: true
+ *                     oldName:
+ *                       type: string
+ *                       example: oldname.txt
+ *                     newName:
+ *                       type: string
+ *                       example: newname.txt
+ *                     message:
+ *                       type: string
+ *                       example: File renamed successfully
+ *                 - type: object
+ *                   title: Move Response
+ *                   properties:
+ *                     success:
+ *                       type: boolean
+ *                       example: true
+ *                     movedFiles:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           oldPath:
+ *                             type: string
+ *                             example: /uploads/subdir/file1.txt
+ *                           newPath:
+ *                             type: string
+ *                             example: /uploads/file1.txt
+ *                     message:
+ *                       type: string
+ *                       example: 2 items moved successfully
  *       400:
- *         description: Invalid request or name conflict
+ *         description: Invalid request, name conflict, or cannot move from root directory
  *         content:
  *           application/json:
  *             schema:
@@ -1675,7 +1368,7 @@ router.post('*splat', authenticateUploads, upload.single('file'), async (req, re
  * /{path}:
  *   delete:
  *     summary: Delete file or directory
- *     description: Delete a file or directory (recursively) at the specified path
+ *     description: Delete a file or directory (recursively) at the specified path. Requires upload permissions (admin level).
  *     tags: [Files]
  *     security:
  *       - ApiKeyAuth: []

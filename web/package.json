@@ -2,6 +2,7 @@
   "name": "armor-frontend",
   "version": "1.13.3",
   "private": true,
+  "license": "GPL-3.0",
   "description": "Armor Web Interface",
   "proxy": "http://localhost:3001/",
   "dependencies": {
@@ -9,14 +10,21 @@
     "@fortawesome/fontawesome-free": "^7.0.1",
     "@testing-library/jest-dom": "^6.8.0",
     "axios": "^1.12.2",
+    "bootstrap": "^5.3.8",
+    "bootstrap-icons": "^1.13.1",
+    "i18next": "^25.5.2",
+    "i18next-browser-languagedetector": "^8.2.0",
+    "i18next-http-backend": "^3.0.2",
     "jwt-decode": "^4.0.0",
     "prop-types": "^15.8.1",
     "react": "^19.1.1",
     "react-bootstrap": "^2.10.10",
     "react-confirm-alert": "^3.0.6",
     "react-dom": "^19.1.1",
+    "react-i18next": "^16.0.0",
     "react-router-dom": "^7.9.3",
     "register-service-worker": "^1.7.2",
+    "swagger-ui-react": "^5.29.1",
     "web-vitals": "^5.1.0"
   },
   "scripts": {
@@ -31,7 +39,22 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format:check": "prettier --check .",
-    "format:fix": "prettier --write ."
+    "format:fix": "prettier --write .",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest --watch",
+    "analyze": "npx vite-bundle-analyzer dist --no-open --host 0.0.0.0",
+    "build:analyze": "npm run build && npm run analyze",
+    "analyze:report": "npm run build && npx rollup-plugin-visualizer dist/stats.html --template treemap",
+    "perf:budget": "npm run build && node -e \"const fs=require('fs');const path=require('path');function getDirSize(dir){let size=0;const files=fs.readdirSync(dir);for(const file of files){const filePath=path.join(dir,file);const stat=fs.statSync(filePath);if(stat.isDirectory()){size+=getDirSize(filePath);}else{size+=stat.size;}}return size;}const totalSize=getDirSize('dist');const budgetMB=3;const budgetBytes=budgetMB*1048576;console.log('📦 Total build size:',Math.round(totalSize/1024)+'KB','('+(totalSize/1048576).toFixed(1)+'MB)');console.log('📋 Budget limit:',budgetMB+'MB');if(totalSize>budgetBytes){console.log('❌ OVER BUDGET');process.exit(1);}else{console.log('✅ Within budget');process.exit(0);}\",",
+    "security:audit": "npm audit --audit-level moderate",
+    "security:vulnerabilities": "npm audit && npx better-npm-audit audit",
+    "security:licenses": "npx license-checker --onlyAllow 'MIT;Apache-2.0;BSD;BSD-2-Clause;BSD-3-Clause;ISC;GPL-3.0;LGPL-2.1;LGPL-3.0;MPL-2.0;CC0-1.0;CC-BY-3.0;CC-BY-4.0;Unlicense;Python-2.0' --excludePrivatePackages",
+    "security:licenses-report": "npx license-checker --out web/dist/licenses.json --json",
+    "security:supply-chain": "npx audit-ci --moderate",
+    "security:all": "npm run security:vulnerabilities && npm run security:licenses && npm run security:supply-chain"
   },
   "eslintConfig": {
     "extends": [
@@ -56,8 +79,10 @@
     "@eslint/js": "^9.36.0",
     "@eslint/json": "^0.13.2",
     "@eslint/markdown": "^7.3.0",
-    "@rollup/wasm-node": "^4.52.2",
-    "@vitejs/plugin-react": "^5.0.3",
+    "@rollup/wasm-node": "^4.52.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@vitejs/plugin-react": "^5.0.4",
     "cross-env": "^10.0.0",
     "eslint": "^9.36.0",
     "eslint-config-prettier": "^10.1.8",
@@ -71,9 +96,33 @@
     "less-watch-compiler": "^1.16.3",
     "npm-run-all": "^4.1.5",
     "prettier": "^3.6.2",
-    "rollup": "npm:@rollup/wasm-node@^4.52.2",
+    "rollup": "npm:@rollup/wasm-node@^4.52.3",
     "sass": "^1.93.2",
     "vite": "^7.1.7",
     "yaml": "^2.8.1"
+  },
+  "overrides": {
+    "swagger-ui-react": {
+      "react-copy-to-clipboard": {
+        "react": "$react"
+      },
+      "react-debounce-input": {
+        "react": "$react"
+      },
+      "react-inspector": {
+        "react": "$react"
+      }
+    },
+    "prismjs": "1.30.0",
+    "refractor": {
+      "prismjs": "1.30.0"
+    },
+    "react-syntax-highlighter": {
+      "refractor": "*"
+    },
+    "@braintree/sanitize-url": "^6.0.4",
+    "dompurify": "^3.2.4",
+    "fast-json-patch": "^3.1.1",
+    "cookie": "^0.7.2"
   }
 }

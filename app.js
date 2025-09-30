@@ -1,10 +1,13 @@
 import express from 'express';
+import path from 'path';
+import { existsSync } from 'fs';
 import helmet from 'helmet';
 import cors from 'cors';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import configLoader from './config/configLoader.js';
+import { configAwareI18nMiddleware } from './config/i18n.js';
 import { initializeDatabase } from './config/database.js';
 import { setupPassportStrategies } from './config/passport.js';
 import { SERVED_DIR } from './config/paths.js';
@@ -16,11 +19,11 @@ import fileServerRoutes from './routes/fileServer.js';
 import authRoutes from './routes/auth.js';
 import sseRoutes from './routes/sse.js';
 import apiKeyRoutes from './routes/apiKeys.js';
+import checksumProgressRoutes from './routes/checksumProgress.js';
+import swaggerRoutes from './routes/swagger.js';
 import { setupHTTPSServer } from './utils/sslManager.js';
-import { specs, swaggerUi } from './config/swagger.js';
-import { getApiKeyModel } from './models/ApiKey.js';
-import { getUserPermissions } from './utils/auth.js';
-import { getUserDisplayName } from './utils/htmlGenerator.js';
+import maintenanceService from './services/maintenanceService.js';
+import checksumService from './services/checksumService.js';
 
 const app = express();
 
@@ -41,10 +44,7 @@ const startServer = async () => {
     logger.error('File watcher initialization failed', { error: error.message });
   });
 
-  const { default: maintenanceService } = await import('./services/maintenanceService.js');
   maintenanceService.start();
-
-  const { default: checksumService } = await import('./services/checksumService.js');
   checksumService.start();
 
   app.use((req, res, next) => {
@@ -76,14 +76,74 @@ const startServer = async () => {
   app.use(cors(corsOptions));
   app.options('*splat', cors(corsOptions));
 
-  // Use helmet without CSP to avoid blocking configured logo URLs
-  app.use(
-    helmet({
-      contentSecurityPolicy: false, // Disable CSP to allow configured logo URLs
-    })
-  );
+  // Enhanced security headers with configurable CSP
+  const securityConfig = configLoader.getSecurityConfig();
+  const serverConfig = configLoader.getServerConfig();
+
+  const helmetConfig = {};
+
+  // Configure CSP if enabled
+  if (securityConfig.content_security_policy.enabled) {
+    // Start with base CSP configuration
+    const cspDirectives = {
+      defaultSrc: [...securityConfig.content_security_policy.default_src],
+      scriptSrc: [...securityConfig.content_security_policy.script_src],
+      styleSrc: [...securityConfig.content_security_policy.style_src],
+      fontSrc: [...securityConfig.content_security_policy.font_src],
+      imgSrc: [...securityConfig.content_security_policy.img_src],
+      connectSrc: [...securityConfig.content_security_policy.connect_src],
+      objectSrc: [...securityConfig.content_security_policy.object_src],
+      mediaSrc: [...securityConfig.content_security_policy.media_src],
+      frameSrc: [...securityConfig.content_security_policy.frame_src],
+      childSrc: [...securityConfig.content_security_policy.child_src],
+      workerSrc: [...securityConfig.content_security_policy.worker_src],
+      manifestSrc: [...securityConfig.content_security_policy.manifest_src],
+    };
+
+    // Auto-add configured icon URLs to img-src
+    const iconUrls = [serverConfig.login_icon_url, serverConfig.landing_icon_url].filter(Boolean);
+
+    for (const iconUrl of iconUrls) {
+      if (iconUrl.startsWith('https://') || iconUrl.startsWith('http://')) {
+        try {
+          const url = new URL(iconUrl);
+          const domain = `${url.protocol}//${url.hostname}`;
+          if (!cspDirectives.imgSrc.includes(domain)) {
+            cspDirectives.imgSrc.push(domain);
+            logger.info(`Auto-added ${domain} to CSP img-src for configured icon`);
+          }
+        } catch {
+          logger.warn(`Invalid icon URL in config: ${iconUrl}`);
+        }
+      }
+    }
+
+    helmetConfig.contentSecurityPolicy = { directives: cspDirectives };
+  } else {
+    helmetConfig.contentSecurityPolicy = false;
+  }
+
+  // Configure HSTS if enabled
+  if (securityConfig.hsts.enabled) {
+    helmetConfig.hsts = {
+      maxAge: securityConfig.hsts.max_age,
+      includeSubDomains: securityConfig.hsts.include_subdomains,
+      preload: securityConfig.hsts.preload,
+    };
+  } else {
+    helmetConfig.hsts = false;
+  }
+
+  // Configure additional security headers
+  helmetConfig.noSniff = securityConfig.headers.x_content_type_nosniff;
+  helmetConfig.frameguard = { action: securityConfig.headers.x_frame_options.toLowerCase() };
+  helmetConfig.xssFilter = securityConfig.headers.x_xss_protection;
+  helmetConfig.referrerPolicy = { policy: securityConfig.headers.referrer_policy };
+  helmetConfig.crossOriginEmbedderPolicy = securityConfig.headers.cross_origin_embedder_policy;
+
+  app.use(helmet(helmetConfig));
   app.use((req, res, next) => {
-    if (req.path === '/events') {
+    if (req.path === '/api/events') {
       logger.debug('Skipping compression for SSE endpoint', { path: req.path });
       next();
     } else {
@@ -108,271 +168,20 @@ const startServer = async () => {
 
   app.use(morganMiddleware);
   app.use(rateLimiterMiddleware());
+  app.use(configAwareI18nMiddleware);
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
   app.use('/', authRoutes);
 
-  app.use('/', sseRoutes);
+  app.use('/api/events', sseRoutes);
 
   app.use('/api/api-keys', apiKeyRoutes);
 
-  // API endpoint to get user's API keys for Swagger
-  app.get('/api/user-api-keys', async (req, res) => {
-    try {
-      let userApiKeys = [];
-      let userPermissions = [];
-      const swaggerConfig = configLoader.getSwaggerConfig();
+  app.use('/api/checksum', checksumProgressRoutes);
 
-      if (req.cookies?.auth_token) {
-        try {
-          const jwt = await import('jsonwebtoken');
-          const authConfigForJWT = configLoader.getAuthenticationConfig();
-          const decoded = jwt.default.verify(req.cookies.auth_token, authConfigForJWT.jwt_secret);
-
-          userPermissions = decoded.permissions || [];
-
-          if (decoded) {
-            const ApiKey = getApiKeyModel();
-            let whereClause = {};
-
-            if (decoded.userId) {
-              whereClause = { user_type: 'oidc', user_id: decoded.userId };
-            } else if (decoded.username) {
-              const localUsers = configLoader.getAuthUsers();
-              const localUser = localUsers.find(u => u.username === decoded.username);
-              if (localUser?.id) {
-                whereClause = { user_type: 'local', local_user_id: localUser.id };
-              }
-            }
-
-            if (Object.keys(whereClause).length > 0) {
-              // If full key retrieval is enabled, only show retrievable keys
-              if (swaggerConfig.allow_full_key_retrieval) {
-                whereClause.is_retrievable = true;
-              }
-
-              const apiKeys = await ApiKey.findAll({
-                where: whereClause,
-                attributes: [
-                  'id',
-                  'name',
-                  'key_preview',
-                  'permissions',
-                  'expires_at',
-                  'is_retrievable',
-                ],
-                order: [['created_at', 'DESC']],
-              });
-
-              userApiKeys = apiKeys.map(key => key.toJSON());
-            }
-          }
-        } catch (error) {
-          logger.debug('Could not fetch user API keys', { error: error.message });
-        }
-      }
-
-      res.json({
-        success: true,
-        api_keys: userApiKeys,
-        user_permissions: userPermissions,
-        swagger_config: {
-          allow_full_key_retrieval: swaggerConfig.allow_full_key_retrieval,
-          allow_temp_key_generation: swaggerConfig.allow_temp_key_generation,
-          temp_key_expiration_hours: swaggerConfig.temp_key_expiration_hours,
-        },
-      });
-    } catch (error) {
-      logger.error('User API keys error', { error: error.message });
-      res.status(500).json({ success: false, message: 'Failed to get API keys' });
-    }
-  });
-
-  // Get full API key for Swagger authorization (when enabled in config)
-  app.post('/api/user-api-keys/:id/full', async (req, res) => {
-    try {
-      const swaggerConfig = configLoader.getSwaggerConfig();
-
-      if (!swaggerConfig.allow_full_key_retrieval) {
-        return res.status(403).json({
-          success: false,
-          message: 'Full key retrieval is disabled',
-        });
-      }
-
-      if (!req.cookies?.auth_token) {
-        return res.status(401).json({
-          success: false,
-          message: 'Authentication required',
-        });
-      }
-
-      const jwt = await import('jsonwebtoken');
-      const authConfigForFull = configLoader.getAuthenticationConfig();
-      const decoded = jwt.default.verify(req.cookies.auth_token, authConfigForFull.jwt_secret);
-
-      if (!decoded) {
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid authentication',
-        });
-      }
-
-      const ApiKey = getApiKeyModel();
-      const keyId = parseInt(req.params.id);
-
-      const whereClause = { id: keyId };
-      if (decoded.userId) {
-        whereClause.user_type = 'oidc';
-        whereClause.user_id = decoded.userId;
-      } else if (decoded.username) {
-        const localUsers = configLoader.getAuthUsers();
-        const localUser = localUsers.find(u => u.username === decoded.username);
-        if (localUser?.id) {
-          whereClause.user_type = 'local';
-          whereClause.local_user_id = localUser.id;
-        }
-      }
-
-      const apiKey = await ApiKey.findOne({
-        where: { ...whereClause, is_retrievable: true },
-        attributes: ['id', 'name', 'permissions', 'encrypted_full_key'],
-      });
-
-      if (!apiKey) {
-        return res.status(404).json({
-          success: false,
-          message: 'API key not found or not retrievable',
-        });
-      }
-
-      if (!apiKey.encrypted_full_key) {
-        return res.status(400).json({
-          success: false,
-          message: 'Full key not available for this API key',
-        });
-      }
-
-      // Decrypt the stored full key
-      try {
-        const crypto = await import('crypto');
-
-        // Parse IV and encrypted data
-        const [ivHex, encryptedData] = apiKey.encrypted_full_key.split(':');
-        const iv = Buffer.from(ivHex, 'hex');
-
-        const decipher = crypto.createDecipheriv(
-          'aes-256-cbc',
-          Buffer.from(authConfigForFull.jwt_secret).subarray(0, 32),
-          iv
-        );
-        let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
-        decrypted += decipher.final('utf8');
-
-        res.json({
-          success: true,
-          full_key: decrypted,
-          name: apiKey.name,
-          permissions: apiKey.permissions,
-        });
-      } catch (decryptError) {
-        logger.error('Key decryption error', { error: decryptError.message });
-        return res.status(500).json({
-          success: false,
-          message: 'Failed to decrypt API key',
-        });
-      }
-
-      logger.info('Full API key retrieved for Swagger', {
-        user: decoded.username || decoded.userId,
-        keyId,
-        keyName: apiKey.name,
-      });
-      return undefined;
-    } catch (error) {
-      logger.error('Full API key retrieval error', { error: error.message });
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve full key',
-      });
-    }
-  });
-
-  // Generate temporary API key for Swagger testing
-  app.post('/api/user-api-keys/temp', async (req, res) => {
-    try {
-      const swaggerConfig = configLoader.getSwaggerConfig();
-
-      if (!swaggerConfig.allow_temp_key_generation) {
-        return res.status(403).json({
-          success: false,
-          message: 'Temporary key generation is disabled',
-        });
-      }
-
-      if (!req.cookies?.auth_token) {
-        return res.status(401).json({
-          success: false,
-          message: 'Authentication required',
-        });
-      }
-
-      const jwt = await import('jsonwebtoken');
-      const authConfigForTemp = configLoader.getAuthenticationConfig();
-      const decoded = jwt.default.verify(req.cookies.auth_token, authConfigForTemp.jwt_secret);
-
-      if (!decoded) {
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid authentication',
-        });
-      }
-
-      // Get user permissions based on user type
-      let userPermissions = [];
-      if (decoded.userId) {
-        // OIDC user - use permissions from JWT token directly
-        userPermissions = decoded.permissions || ['downloads'];
-      } else if (decoded.username) {
-        const localUsers = configLoader.getAuthUsers();
-        const localUser = localUsers.find(u => u.username === decoded.username);
-        if (localUser) {
-          userPermissions = getUserPermissions(localUser) || ['downloads'];
-        }
-      }
-
-      // Generate temporary key
-      const { generateApiKey } = await import('./utils/apiKeyUtils.js');
-      const tempKey = `temp_${generateApiKey()}`;
-      const expirationHours = swaggerConfig.temp_key_expiration_hours || 1;
-      const expiresAt = new Date(Date.now() + expirationHours * 60 * 60 * 1000);
-
-      res.json({
-        success: true,
-        message: 'Temporary API key generated for Swagger testing',
-        temp_key: {
-          key: tempKey,
-          permissions: userPermissions,
-          expires_at: expiresAt,
-          type: 'temporary',
-        },
-      });
-
-      logger.info('Temporary API key generated for Swagger', {
-        user: decoded.username || decoded.userId,
-        permissions: userPermissions,
-        expires_at: expiresAt,
-      });
-      return undefined;
-    } catch (error) {
-      logger.error('Temporary API key generation error', { error: error.message });
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to generate temporary key',
-      });
-    }
-  });
+  // Swagger and API documentation routes
+  app.use('/api', swaggerRoutes);
 
   // Serve static CSS files for Swagger theming
   app.use(
@@ -387,179 +196,43 @@ const startServer = async () => {
     })
   );
 
-  // Conditionally enable API documentation
-  const serverConfig = configLoader.getServerConfig();
-  if (serverConfig.enable_api_docs) {
-    const ApiKey = getApiKeyModel();
-
-    // Dynamic API key fetching for Swagger setup
-    app.use('/api-docs', async (req, res, next) => {
-      let userApiKeys = [];
-      let userInfo = null;
-
-      if (req.cookies?.auth_token) {
-        try {
-          const jwt = await import('jsonwebtoken');
-          const authConfigForAPI = configLoader.getAuthenticationConfig();
-          const decoded = jwt.default.verify(req.cookies.auth_token, authConfigForAPI.jwt_secret);
-
-          if (decoded) {
-            if (decoded.userId) {
-              userInfo = { id: decoded.userId, username: decoded.username || 'User' };
-            } else if (decoded.username) {
-              userInfo = { username: decoded.username };
-            }
-
-            let whereClause = {};
-
-            if (decoded.userId) {
-              whereClause = { user_type: 'oidc', user_id: decoded.userId };
-            } else if (decoded.username) {
-              const localUsers = configLoader.getAuthUsers();
-              const localUser = localUsers.find(u => u.username === decoded.username);
-              if (localUser?.id) {
-                whereClause = { user_type: 'local', local_user_id: localUser.id };
-              }
-            }
-
-            if (Object.keys(whereClause).length > 0) {
-              const apiKeys = await ApiKey.findAll({
-                where: whereClause,
-                attributes: ['id', 'name', 'key_preview', 'permissions', 'expires_at'],
-                order: [['created_at', 'DESC']],
-              });
-
-              userApiKeys = apiKeys.map(key => key.toJSON());
-            }
-          }
-        } catch (error) {
-          logger.debug('Could not fetch user API keys for Swagger', { error: error.message });
-        }
-      }
-
-      req.userApiKeys = userApiKeys;
-      req.userInfo = userInfo;
-      logger.debug('API keys loaded for Swagger', {
-        count: userApiKeys.length,
-        userAgent: req.headers['user-agent'],
-      });
-      res.locals.swaggerApiKeys = userApiKeys;
-      next();
-    });
-
-    app.use('/api-docs', swaggerUi.serve);
-    app.get('/api-docs', (req, res) => {
-      const swaggerServerConfig = configLoader.getServerConfig();
-      const { userInfo } = req;
-      // Clean implementation using external JS file
-      const specsJson = JSON.stringify(specs)
-        .replace(/</g, '\\u003c')
-        .replace(/>/g, '\\u003e')
-        .replace(/\u2028/g, '\\u2028')
-        .replace(/\u2029/g, '\\u2029');
-
-      const userApiKeysJson = JSON.stringify(req.userApiKeys || [])
-        .replace(/</g, '\\u003c')
-        .replace(/>/g, '\\u003e')
-        .replace(/\u2028/g, '\\u2028')
-        .replace(/\u2029/g, '\\u2029');
-
-      const customHtml = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Armor API Documentation</title>
-    <link rel="icon" type="image/x-icon" href="/web/public/images/favicon.ico">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
-    <link rel="stylesheet" type="text/css" href="/web/public/css/SwaggerDark.css" />
-    <link rel="stylesheet" type="text/css" href="/web/public/css/SwaggerDark.user.css" />
-    <style>
-        body {
-            background-color: #1a1d20;
-            color: #fff;
-            margin: 0;
-            padding: 0;
-        }
-        .auth-status {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .breadcrumb {
-            background-color: transparent;
-            margin-bottom: 0;
-        }
-        .breadcrumb-item > a {
-            color: #6c757d;
-            text-decoration: none;
-        }
-        .breadcrumb-item > a:hover {
-            color: #fff;
-        }
-        .breadcrumb-item.active {
-            color: #fff;
-        }
-        .breadcrumb-item + .breadcrumb-item::before {
-            color: #6c757d;
-        }
-        .swagger-ui {
-            margin-top: 0;
-        }
-    </style>
-</head>
-<body>
-    <div class="container mt-4">
-        <div class="d-flex align-items-center justify-content-between mb-4">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item">
-                        <span style="color: ${swaggerServerConfig.login_primary_color || '#198754'};">
-                            <i class="bi bi-book me-1"></i>API Documentation
-                        </span>
-                    </li>
-                </ol>
-            </nav>
-            <div class="auth-status">
-                <div class="dropdown">
-                    <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-person-circle me-1"></i> ${getUserDisplayName(userInfo)}
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="profileDropdown">
-                        <li><a class="dropdown-item" href="/"><i class="bi bi-shield me-2"></i>Dashboard</a></li>
-                        <li><a class="dropdown-item" href="/api-keys"><i class="bi bi-key me-2"></i>API Keys</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="/logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-                        <li><a class="dropdown-item" href="/logout/local"><i class="bi bi-box-arrow-left me-2"></i>Logout (Local)</a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        
-        <div id="swagger-ui"></div>
-    </div>
-    
-    <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-bundle.js"></script>
-    <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-standalone-preset.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        window.swaggerSpec = ${specsJson};
-        window.userApiKeys = ${userApiKeysJson};
-    </script>
-    <script src="/web/public/js/swagger-custom.js"></script>
-</body>
-</html>`;
-
-      res.send(customHtml);
-    });
-
-    logger.info('API documentation enabled at /api-docs');
+  // Serve static assets from Vite build
+  const frontendDistPath = 'web/dist';
+  if (existsSync(frontendDistPath)) {
+    app.use(express.static(frontendDistPath));
+  } else {
+    logger.warn('Frontend dist directory not found. Run "npm run build" to build the frontend.');
   }
 
+  if (configLoader.getServerConfig().enable_api_docs) {
+    logger.info('API documentation enabled at /api-docs (React implementation)');
+  }
+
+  // API routes for file operations (upload, delete, etc.)
+  app.use('/api/files', fileServerRoutes);
+
+  // File server routes for directory listings and custom index.html serving
+  // CRITICAL: This must come BEFORE the React app catch-all to allow custom index.html files
   app.use('/', fileServerRoutes);
+
+  // React app catch-all for client-side routing
+  // Only serves React app for non-API, non-file paths that don't have custom index.html
+  app.get('/*splat', (req, res, next) => {
+    if (
+      req.path.startsWith('/api/') ||
+      req.path.startsWith('/auth/') ||
+      req.path.startsWith('/static/') ||
+      req.path.startsWith('/swagger/')
+    ) {
+      return next();
+    }
+
+    const distPath = 'web/dist';
+    if (existsSync(distPath)) {
+      return res.sendFile(path.resolve(distPath, 'index.html'));
+    }
+    return next();
+  });
 
   app.use(errorHandler);
 

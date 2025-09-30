@@ -4,7 +4,6 @@ import * as client from 'openid-client';
 import configLoader from '../config/configLoader.js';
 import { isValidUser, getUserPermissions } from '../utils/auth.js';
 import { logAccess, authLogger as logger } from '../config/logger.js';
-import { generateLoginPage } from '../utils/loginPage.js';
 import {
   buildAuthorizationUrl,
   handleOidcCallback,
@@ -20,65 +19,25 @@ import {
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * /login:
+ *   get:
+ *     summary: Serve login page
+ *     description: Serves the main login page (React application) for user authentication
+ *     tags: [Authentication]
+ *     responses:
+ *       200:
+ *         description: Login page served successfully
+ *         content:
+ *           text/html:
+ *             schema:
+ *               type: string
+ *               description: HTML content of the login page
+ */
 router.get('/login', (req, res) => {
-  const errorParam = req.query.error;
-  const logoutParam = req.query.logout;
-  const oidcProviderParam = req.query.oidc_provider;
-  const authMethodParam = req.query.auth_method;
-  let errorMessage = '';
-
-  if (logoutParam === 'success') {
-    errorMessage = 'You have been successfully logged out.';
-  } else {
-    switch (errorParam) {
-      case 'invalid_credentials':
-        errorMessage = 'Invalid username or password';
-        break;
-      case 'oidc_failed':
-        errorMessage = 'OIDC authentication failed. Please try again or use basic authentication.';
-        break;
-      case 'network_error':
-        errorMessage = 'Network error occurred. Please try again.';
-        break;
-      case 'token_failed':
-        errorMessage = 'Failed to generate authentication token';
-        break;
-      case 'no_oidc_providers':
-        errorMessage = 'No OIDC providers are configured';
-        break;
-      case 'logout_failed':
-        errorMessage = 'Logout failed. Please try again.';
-        break;
-    }
-  }
-
-  // Get login page configuration from config loader
-  const serverConfig = configLoader.getServerConfig();
-  const packageInfo = configLoader.getPackageInfo();
-
-  // Determine title based on config
-  let pageTitle;
-  if (serverConfig.login_title !== undefined) {
-    pageTitle = serverConfig.login_title;
-  } else if (serverConfig.login_icon_url) {
-    pageTitle = '';
-  } else {
-    pageTitle = 'Armor';
-  }
-
-  const loginConfig = {
-    title: pageTitle,
-    subtitle: serverConfig.login_subtitle || 'ARMOR Reliably Manages Online Resources',
-    iconClass: serverConfig.login_icon_class || 'bi bi-cloud-download',
-    iconUrl: serverConfig.login_icon_url || null,
-    primaryColor: serverConfig.login_primary_color || '#198754', // Use Armor green
-    packageInfo,
-    oidcProvider: oidcProviderParam,
-    authMethod: authMethodParam,
-  };
-
-  const html = generateLoginPage(errorMessage, loginConfig);
-  return res.send(html);
+  console.log('Login page requested from:', req.ip);
+  res.sendFile('index.html', { root: './web/dist' });
 });
 
 /**
@@ -171,9 +130,30 @@ router.get('/auth/methods', (req, res) => {
 
     methods.push(...oidcMethods);
 
+    const uiConfig = configLoader.getConfig();
+
+    let userInfo = null;
+    if (req.user || req.oidcUser) {
+      const user = req.user || req.oidcUser;
+      userInfo = {
+        permissions: getUserPermissions(user),
+      };
+    }
+
     return res.json({
       success: true,
       methods,
+      ui: {
+        login_primary_color: uiConfig.server?.login_primary_color || '#198754',
+        landing_title: uiConfig.server?.landing_title,
+        landing_subtitle: uiConfig.server?.landing_subtitle,
+        landing_description: uiConfig.server?.landing_description,
+        landing_icon_class: uiConfig.server?.landing_icon_class,
+        landing_icon_url: uiConfig.server?.landing_icon_url,
+        landing_primary_color: uiConfig.server?.landing_primary_color,
+        support_email: uiConfig.server?.support_email,
+      },
+      user: userInfo,
     });
   } catch (error) {
     logger.error('Auth methods error', { error: error.message });
@@ -185,6 +165,46 @@ router.get('/auth/methods', (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /auth/oidc/callback:
+ *   get:
+ *     summary: OIDC authentication callback
+ *     description: Handles the OAuth2/OIDC callback from authentication providers after user authorization
+ *     tags: [Authentication]
+ *     parameters:
+ *       - in: query
+ *         name: code
+ *         schema:
+ *           type: string
+ *         description: Authorization code from OIDC provider
+ *         example: abc123...
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: State parameter for CSRF protection
+ *         example: xyz789...
+ *       - in: query
+ *         name: error
+ *         schema:
+ *           type: string
+ *         description: Error code if authentication failed
+ *         example: access_denied
+ *     responses:
+ *       302:
+ *         description: Redirect after successful or failed authentication
+ *         headers:
+ *           Location:
+ *             schema:
+ *               type: string
+ *               example: /?success=true
+ *           Set-Cookie:
+ *             schema:
+ *               type: string
+ *               description: JWT authentication cookie (on success)
+ *               example: auth_token=jwt.token.here; HttpOnly; Secure
+ */
 router.get('/auth/oidc/callback', async (req, res) => {
   logger.info('OIDC callback received', {
     sessionId: req.sessionID,
@@ -271,6 +291,37 @@ router.get('/auth/oidc/callback', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /auth/oidc/{provider}:
+ *   get:
+ *     summary: Initiate OIDC authentication
+ *     description: Start OAuth2/OIDC authentication flow with the specified provider
+ *     tags: [Authentication]
+ *     parameters:
+ *       - in: path
+ *         name: provider
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: OIDC provider identifier (configured in authentication settings)
+ *         example: google
+ *       - in: query
+ *         name: return
+ *         schema:
+ *           type: string
+ *         description: URL to redirect to after successful authentication
+ *         example: /files/uploads
+ *     responses:
+ *       302:
+ *         description: Redirect to OIDC provider authorization endpoint
+ *         headers:
+ *           Location:
+ *             schema:
+ *               type: string
+ *               description: Authorization URL for the OIDC provider
+ *               example: https://accounts.google.com/oauth/authorize?client_id=...
+ */
 router.get('/auth/oidc/:provider', async (req, res) => {
   const { provider } = req.params;
 
@@ -315,6 +366,70 @@ router.get('/auth/oidc/:provider', async (req, res) => {
     logger.error(`Failed to start OIDC auth for provider ${provider}:`, error.message);
     logAccess(req, 'OIDC_START_ERROR', error.message);
     return res.redirect('/login?error=oidc_failed');
+  }
+});
+
+/**
+ * @swagger
+ * /auth/status:
+ *   get:
+ *     summary: Check authentication status
+ *     description: Check if user is currently authenticated and return user info
+ *     tags: [Authentication]
+ *     responses:
+ *       200:
+ *         description: Authentication status retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 authenticated:
+ *                   type: boolean
+ *                   example: true
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     username:
+ *                       type: string
+ *                       example: admin
+ *                     role:
+ *                       type: string
+ *                       example: admin
+ *                     email:
+ *                       type: string
+ *                       example: admin@example.com
+ */
+router.get('/auth/status', (req, res) => {
+  try {
+    const token = req.cookies.auth_token;
+
+    if (!token) {
+      return res.json({
+        authenticated: false,
+        user: null,
+      });
+    }
+
+    const authConfig = configLoader.getAuthenticationConfig();
+    const decoded = jwt.verify(token, authConfig.jwt_secret);
+
+    return res.json({
+      authenticated: true,
+      user: {
+        username: decoded.username || decoded.email,
+        role: decoded.role,
+        email: decoded.email,
+        name: decoded.name,
+        provider: decoded.provider || 'basic',
+      },
+    });
+  } catch (error) {
+    logger.error('Auth status check error', { error: error.message });
+    return res.json({
+      authenticated: false,
+      user: null,
+    });
   }
 });
 
@@ -519,6 +634,23 @@ router.post('/auth/login/basic', (req, res) => {
   });
 });
 
+/**
+ * @swagger
+ * /logout:
+ *   get:
+ *     summary: Logout user via GET request
+ *     description: Clear authentication token and logout the user, with OIDC provider logout support
+ *     tags: [Authentication]
+ *     responses:
+ *       302:
+ *         description: Redirect after logout
+ *         headers:
+ *           Location:
+ *             schema:
+ *               type: string
+ *               description: Redirect location after logout
+ *               example: /login?logout=success
+ */
 router.get('/logout', (req, res) => {
   try {
     // Extract JWT token to determine authentication method
@@ -653,12 +785,63 @@ router.post('/auth/logout/local', (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /web/public/images/favicon.ico:
+ *   get:
+ *     summary: Serve favicon
+ *     description: Serves the application favicon with caching headers
+ *     tags: [Static Resources]
+ *     responses:
+ *       200:
+ *         description: Favicon served successfully
+ *         content:
+ *           image/x-icon:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *               description: Favicon image file
+ *         headers:
+ *           Cache-Control:
+ *             schema:
+ *               type: string
+ *               example: public, max-age=86400
+ */
 router.get('/web/public/images/favicon.ico', (req, res) => {
   logger.debug('Serving favicon', { ip: req.ip, userAgent: req.get('User-Agent') });
   res.set('Cache-Control', 'public, max-age=86400');
   return res.sendFile('/web/public/images/favicon.ico', { root: '.' });
 });
 
+/**
+ * @swagger
+ * /robots.txt:
+ *   get:
+ *     summary: Serve robots.txt
+ *     description: Serves the robots.txt file for search engine crawlers with caching headers
+ *     tags: [Static Resources]
+ *     responses:
+ *       200:
+ *         description: Robots.txt served successfully
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               description: Robots.txt directives for web crawlers
+ *               example: |
+ *                 User-agent: *
+ *                 Disallow: /api/
+ *                 Disallow: /auth/
+ *         headers:
+ *           Cache-Control:
+ *             schema:
+ *               type: string
+ *               example: public, max-age=86400
+ *           Content-Type:
+ *             schema:
+ *               type: string
+ *               example: text/plain
+ */
 router.get('/robots.txt', (req, res) => {
   logger.debug('Serving robots.txt', { ip: req.ip, userAgent: req.get('User-Agent') });
   res.set('Cache-Control', 'public, max-age=86400');

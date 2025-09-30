@@ -7,9 +7,60 @@ const router = express.Router();
 // Track connected clients (from DigitalOcean article)
 let clients = [];
 
-// SSE endpoint - exactly like DigitalOcean article with minimal middleware
-router.get('/events', authenticateDownloads, (req, res) => {
-  // Exactly like DigitalOcean article - set headers first
+/**
+ * @swagger
+ * /api/events:
+ *   get:
+ *     summary: Server-Sent Events stream
+ *     description: Establishes a Server-Sent Events connection for real-time updates about file operations (checksum updates, file deletions, additions, renames, folder creation)
+ *     tags: [Events]
+ *     security:
+ *       - ApiKeyAuth: []
+ *       - JwtAuth: []
+ *     responses:
+ *       200:
+ *         description: SSE connection established
+ *         content:
+ *           text/event-stream:
+ *             schema:
+ *               type: string
+ *               description: Server-Sent Events stream with real-time file operation updates
+ *               example: |
+ *                 event: checksum-update
+ *                 data: {"type":"checksum_complete","filePath":"/uploads/file.txt","checksum":"abc123...","timestamp":"2025-09-29T14:30:00.000Z"}
+ *
+ *                 event: file-deleted
+ *                 data: {"type":"file_deleted","filePath":"/uploads/old.txt","isDirectory":false,"timestamp":"2025-09-29T14:31:00.000Z"}
+ *
+ *                 event: file-added
+ *                 data: {"type":"file_added","filePath":"/uploads/new.txt","size":1024,"timestamp":"2025-09-29T14:32:00.000Z"}
+ *
+ *                 event: file-renamed
+ *                 data: {"type":"file_renamed","oldPath":"/uploads/old.txt","newPath":"/uploads/new.txt","isDirectory":false,"timestamp":"2025-09-29T14:33:00.000Z"}
+ *
+ *                 event: folder-created
+ *                 data: {"type":"folder_created","folderPath":"/uploads/new-folder","timestamp":"2025-09-29T14:34:00.000Z"}
+ *         headers:
+ *           Content-Type:
+ *             schema:
+ *               type: string
+ *               example: text/event-stream
+ *           Connection:
+ *             schema:
+ *               type: string
+ *               example: keep-alive
+ *           Cache-Control:
+ *             schema:
+ *               type: string
+ *               example: no-cache
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.get('/', authenticateDownloads, (req, res) => {
   const headers = {
     'Content-Type': 'text/event-stream',
     Connection: 'keep-alive',
@@ -17,11 +68,9 @@ router.get('/events', authenticateDownloads, (req, res) => {
   };
   res.writeHead(200, headers);
 
-  // Send initial data exactly like article
   const data = `data: ${JSON.stringify([])}\n\n`;
   res.write(data);
 
-  // Client tracking from article
   const clientId = Date.now();
   const newClient = {
     id: clientId,
@@ -34,7 +83,6 @@ router.get('/events', authenticateDownloads, (req, res) => {
     total: clients.length,
   });
 
-  // Handle disconnection exactly like article
   req.on('close', () => {
     logger.info('SSE client disconnected', {
       clientId,
@@ -44,7 +92,6 @@ router.get('/events', authenticateDownloads, (req, res) => {
   });
 });
 
-// Function to broadcast checksum updates (from articles)
 export const sendChecksumUpdate = (filePath, checksum, fileStats = null) => {
   logger.info('SSE: Sending checksum update', {
     filePath,
@@ -186,6 +233,34 @@ export const sendFileRenamed = (oldPath, newPath, isDirectory = false) => {
   });
 
   logger.info('SSE: File rename event sent successfully');
+};
+
+// Function to broadcast checksum progress updates
+export const sendChecksumProgress = progressData => {
+  logger.info('SSE: Sending checksum progress event', {
+    total: progressData.total,
+    complete: progressData.complete,
+    percentage: progressData.percentage,
+  });
+
+  const eventData = JSON.stringify({
+    type: 'checksum_progress',
+    ...progressData,
+    timestamp: new Date().toISOString(),
+  });
+
+  // Send to all connected clients
+  clients.forEach(client => {
+    try {
+      client.response.write(`event: checksum-progress\n`);
+      client.response.write(`data: ${eventData}\n\n`);
+    } catch (error) {
+      logger.error('Error sending SSE progress message', { error: error.message });
+      clients = clients.filter(c => c.id !== client.id);
+    }
+  });
+
+  logger.info('SSE: Checksum progress event sent successfully');
 };
 
 export default router;

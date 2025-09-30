@@ -3,7 +3,7 @@ import { promises as fs } from 'fs';
 import { join, dirname, basename } from 'path';
 import { Op } from 'sequelize';
 import { getFileModel } from '../models/File.js';
-import { sendFileDeleted, sendFileAdded } from '../routes/sse.js';
+import { sendFileDeleted, sendFileAdded, sendFileRenamed } from '../routes/sse.js';
 import { fileWatcherLogger as logger, databaseLogger } from '../config/logger.js';
 import configLoader from '../config/configLoader.js';
 import { withDatabaseRetry } from '../config/database.js';
@@ -259,11 +259,7 @@ class FileWatcherService {
       usePolling: true, // Use polling for reliable unlink detection across filesystems
       alwaysStat: true, // Provide stats in event callbacks (more efficient)
       atomic: true, // Handle atomic editor writes
-      awaitWriteFinish: {
-        // Wait for file writes to complete
-        stabilityThreshold: 2000,
-        pollInterval: 100,
-      },
+      awaitWriteFinish: false,
     });
 
     this.watcher.on('change', (filePath, stats) => {
@@ -348,6 +344,20 @@ class FileWatcherService {
         logger.error(
           `Failed to remove database records for deleted directory ${dirPath}: ${error.message}`
         );
+      }
+    });
+
+    this.watcher.on('addDir', (dirPath, stats) => {
+      logger.info(`Directory added: ${dirPath}`);
+      cacheService.invalidate(dirname(dirPath));
+      this.scheduleFileProcessingWithStats(dirPath, stats);
+    });
+
+    this.watcher.on('raw', (event, details) => {
+      if (event === 'moved' && details && details.oldPath && details.newPath) {
+        logger.info(`File renamed from ${details.oldPath} to ${details.newPath}`);
+        sendFileRenamed(details.oldPath, details.newPath);
+        logger.info(`SSE file rename event sent for: ${details.oldPath} -> ${details.newPath}`);
       }
     });
   }

@@ -2,6 +2,7 @@
   "name": "armor",
   "version": "1.13.3",
   "description": "ARMOR Reliably Manages Online Resources",
+  "license": "GPL-3.0",
   "type": "module",
   "main": "app.js",
   "scripts": {
@@ -26,7 +27,22 @@
     "lint": "npm run lint:all",
     "lint:fix:all": "npm run lint:backend:fix && npm run lint:frontend:fix",
     "format:check": "prettier --check .",
-    "format:fix": "prettier --write ."
+    "format:fix": "prettier --write .",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest --watch",
+    "test:frontend": "cd web && npm run test",
+    "test:all": "npm run test:run && npm run test:frontend",
+    "security:audit": "npm audit --audit-level moderate",
+    "security:vulnerabilities": "npm audit && npx better-npm-audit audit",
+    "security:licenses": "npx license-checker --onlyAllow 'MIT;Apache-2.0;BSD;BSD-2-Clause;BSD-3-Clause;ISC;GPL-3.0;LGPL-2.1;LGPL-3.0;MPL-2.0;CC0-1.0;CC-BY-3.0;CC-BY-4.0;Unlicense;Python-2.0' --excludePrivatePackages",
+    "security:licenses-report": "npx license-checker --out licenses.json --json",
+    "security:supply-chain": "npx audit-ci --moderate",
+    "security:backend": "npm run security:vulnerabilities && npm run security:licenses && npm run security:supply-chain",
+    "security:frontend": "cd web && npm run security:all",
+    "security:all": "npm run security:backend && npm run security:frontend"
   },
   "dependencies": {
     "basic-auth": "^2.0.1",
@@ -40,6 +56,7 @@
     "express-rate-limit": "^8.1.0",
     "express-session": "^1.18.2",
     "helmet": "^8.1.0",
+    "i18n": "^0.15.2",
     "js-yaml": "^4.1.0",
     "json-merger": "^3.0.0",
     "jsonwebtoken": "^9.0.2",
@@ -59,10 +76,13 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@vitest/ui": "^3.2.4",
     "eslint": "^9.36.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "globals": "^16.4.0",
-    "prettier": "^3.6.2"
+    "prettier": "^3.6.2",
+    "supertest": "^7.1.4",
+    "vitest": "^3.2.4"
   }
 }

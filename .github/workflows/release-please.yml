@@ -28,8 +28,16 @@ jobs:
         uses: googleapis/release-please-action@v4
         id: release
 
-  build-packages:
+  security-pre-check:
+    name: Security Pre-Check
     needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    uses: ./.github/workflows/reusable/security-checks.yml
+    with:
+      fail-on-error: true
+
+  build-packages:
+    needs: [release-please, security-pre-check]
     if: ${{ needs.release-please.outputs.release_created }}
     runs-on: self-hosted
     steps:
@@ -46,9 +54,8 @@ jobs:
       - name: Install dependencies
         run: npm run cinstall:all:nodev
 
-      # TODO: Enable when ready for Vite builds
-      # - name: Build frontend
-      #   run: npm run build
+      - name: Build frontend
+        run: npm run build
 
       - name: Set Debian package variables
         run: |
@@ -64,9 +71,8 @@ jobs:
         run: |
           cp -r models routes middleware config utils services packaging app.js package.json "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
           cp -r node_modules "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/"
-          # TODO: Enable when Vite builds are ready
-          #cp -r web/dist "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/dist"
-          # Temporary: Copy public assets directly
+          cp -r web/dist "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/dist"
+          # Keep public assets for Swagger theming
           cp -r web/public "${PACKAGE_NAME}_${VERSION}_${ARCH}/opt/armor/web/public"
 
       - name: Copy configuration files to Debian package

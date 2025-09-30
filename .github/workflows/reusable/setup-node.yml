@@ -1,0 +1,64 @@
+name: Setup Node.js with Caching
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: 'Node.js version to use'
+        required: false
+        type: string
+        default: '22'
+      install-backend:
+        description: 'Install backend dependencies'
+        required: false
+        type: boolean
+        default: true
+      install-frontend:
+        description: 'Install frontend dependencies'
+        required: false
+        type: boolean
+        default: true
+      production-only:
+        description: 'Install production dependencies only'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  setup-node:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'npm'
+
+      - name: Install backend dependencies
+        if: ${{ inputs.install-backend }}
+        run: |
+          if [ "${{ inputs.production-only }}" = "true" ]; then
+            npm run cinstall:backend:nodev
+          else
+            npm run cinstall:backend
+          fi
+
+      - name: Install frontend dependencies
+        if: ${{ inputs.install-frontend }}
+        run: |
+          if [ "${{ inputs.production-only }}" = "true" ]; then
+            npm run cinstall:frontend:nodev
+          else
+            npm run cinstall:frontend
+          fi
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            web/node_modules
+          key: ${{ runner.os }}-node-${{ inputs.node-version }}-${{ hashFiles('package-lock.json', 'web/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ inputs.node-version }}-
+            ${{ runner.os }}-node-

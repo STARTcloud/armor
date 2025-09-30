@@ -1,13 +1,17 @@
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 
-export const generateApiKey = () =>
+export const generateApiKey = () => {
   // Generate a 32-character cryptographically secure API key
-  crypto
-    .randomBytes(24)
-    .toString('base64')
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .substring(0, 32);
+  let key = '';
+  while (key.length < 32) {
+    const randomBytes = crypto.randomBytes(24);
+    const base64 = randomBytes.toString('base64');
+    const alphanumeric = base64.replace(/[^a-zA-Z0-9]/g, '');
+    key += alphanumeric;
+  }
+  return key.substring(0, 32);
+};
 
 export const hashApiKey = key => {
   const saltRounds = 12;
@@ -19,6 +23,9 @@ export const validateApiKey = (key, hash) => bcrypt.compare(key, hash);
 export const getKeyPreview = key => key.substring(0, 8);
 
 export const validatePermissions = permissions => {
+  if (!Array.isArray(permissions)) {
+    return false;
+  }
   const validPermissions = ['downloads', 'uploads', 'delete'];
   return permissions.every(permission => validPermissions.includes(permission));
 };

@@ -10,7 +10,10 @@ import pkg from "../package.json" with { type: "json" };
 function loadViteConfig() {
   // Check environment variable first (set by systemd)
   if (process.env.CONFIG_PATH) {
-    return YAML.parse(fs.readFileSync(process.env.CONFIG_PATH, "utf8"));
+    const configPath = process.env.CONFIG_PATH.startsWith("/")
+      ? process.env.CONFIG_PATH
+      : `../${process.env.CONFIG_PATH}`;
+    return YAML.parse(fs.readFileSync(configPath, "utf8"));
   }
 
   // Fallback to local config for development
@@ -60,25 +63,38 @@ export default defineConfig({
     },
     proxy: {
       "/api": {
-        target: `http://${config.server?.hostname?.value || "localhost"}:${config.server?.port?.value || 3443}`,
+        target: `https://${config.server?.hostname?.value || "localhost"}:8443`,
         changeOrigin: true,
         secure: false,
       },
     },
   },
   build: {
-    sourcemap: false, // Disable source maps for production to avoid source map errors
-    chunkSizeWarningLimit: 1000, // Increase warning limit to 1MB for complex applications
+    sourcemap: false,
+    chunkSizeWarningLimit: 500, // Keep strict 500KB limit for all
     commonjsOptions: {
-      defaultIsModuleExports: true, // Fix for Vite 4.0.3+ CommonJS handling changes
+      defaultIsModuleExports: true,
     },
     rollupOptions: {
       external: ["rollup"],
       output: {
         entryFileNames: `assets/[name].js`,
-        chunkFileNames: `assets/[name].js`,
+        chunkFileNames: (chunkInfo) => {
+          // Name dynamic import chunks based on their modules
+          const facadeModuleId = chunkInfo.facadeModuleId;
+          if (facadeModuleId && facadeModuleId.includes("swagger-ui-react")) {
+            return "assets/swagger.js";
+          }
+
+          // Check if any modules in the chunk are swagger-related
+          const moduleIds = Object.keys(chunkInfo.modules || {});
+          if (moduleIds.some((id) => id.includes("swagger-ui-react"))) {
+            return "assets/swagger.js";
+          }
+
+          return "assets/[name].js";
+        },
         assetFileNames: (assetInfo) => {
-          // Keep favicons at root level
           if (
             assetInfo.name === "favicon.ico" ||
             assetInfo.name === "dark-favicon.ico"
@@ -87,23 +103,43 @@ export default defineConfig({
           }
           return `assets/[name].[ext]`;
         },
-        manualChunks: (id) => {
-          // Simplify chunking to avoid dependency issues
-          // Only split out the largest, most independent libraries
+        manualChunks: {
+          // Core React (essential)
+          vendor: ["react", "react-dom", "react-router-dom"],
 
-          //// Flow/diagram libraries (large, independent)
-          //if (id.includes('node_modules/@xyflow') ||
-          //    id.includes('node_modules/elkjs') ||
-          //    id.includes('node_modules/dagre')) {
-          //  return 'flow-diagrams';
-          //}
+          // UI frameworks
+          ui: ["bootstrap", "react-bootstrap"],
 
-          // Everything else stays together in vendor to avoid dependency issues
-          // This includes React, Router, Axios, utilities, etc.
-          if (id.includes("node_modules")) {
-            return "vendor";
-          }
+          // HTTP and utilities
+          utils: ["axios", "jwt-decode", "prop-types"],
+
+          // Web APIs (safe to separate)
+          webapis: ["web-vitals", "register-service-worker"],
+
+          // Swagger dependencies (split from main swagger chunk)
+          swaggerdeps: ["js-yaml", "yaml", "@swagger-api/apidom-core"],
         },
+      },
+      onwarn: (warning, warn) => {
+        // Smart warning suppression: only for swagger-related large chunks
+        if (
+          warning.message &&
+          warning.message.includes("Some chunks are larger than 500 kB")
+        ) {
+          // Check if warning contains swagger file references
+          if (
+            warning.message.includes("swagger") ||
+            warning.chunkNames?.some((name) => name.includes("swagger"))
+          ) {
+            console.log(
+              "📦 [Bundle] Suppressing Swagger UI size warning - loads on-demand only"
+            );
+            return;
+          }
+        }
+
+        // All other warnings pass through (including other large chunks)
+        warn(warning);
       },
     },
   },
