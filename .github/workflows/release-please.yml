@@ -34,7 +34,7 @@ jobs:
     if: ${{ needs.release-please.outputs.release_created }}
     uses: ./.github/workflows/reusable-security-checks.yml
     with:
-      fail-on-error: false
+      fail-on-error: true
 
   build-packages:
     needs: [release-please, security-pre-check]
