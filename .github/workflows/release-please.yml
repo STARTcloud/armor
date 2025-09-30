@@ -372,6 +372,7 @@ jobs:
           ssh startcloud@172.17.204.177 "rm -f /tmp/armor_*.deb"
 
   build-docs:
+    name: Build Docs
     needs: [release-please, build-packages]
     if: ${{ needs.release-please.outputs.release_created }}
     runs-on: ubuntu-latest
