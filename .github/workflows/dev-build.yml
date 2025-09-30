@@ -65,7 +65,7 @@ jobs:
     name: Security Pre-Check
     needs: check-trigger
     if: needs.check-trigger.outputs.should_build == 'true'
-    uses: ./.github/workflows/reusable/security-checks.yml
+    uses: ./.github/workflows/reusable-security-checks.yml
     with:
       fail-on-error: true
 

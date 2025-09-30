@@ -12,7 +12,7 @@ permissions:
 jobs:
   security-checks:
     name: Security Checks
-    uses: ./.github/workflows/reusable/security-checks.yml
+    uses: ./.github/workflows/reusable-security-checks.yml
     with:
       fail-on-error: false
 
@@ -78,7 +78,7 @@ jobs:
 
   build-frontend:
     name: Build Frontend
-    uses: ./.github/workflows/reusable/build-frontend.yml
+    uses: ./.github/workflows/reusable-build-frontend.yml
 
   verify-scripts:
     name: Verify Scripts
