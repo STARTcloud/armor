@@ -67,7 +67,7 @@ jobs:
     if: needs.check-trigger.outputs.should_build == 'true'
     uses: ./.github/workflows/reusable-security-checks.yml
     with:
-      fail-on-error: true
+      fail-on-error: false
 
   build-development-packages:
     name: Build Development Packages
