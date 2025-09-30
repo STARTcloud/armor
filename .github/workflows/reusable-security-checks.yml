@@ -71,7 +71,7 @@ jobs:
           if [ "$VULN_FAILED" = "true" ]; then FAILED_CHECKS="$FAILED_CHECKS vulnerabilities"; fi
           if [ "$LICENSE_FAILED" = "true" ]; then FAILED_CHECKS="$FAILED_CHECKS licenses"; fi
           if [ "$SUPPLY_FAILED" = "true" ]; then FAILED_CHECKS="$FAILED_CHECKS supply-chain"; fi
-          
+
           if [ -n "$FAILED_CHECKS" ]; then
             echo "result=failed" >> $GITHUB_OUTPUT
             echo "Backend security checks failed:$FAILED_CHECKS"
