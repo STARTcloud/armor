@@ -27,10 +27,10 @@ jobs:
           # Get the commit message and author
           COMMIT_MESSAGE=$(git log -1 --pretty=format:"%s")
           COMMIT_AUTHOR=$(git log -1 --pretty=format:"%an")
-          
+
           echo "Commit message: $COMMIT_MESSAGE"
           echo "Commit author: $COMMIT_AUTHOR"
-          
+
           # Skip if this is a release-please commit
           if [[ "$COMMIT_MESSAGE" =~ ^chore\(main\): ]] || [[ "$COMMIT_AUTHOR" == "github-actions[bot]" ]]; then
             echo "Skipping development build - triggered by Release Please"
@@ -46,17 +46,17 @@ jobs:
         run: |
           # Get current version from package.json
           CURRENT_VERSION=$(node -p "require('./package.json').version")
-          
+
           # Split version into parts
           IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
           MAJOR=${VERSION_PARTS[0]}
           MINOR=${VERSION_PARTS[1]}
           PATCH=${VERSION_PARTS[2]}
-          
+
           # Increment patch version for development
           NEW_PATCH=$((PATCH + 1))
           DEV_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}-dev"
-          
+
           echo "Current version: $CURRENT_VERSION"
           echo "Development version: $DEV_VERSION"
           echo "dev_version=$DEV_VERSION" >> $GITHUB_OUTPUT
