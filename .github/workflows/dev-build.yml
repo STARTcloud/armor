@@ -1,8 +1,12 @@
 name: Development Build
 
 on:
-  push:
-    branches: [main]
+  workflow_run:
+    workflows: ["CI"]
+    types: 
+      - completed
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -16,6 +20,14 @@ jobs:
       should_build: ${{ steps.check.outputs.should_build }}
       dev_version: ${{ steps.version.outputs.dev_version }}
     steps:
+      - name: Check CI workflow result
+        run: |
+          if [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
+            echo "CI workflow failed - skipping development build"
+            echo "should_build=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v5
         with:
@@ -61,17 +73,9 @@ jobs:
           echo "Development version: $DEV_VERSION"
           echo "dev_version=$DEV_VERSION" >> $GITHUB_OUTPUT
 
-  security-pre-check:
-    name: Security Pre-Check
-    needs: check-trigger
-    if: needs.check-trigger.outputs.should_build == 'true'
-    uses: ./.github/workflows/reusable-security-checks.yml
-    with:
-      fail-on-error: true
-
   build-development-packages:
     name: Build Development Packages
-    needs: [check-trigger, security-pre-check]
+    needs: check-trigger
     if: needs.check-trigger.outputs.should_build == 'true'
     runs-on: self-hosted
     env:

@@ -39,7 +39,8 @@ PROG=armor
 # Use DEV_VERSION if set (for development builds), otherwise use package.json version
 if [ -n "$DEV_VERSION" ]; then
     VER="$DEV_VERSION"
-    PKG=application/management/armor-dev
+    # Always use base package name for IPS operations (manifest is hardcoded)
+    PKG=application/management/armor
     PACKAGE_PREFIX="armor-dev"
 else
     VER=$(node -p "require('./package.json').version" 2>/dev/null || echo "1.0.0")
