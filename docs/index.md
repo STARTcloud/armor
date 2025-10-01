@@ -45,7 +45,7 @@ graph TD
     B -->|Background Processing| I[Checksum Service]
 ```
 
-**[View Detailed Architecture](architecture/)**
+**[View Detailed Architecture](docs/architecture/)**
 
 ### Quick start
 

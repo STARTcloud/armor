@@ -6,16 +6,50 @@ permalink: /docs/architecture/
 ---
 
 <style>
-/* Full width layout for architecture diagram */
+/* Override specific Just the Docs constraints for full width layout */
+
+/* Disable sidebar width calculation for full width */
+@media (min-width: 66.5rem) {
+    .side-bar {
+        /* width: calc((100% - 76.5rem) / 2 + 16.5rem); ## Disabled for full width */
+        min-width: 16.5rem;
+    }
+    
+    .side-bar + .main {
+        /* margin-left: max(16.5rem, (100% - 76.5rem) / 2 + 16.5rem); ## Disabled for full width */
+        margin-left: 15.5rem;
+    }
+}
+
+@media (min-width: 50rem) {
+    .side-bar {
+        flex-flow: column nowrap;
+        position: fixed;
+        width: 15.5rem;
+        height: 100%;
+        border-right: 1px solid #44434d;
+        /* align-items: flex-end; ## Disabled for full width */
+        align-items: flex-start;
+    }
+    
+    .side-bar + .main {
+        margin-left: 15.5rem;
+    }
+    
+    .main {
+        position: relative;
+        /* max-width: 60rem; ## Disabled for full width */
+        max-width: none;
+    }
+}
+
+/* Full width main content */
 .main-content-wrap {
     max-width: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
 }
 
 .main-content {
     max-width: none !important;
-    margin: 0 !important;
     padding: 2rem !important;
 }
 
@@ -26,17 +60,8 @@ permalink: /docs/architecture/
     border-radius: 6px !important;
     padding: 1rem !important;
     margin: 1rem 0 !important;
-}
-
-/* Override any conflicting Just the Docs styles for full width */
-@media (min-width: 50rem) {
-    .main-content-wrap {
-        margin-left: 0 !important;
-    }
-    
-    .main-content {
-        margin-left: 0 !important;
-    }
+    width: 100% !important;
+    overflow-x: auto !important;
 }
 </style>
 
