@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.14.5](https://github.com/STARTcloud/armor/compare/v1.14.4...v1.14.5) (2025-10-01)
+
+
+### Bug Fixes
+
+* csrf ([0b138e7](https://github.com/STARTcloud/armor/commit/0b138e71c45676907426769c8466b686cd8d062d))
+* csrf ([93aef28](https://github.com/STARTcloud/armor/commit/93aef28b1eba4afa903e6856e796480fe4b04ec1))
+
 ## [1.14.4](https://github.com/STARTcloud/armor/compare/v1.14.3...v1.14.4) (2025-10-01)
 
 
