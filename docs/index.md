@@ -13,7 +13,7 @@ A secure Node.js file server with comprehensive Swagger UI integration and real-
 {: .fs-6 .fw-300 }
 
 [Get started now](#getting-started){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
-[View API Reference](docs/api/){: .btn .fs-5 .mb-4 .mb-md-0 }
+[View API Reference](docs/api/swagger-ui.html){: .btn .fs-5 .mb-4 .mb-md-0 }
 [View on GitHub](https://github.com/STARTcloud/armor){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
@@ -51,6 +51,7 @@ graph TD
 3. **Authentication**: Configure users and OIDC providers
 4. **API Keys**: Generate keys for programmatic access
 5. **Access**: Browse files via web interface or use comprehensive REST API
+6. **Try API**: Visit the [API documentation](docs/api/swagger-ui.html) for interactive testing
 
 ### Core Capabilities
 

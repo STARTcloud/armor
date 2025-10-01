@@ -397,9 +397,9 @@ const generateSwaggerUI = () => `<!DOCTYPE html>
  * @returns {string} Jekyll markdown page with iframe to Swagger UI
  */
 const generateRedirectPage = () => `---
-title: API Reference
+title: Interactive API Reference
 layout: default
-nav_order: 2
+nav_order: 1
 parent: API Reference
 permalink: /docs/api/reference/
 ---

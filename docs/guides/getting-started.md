@@ -106,7 +106,7 @@ served_directory: "/var/lib/armor/files"
 2. **Login**: Use admin/admin123 (or your configured credentials)
 3. **Browse Files**: Navigate through your file directories
 4. **Upload Files**: Drag and drop files or use the upload button
-5. **Try API**: Visit `/api-docs` for interactive Swagger UI
+5. **Try API**: Visit the [API documentation](../api/swagger-ui.html) for interactive Swagger UI
 
 ## Core Features Overview
 
