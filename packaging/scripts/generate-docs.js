@@ -401,7 +401,7 @@ title: Interactive API Reference
 layout: default
 nav_order: 1
 parent: API Reference
-permalink: /docs/api/swagger-ui.html
+permalink: /docs/api/reference/
 ---
 
 # Interactive API Reference
@@ -419,8 +419,8 @@ permalink: /docs/api/swagger-ui.html
 
 ## Alternative Formats
 
-- **[View Full Screen](swagger-ui.html)** - Open Swagger UI in a new page for better experience
-- **[Download OpenAPI Spec](openapi.json)** - Raw OpenAPI 3.0 specification file
+- **[View Full Screen](../swagger-ui.html)** - Open Swagger UI in a new page for better experience
+- **[Download OpenAPI Spec](../openapi.json)** - Raw OpenAPI 3.0 specification file
 
 ---
 
@@ -452,8 +452,11 @@ const generateDocs = () => {
     fs.writeFileSync(path.join(docsDir, 'swagger-ui.html'), swaggerHtml);
     console.log('Generated docs/api/swagger-ui.html');
 
-    // Skip generating Jekyll redirect page to avoid navigation conflicts
-    console.log('Skipping Jekyll redirect page (using direct swagger-ui.html access)...');
+    // Generate Jekyll redirect page
+    console.log('Generating Jekyll redirect page...');
+    const redirectPage = generateRedirectPage();
+    fs.writeFileSync(path.join(docsDir, 'reference.md'), redirectPage);
+    console.log('Generated docs/api/reference.md');
 
     console.log('Documentation generation completed successfully!');
     console.log('');
