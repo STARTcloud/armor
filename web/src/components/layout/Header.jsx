@@ -97,17 +97,17 @@ const Header = () => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (!event.target.closest('.dropdown')) {
+      if (!event.target.closest(".dropdown")) {
         setShowUserDropdown(false);
       }
     };
 
     if (showUserDropdown) {
-      document.addEventListener('click', handleClickOutside);
+      document.addEventListener("click", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener("click", handleClickOutside);
     };
   }, [showUserDropdown]);
 
