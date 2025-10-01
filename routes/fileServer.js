@@ -4,6 +4,7 @@ import { promises as fs } from 'fs';
 import { join, basename, extname } from 'path';
 import { Op } from 'sequelize';
 import auth from 'basic-auth';
+import escapeHtml from 'escape-html';
 import { SERVED_DIR, getSecurePath } from '../config/paths.js';
 import {
   authenticateDownloads,
@@ -87,7 +88,11 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
   const staticContent = await getStaticContent(fullPath);
   if (staticContent) {
     const baseUrl = requestPath.endsWith('/') ? requestPath : `${requestPath}/`;
-    const contentWithBase = staticContent.replace('</head>', `<base href="${baseUrl}"></head>`);
+    const escapedBaseUrl = escapeHtml(baseUrl);
+    const contentWithBase = staticContent.replace(
+      '</head>',
+      `<base href="${escapedBaseUrl}"></head>`
+    );
     logAccess(req, 'STATIC_PAGE', 'serving static index.html');
     return res.send(contentWithBase);
   }

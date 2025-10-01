@@ -349,7 +349,7 @@ router.delete('/:id', async (req, res) => {
 
     await apiKey.destroy();
 
-    logAccess(req, 'API_KEY_DELETED', `id: ${id}, name: ${apiKey.name}`);
+    logAccess(req, 'API_KEY_DELETED', `id: ${id}`);
 
     return res.json({
       success: true,
@@ -502,7 +502,7 @@ router.put('/:id', async (req, res) => {
 
     await apiKey.update(updateData);
 
-    logAccess(req, 'API_KEY_UPDATED', `id: ${id}, name: ${apiKey.name}`);
+    logAccess(req, 'API_KEY_UPDATED', `id: ${id}`);
 
     return res.json({
       success: true,
