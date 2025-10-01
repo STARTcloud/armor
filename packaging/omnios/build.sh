@@ -21,7 +21,7 @@
 # CDDL HEADER END
 #
 #
-# Copyright 2025 Makr91. All rights reserved.
+# Copyright 2025 MarkProminic. All rights reserved.
 # Use is subject to license terms.
 #
 
@@ -187,7 +187,7 @@ pkgmogrify -DVERSION="${VERSION}" armor.p5m.tmp armor.p5m.generated > armor.p5m.
 TEMP_REPO="${SRCDIR}/temp-repo"
 rm -rf "$TEMP_REPO"
 pkgrepo create "$TEMP_REPO"
-pkgrepo set -s "$TEMP_REPO" publisher/prefix=Makr91
+pkgrepo set -s "$TEMP_REPO" publisher/prefix=MarkProminic
 
 # Publish package to temporary repository
 pkgsend -s "file://${TEMP_REPO}" publish -d proto armor.p5m.final

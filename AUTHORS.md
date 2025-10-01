@@ -4,8 +4,8 @@ This file lists the people who have contributed to Armor.
 
 ## Project Maintainer
 
-**Primary Maintainer:** Makr91
-- GitHub: [@Makr91](https://github.com/Makr91)
+**Primary Maintainer:** MarkProminic
+- GitHub: [@MarkProminic](https://github.com/MarkProminic)
 - Role: Creator, Lead Developer, and Maintainer
 - Contributions: Initial development, architecture, ongoing maintenance
 

@@ -21,7 +21,7 @@ updates:
           - 'patch'
     # Automatically merge minor and patch updates for trusted packages
     reviewers:
-      - 'Makr91'
+      - 'MarkProminic'
     labels:
       - 'dependencies'
       - 'automated'

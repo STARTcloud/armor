@@ -67,7 +67,7 @@ Version: ${VERSION}
 Section: misc
 Priority: optional
 Architecture: ${ARCH}
-Maintainer: Makr91 <makr91@users.noreply.github.com>
+Maintainer: MarkProminic <MarkProminic@users.noreply.github.com>
 Depends: nodejs (>= 20.0.0), sqlite3, openssl
 Description: Armor
  Web-based management interface for Secure Web Resources

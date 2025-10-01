@@ -23,7 +23,7 @@ pfexec pkg install ooce/runtime/node-22 database/sqlite-3
 ## Package Information
 
 - **Package Name:** `application/management/armor`
-- **Publisher:** `Makr91`
+- **Publisher:** `MarkProminic`
 - **Service FMRI:** `svc:/application/management/armor:default`
 - **Install Path:** `/opt/armor/`
 - **Config Path:** `/etc/armor/config.yaml`
@@ -103,7 +103,7 @@ pkgmogrify -DVERSION=${VERSION} packaging/omnios/armor.p5m armor.p5m.generated >
 # Create a local repository for testing (if needed)
 mkdir -p /tmp/local-repo
 pkgrepo create /tmp/local-repo
-pkgrepo set -s /tmp/local-repo publisher/prefix=Makr91
+pkgrepo set -s /tmp/local-repo publisher/prefix=MarkProminic
 
 # Publish to local repository
 pkgsend publish -d . -s /tmp/local-repo armor.p5m.final
@@ -112,7 +112,7 @@ pkgsend publish -d . -s /tmp/local-repo armor.p5m.final
 ### 3. Install & Test Package
 ```bash
 # Add your local repository
-pfexec pkg set-publisher -g file:///tmp/local-repo Makr91
+pfexec pkg set-publisher -g file:///tmp/local-repo MarkProminic
 
 # Install the package
 pfexec pkg install application/management/armor
