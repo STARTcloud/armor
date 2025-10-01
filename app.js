@@ -59,13 +59,20 @@ const startServer = async () => {
 
   let origin;
   if (corsConfig.allow_origin === true) {
-    origin = corsConfig.whitelist;
+    if (corsConfig.whitelist && corsConfig.whitelist.length > 0) {
+      origin = corsConfig.whitelist;
+    } else {
+      origin = false;
+      logger.warn(
+        'CORS allow_origin is true but whitelist is empty. Blocking all CORS requests for security.'
+      );
+    }
   } else if (corsConfig.allow_origin === false) {
     origin = false;
   } else if (corsConfig.allow_origin === 'specific') {
     origin = corsConfig.whitelist;
   } else {
-    origin = corsConfig.allow_origin; // fallback for other values
+    origin = corsConfig.allow_origin;
   }
 
   const corsOptions = {

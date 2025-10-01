@@ -11,3 +11,12 @@ export const getSecurePath = requestPath => {
 
   return fullPath;
 };
+
+export const isLocalUrl = urlPath => {
+  try {
+    const url = new URL(urlPath, 'https://localhost');
+    return url.origin === 'https://localhost';
+  } catch {
+    return false;
+  }
+};
