@@ -940,6 +940,13 @@ router.post('/folders', authenticateUploads, async (req, res) => {
     const targetDir = getSecurePath(requestPath);
     const newFolderPath = join(targetDir, sanitizedFolderName);
 
+    if (!newFolderPath.startsWith(SERVED_DIR)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid folder path',
+      });
+    }
+
     try {
       await fs.access(newFolderPath);
       return res.status(400).json({
@@ -1003,6 +1010,13 @@ router.post('*splat/folders', authenticateUploads, async (req, res) => {
     const requestPath = decodeURIComponent(req.path.replace('/folders', ''));
     const targetDir = getSecurePath(requestPath);
     const newFolderPath = join(targetDir, sanitizedFolderName);
+
+    if (!newFolderPath.startsWith(SERVED_DIR)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid folder path',
+      });
+    }
 
     try {
       await fs.access(newFolderPath);
@@ -1204,6 +1218,13 @@ router.post('*splat', authenticateUploads, async (req, res, next) => {
     const requestPath = decodeURIComponent(req.path);
     const targetDir = getSecurePath(requestPath);
     const newFolderPath = join(targetDir, sanitizedFolderName);
+
+    if (!newFolderPath.startsWith(SERVED_DIR)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid folder path',
+      });
+    }
 
     try {
       await fs.access(newFolderPath);

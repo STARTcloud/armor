@@ -6,6 +6,7 @@ import cors from 'cors';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
+import lusca from 'lusca';
 import configLoader from './config/configLoader.js';
 import { configAwareI18nMiddleware } from './config/i18n.js';
 import { initializeDatabase } from './config/database.js';
@@ -161,6 +162,8 @@ const startServer = async () => {
       },
     })
   );
+
+  app.use(lusca.csrf());
 
   app.use(morganMiddleware);
   app.use(rateLimiterMiddleware());
