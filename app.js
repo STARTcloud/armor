@@ -153,13 +153,32 @@ const startServer = async () => {
     })
   );
 
-  app.use(lusca.csrf());
+  // Create selective CSRF middleware - only apply to web form routes
+  const selectiveCSRF = (req, res, next) => {
+    // Skip CSRF for API routes, SSE, and authentication endpoints
+    if (
+      req.path.startsWith('/api/') ||
+      req.path.startsWith('/auth/') ||
+      req.path.startsWith('/static/') ||
+      req.method === 'GET' ||
+      req.headers.authorization || // Skip for API key/Basic auth requests
+      req.headers.accept === 'text/event-stream' // Skip for SSE
+    ) {
+      return next();
+    }
+    
+    // Apply CSRF protection for web form operations
+    return lusca.csrf()(req, res, next);
+  };
 
   app.use(morganMiddleware);
   app.use(rateLimiterMiddleware());
   app.use(configAwareI18nMiddleware);
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  // Apply selective CSRF protection
+  app.use(selectiveCSRF);
 
   app.use('/', authRoutes);
 
