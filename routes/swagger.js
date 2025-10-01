@@ -309,7 +309,6 @@ router.post('/user-api-keys/:id/full', async (req, res) => {
     logger.info('Full API key retrieved for Swagger', {
       user: decoded.username || decoded.userId,
       keyId,
-      keyName: apiKey.name,
     });
     return undefined;
   } catch (error) {

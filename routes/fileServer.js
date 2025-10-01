@@ -4,6 +4,7 @@ import { promises as fs } from 'fs';
 import { join, basename, extname } from 'path';
 import { Op } from 'sequelize';
 import auth from 'basic-auth';
+import escapeHtml from 'escape-html';
 import { SERVED_DIR, getSecurePath } from '../config/paths.js';
 import {
   authenticateDownloads,
@@ -87,7 +88,11 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
   const staticContent = await getStaticContent(fullPath);
   if (staticContent) {
     const baseUrl = requestPath.endsWith('/') ? requestPath : `${requestPath}/`;
-    const contentWithBase = staticContent.replace('</head>', `<base href="${baseUrl}"></head>`);
+    const escapedBaseUrl = escapeHtml(baseUrl);
+    const contentWithBase = staticContent.replace(
+      '</head>',
+      `<base href="${escapedBaseUrl}"></head>`
+    );
     logAccess(req, 'STATIC_PAGE', 'serving static index.html');
     return res.send(contentWithBase);
   }
@@ -940,6 +945,13 @@ router.post('/folders', authenticateUploads, async (req, res) => {
     const targetDir = getSecurePath(requestPath);
     const newFolderPath = join(targetDir, sanitizedFolderName);
 
+    if (!newFolderPath.startsWith(SERVED_DIR)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid folder path',
+      });
+    }
+
     try {
       await fs.access(newFolderPath);
       return res.status(400).json({
@@ -1003,6 +1015,13 @@ router.post('*splat/folders', authenticateUploads, async (req, res) => {
     const requestPath = decodeURIComponent(req.path.replace('/folders', ''));
     const targetDir = getSecurePath(requestPath);
     const newFolderPath = join(targetDir, sanitizedFolderName);
+
+    if (!newFolderPath.startsWith(SERVED_DIR)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid folder path',
+      });
+    }
 
     try {
       await fs.access(newFolderPath);
@@ -1204,6 +1223,13 @@ router.post('*splat', authenticateUploads, async (req, res, next) => {
     const requestPath = decodeURIComponent(req.path);
     const targetDir = getSecurePath(requestPath);
     const newFolderPath = join(targetDir, sanitizedFolderName);
+
+    if (!newFolderPath.startsWith(SERVED_DIR)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid folder path',
+      });
+    }
 
     try {
       await fs.access(newFolderPath);
