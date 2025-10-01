@@ -142,7 +142,7 @@ jobs:
         id: release
 
   build-production:
-    name: Build Production
+    name: Production
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created }}
     uses: ./.github/workflows/prod-build.yml
@@ -151,7 +151,7 @@ jobs:
       tag_name: ${{ needs.release-please.outputs.tag_name }}
 
   build-dev-packages:
-    name: Build Dev Packages
+    name: Development
     needs: release-please
     if: ${{ !needs.release-please.outputs.release_created }}
     uses: ./.github/workflows/dev-build.yml

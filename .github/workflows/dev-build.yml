@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   build-development-packages:
-    name: Build Packages
+    name: Packages
     runs-on: self-hosted
     steps:
       - name: Checkout code
