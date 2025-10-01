@@ -6,7 +6,8 @@ on:
     branches: ['main']
 
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
   security-events: write
   packages: read
   actions: read
