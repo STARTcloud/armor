@@ -64,10 +64,13 @@ const Footer = () => {
             rel="noreferrer"
           >
             <img
-              src="/images/logo.png"
+              src="https://startcloud.com/assets/images/logos/startcloud-logo40.png"
               alt="STARTcloud"
               height="20"
               className="me-2"
+              onError={(e) => {
+                e.target.src = "/images/logo.png";
+              }}
             />
             <span className="text-light">
               {t("auth:login.poweredByCompany")}

@@ -75,9 +75,9 @@ authentication:
 
   permission_strategy: "domain_based"
   domain_mappings:
-    downloads: ["*@Mydomain.net"]
-    uploads: ["*@Mydomain.net"]
-    delete: ["*@Mydomain.net"]
+    downloads: ["*@Mydomain.net"]      # Applies to OIDC users; basic auth users use local roles
+    uploads: ["*@Mydomain.net"]        # Applies to OIDC users only; basic auth users use local roles
+    delete: ["*@Mydomain.net"]         # Applies to OIDC users only; basic auth users use local roles
   
   claims_mappings:
     downloads:
@@ -123,7 +123,8 @@ security:
       - "'self'"
       - "data:"                                                             # Base64 images
       - "blob:"                                                             # Generated images
-      - "https://startcloud.com"                                            # STARTcloud logo (actually used)
+      - "https://startcloud.com"                                            # STARTcloud logo (fallback - prefer local assets)
+      - "https://raw.githubusercontent.com"                                 # GitHub raw assets (fallback)
     connect_src:                                                            # Connection restrictions (AJAX, WebSocket)
       - "'self'"
       - "wss:"                                                              # WebSocket for SSE

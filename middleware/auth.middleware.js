@@ -132,14 +132,42 @@ const checkJwtAuth = (req, permission) => {
       decoded,
       permission,
       hasPermissions: !!decoded.permissions,
+      authType: decoded.authType,
     });
 
-    // Handle both OIDC and basic auth JWT structures
+    // NEW: If this JWT represents a basic auth user, use local role instead of domain mappings
+    if (decoded.authType === 'basic' && decoded.username) {
+      const localUsers = configLoader.getAuthUsers();
+      const localUser = localUsers.find(u => u.username === decoded.username);
+      if (localUser) {
+        const rolePermissions = getUserPermissions(localUser);
+        const hasPermission = rolePermissions.includes(permission);
+
+        logger.info('Basic auth user via JWT - using local role', {
+          username: decoded.username,
+          localRole: localUser.role,
+          rolePermissions,
+          permission,
+          hasPermission,
+        });
+
+        if (hasPermission) {
+          req.oidcUser = {
+            ...decoded,
+            permissions: rolePermissions,
+          };
+          return true;
+        }
+        return false;
+      }
+    }
+
+    // For OIDC users, use existing domain/claims mapping logic
     const permissions = decoded.permissions || [];
 
     if (permissions.includes(permission)) {
       req.oidcUser = decoded;
-      logger.info('JWT auth success', { permission, permissions });
+      logger.info('JWT auth success (OIDC user)', { permission, permissions });
       return true;
     }
     logger.info('JWT auth failed - permission not found', {

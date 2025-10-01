@@ -54,14 +54,21 @@ const startServer = async () => {
     next();
   });
 
-  // CORS configuration - secure by default to prevent CodeQL warnings
-  // For security, CORS is disabled by default. Enable only specific origins if needed.
-  const origin = false; // CodeQL-safe: explicitly false, not configurable
+  // CORS configuration from production config
+  const corsConfig = configLoader.getCorsConfig();
+  
+  let origin = false; // Secure default
+  
+  if (corsConfig.allow_origin === true && corsConfig.whitelist && corsConfig.whitelist.length > 0) {
+    // Use whitelist from config for production
+    origin = corsConfig.whitelist;
+    logger.info('CORS enabled with whitelist', { whitelist: corsConfig.whitelist });
+  }
 
   const corsOptions = {
-    origin, // Hardcoded false - secure and CodeQL-compliant
-    preflightContinue: false,
-    credentials: false,
+    origin,
+    preflightContinue: corsConfig.preflight_continue || false,
+    credentials: corsConfig.credentials || false,
   };
 
   app.use(cors(corsOptions));
