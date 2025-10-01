@@ -379,7 +379,7 @@ jobs:
 
   build-docs:
     name: Build Docs
-    needs: build-packages
+    needs: [release-please, build-packages]
     if: ${{ needs.release-please.outputs.release_created }}
     runs-on: ubuntu-latest
     steps:
