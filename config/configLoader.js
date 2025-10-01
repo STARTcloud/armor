@@ -178,9 +178,9 @@ class ConfigLoader {
     return (
       serverConfig.cors || {
         whitelist: [],
-        allow_origin: true,
-        preflight_continue: true,
-        credentials: true,
+        allow_origin: false,
+        preflight_continue: false,
+        credentials: false,
       }
     );
   }
