@@ -225,16 +225,20 @@ router.get('*splat', authenticateDownloads, async (req, res) => {
 
     if (stats.isDirectory()) {
       if (!requestPath.endsWith('/')) {
-        const redirectPath = req.originalUrl.endsWith('/')
-          ? req.originalUrl
-          : `${req.originalUrl}/`;
+        // Construct safe redirect path using validated requestPath instead of raw originalUrl
+        const safeRedirectPath = `${requestPath}/`;
 
-        if (!isLocalUrl(redirectPath)) {
-          logger.warn('Rejected potentially unsafe redirect', { path: redirectPath });
+        // Ensure the redirect path is safe and local
+        if (
+          !safeRedirectPath.startsWith('/') ||
+          safeRedirectPath.includes('..') ||
+          safeRedirectPath.includes('//')
+        ) {
+          logger.warn('Rejected potentially unsafe redirect', { path: safeRedirectPath });
           return res.status(400).send('Invalid redirect path');
         }
 
-        return res.redirect(301, redirectPath);
+        return res.redirect(301, safeRedirectPath);
       }
       return handleDirectoryListing(req, res, fullPath, requestPath);
     }
@@ -1093,34 +1097,20 @@ router.post('*splat', (req, res, next) => {
   } else if (req.query.action === 'create-folder') {
     const newPath = `${req.path}/folders`;
 
-    // Only allow strictly relative paths, no path traversal, not protocol-relative, not external host
-    const isSafeRelativePath = path => {
-      // must start with a single "/"
-      if (typeof path !== 'string' || !path.startsWith('/')) {
-        return false;
-      }
-      // must not contain "//"
-      if (path.includes('//')) {
-        return false;
-      }
-      // must not contain ".."
-      if (path.includes('..')) {
-        return false;
-      }
-      // optional: restrict to allowed base directory/prefix
-      return true;
-    };
-
-    if (!isSafeRelativePath(newPath)) {
+    // Ensure the redirect is only to a local path and not to an external or dangerous location
+    if (!isLocalUrl(newPath)) {
       logger.warn('Rejected potentially unsafe redirect', { path: newPath });
       return res.status(400).send('Invalid redirect path');
     }
 
     return res.redirect(307, newPath);
   } else if (req.query.action === 'search') {
-    const newPath = `${req.path}/search`;
+    // Construct safe search path by removing any potential malicious content
+    const safePath = req.path.replace(/[^a-zA-Z0-9/_-]/g, '');
+    const newPath = `${safePath}/search`;
 
-    if (!isLocalUrl(newPath)) {
+    // Additional validation to ensure path is safe for internal redirect
+    if (!newPath.startsWith('/') || newPath.includes('..') || newPath.includes('//')) {
       logger.warn('Rejected potentially unsafe redirect', { path: newPath });
       return res.status(400).send('Invalid redirect path');
     }
