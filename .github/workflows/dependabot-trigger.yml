@@ -1,0 +1,40 @@
+name: Trigger Dependabot Updates
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  trigger-dependabot:
+    name: Trigger Dependabot
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Dependabot Updates
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            console.log('Triggering Dependabot to check for dependency updates...');
+
+            // Get current Dependabot alerts to trigger update check
+            const alerts = await github.rest.dependabot.listAlertsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open'
+            });
+
+            console.log(`Found ${alerts.data.length} open Dependabot alerts`);
+
+            // Trigger Dependabot to create PRs for security updates
+            if (alerts.data.length > 0) {
+              console.log('Triggering Dependabot to create security update PRs...');
+              for (const alert of alerts.data) {
+                console.log(`- ${alert.security_advisory.summary} (${alert.dependency.package.name})`);
+              }
+            }
+
+            console.log('Dependabot update check completed');
