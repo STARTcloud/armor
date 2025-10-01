@@ -34,14 +34,121 @@ A secure Node.js file server with comprehensive Swagger UI integration and real-
 
 ### Architecture
 ```mermaid
-graph TD
-    A[Web Browser] -- HTTPS --> B[Armor Server];
-    B -- File Operations --> C[File System];
-    B -- Real-time Updates --> D[WebSocket/SSE];
-    B -- Authentication --> E[JWT/API Keys];
-    B -- File Metadata --> F[Database (SQLite/PostgreSQL/MySQL)];
-    G[CLI Tools] -- HTTP Basic Auth --> B;
-    H[API Clients] -- Bearer Tokens --> B;
+graph TB
+    subgraph "Client Layer"
+        WB[Web Browser<br/>React SPA]
+        CLI[CLI Tools<br/>wget/curl]
+        API[API Clients<br/>Third-party Apps]
+    end
+    
+    subgraph "Authentication Layer"
+        AUTH{Authentication<br/>Middleware}
+        JWT[JWT Sessions<br/>Web Interface]
+        APIKEY[API Keys<br/>Bearer Tokens]
+        BASIC[HTTP Basic Auth<br/>CLI Compatible]
+        OIDC[OIDC Providers<br/>Google/OAuth]
+    end
+    
+    subgraph "Armor Server Core"
+        EXPRESS[Express.js Server<br/>HTTPS/Security Headers]
+        ROUTER[Route Handlers<br/>REST API Endpoints]
+        MIDDLEWARE[Security Middleware<br/>Helmet/CORS/CSRF/Rate Limiting]
+    end
+    
+    subgraph "Real-time Communication"
+        SSE[Server-Sent Events<br/>Live Updates]
+        EVENTS[Event Broadcasting<br/>File Operations]
+    end
+    
+    subgraph "Background Services"
+        FILEWATCHER[File Watcher Service<br/>Chokidar/Real-time FS Monitoring]
+        CHECKSUM[Checksum Service<br/>SHA256 Worker Pool]
+        MAINTENANCE[Maintenance Service<br/>Database Optimization]
+        CACHE[Cache Service<br/>Directory Listings]
+    end
+    
+    subgraph "Data Layer"
+        DB[(Database<br/>SQLite/PostgreSQL/MySQL)]
+        FS[File System<br/>Secure Directory Serving]
+        CONFIG[Configuration<br/>YAML-based Settings]
+    end
+    
+    subgraph "Frontend Services"
+        I18N[Internationalization<br/>Multi-language Support]
+        PWA[Progressive Web App<br/>Service Worker]
+        SWAGGER[Swagger UI<br/>API Documentation]
+    end
+    
+    %% Client connections
+    WB -.->|HTTPS/WSS| EXPRESS
+    CLI -.->|HTTPS + Basic Auth| EXPRESS
+    API -.->|HTTPS + Bearer Token| EXPRESS
+    
+    %% Authentication flow
+    EXPRESS --> AUTH
+    AUTH --> JWT
+    AUTH --> APIKEY
+    AUTH --> BASIC
+    AUTH --> OIDC
+    
+    %% Server processing
+    EXPRESS --> MIDDLEWARE
+    MIDDLEWARE --> ROUTER
+    ROUTER --> FILEWATCHER
+    ROUTER --> CHECKSUM
+    
+    %% Real-time communication
+    ROUTER --> SSE
+    SSE --> EVENTS
+    EVENTS -.->|Live Updates| WB
+    
+    %% Background services data flow
+    FILEWATCHER --> DB
+    FILEWATCHER --> EVENTS
+    CHECKSUM --> DB
+    CHECKSUM --> EVENTS
+    MAINTENANCE --> DB
+    CACHE --> DB
+    
+    %% Data persistence
+    ROUTER --> DB
+    ROUTER --> FS
+    ROUTER --> CONFIG
+    
+    %% Frontend integration
+    WB --> I18N
+    WB --> PWA
+    WB --> SWAGGER
+    
+    %% Service worker and caching
+    PWA -.->|Offline Support| WB
+    SWAGGER -.->|API Testing| ROUTER
+    
+    %% Configuration flow
+    CONFIG --> EXPRESS
+    CONFIG --> AUTH
+    CONFIG --> FILEWATCHER
+    CONFIG --> I18N
+    
+    %% File system monitoring
+    FS --> FILEWATCHER
+    FILEWATCHER -.->|Change Events| CHECKSUM
+    
+    classDef client fill:#e1f5fe
+    classDef auth fill:#f3e5f5
+    classDef server fill:#e8f5e8
+    classDef realtime fill:#fff3e0
+    classDef services fill:#f1f8e9
+    classDef data fill:#fce4ec
+    classDef frontend fill:#e3f2fd
+    
+    class WB,CLI,API client
+    class AUTH,JWT,APIKEY,BASIC,OIDC auth
+    class EXPRESS,ROUTER,MIDDLEWARE server
+    class SSE,EVENTS realtime
+    class FILEWATCHER,CHECKSUM,MAINTENANCE,CACHE services
+    class DB,FS,CONFIG data
+    class I18N,PWA,SWAGGER frontend
 ```
 
 ### Quick start
