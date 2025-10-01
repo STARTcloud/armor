@@ -1094,7 +1094,7 @@ router.post('*splat', (req, res, next) => {
     const newPath = `${req.path}/folders`;
 
     // Only allow strictly relative paths, no path traversal, not protocol-relative, not external host
-    function isSafeRelativePath(path) {
+    const isSafeRelativePath = path => {
       // must start with a single "/"
       if (typeof path !== 'string' || !path.startsWith('/')) {
         return false;
@@ -1109,7 +1109,7 @@ router.post('*splat', (req, res, next) => {
       }
       // optional: restrict to allowed base directory/prefix
       return true;
-    }
+    };
 
     if (!isSafeRelativePath(newPath)) {
       logger.warn('Rejected potentially unsafe redirect', { path: newPath });

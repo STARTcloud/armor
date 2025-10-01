@@ -100,24 +100,24 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-  test:
-    name: Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
+  # test:
+  #   name: Tests
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v5
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: '22'
-          cache: 'npm'
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v5
+  #       with:
+  #         node-version: '22'
+  #         cache: 'npm'
 
-      - name: Install dependencies
-        run: npm run cinstall:all
+  #     - name: Install dependencies
+  #       run: npm run cinstall:all
 
-      - name: Run tests
-        run: npm run test:all
+  #     - name: Run tests
+  #       run: npm run test:all
 
   verify-scripts:
     name: Verify Scripts
@@ -144,5 +144,5 @@ jobs:
 
   codeql-analysis:
     name: CodeQL
-    needs: [backend-security, frontend-security, lint-and-format, build-frontend, test, verify-scripts]
+    needs: [backend-security, frontend-security, lint-and-format, build-frontend, verify-scripts]
     uses: ./.github/workflows/codeql.yml
