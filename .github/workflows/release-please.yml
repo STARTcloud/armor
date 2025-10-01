@@ -52,7 +52,7 @@ jobs:
     uses: ./.github/workflows/dev-build.yml
 
   deploy-documentation:
-    name: Generate and Publish Documentation
+    name: Publish Documentation
     needs: build-production
     if: ${{ needs.release-please.outputs.release_created }}
     runs-on: ubuntu-latest
