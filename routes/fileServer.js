@@ -225,32 +225,25 @@ router.get('*splat', authenticateDownloads, async (req, res) => {
 
     if (stats.isDirectory()) {
       if (!requestPath.endsWith('/')) {
-        // Construct safe redirect path using validated requestPath instead of raw originalUrl
-        // Construct safe redirect path using trusted server-side logic only
-        let normalizedPath = `/${requestPath.replace(/^\/+/, '') || ''}`;
-        // Always add trailing slash (but not double slash)
-        if (!normalizedPath.endsWith('/')) {
-          normalizedPath += '/';
-        }
-        // Encode URI to avoid surprises
-        const safeRedirectPath = encodeURI(normalizedPath);
+        // Instead of using user input for redirect, reconstruct the canonical directory path
+        // using server-side logic based on the validated full path
+        const relativeDirPath = fullPath.replace(SERVED_DIR, '').replace(/\\/g, '/');
+        const canonicalRedirectPath = relativeDirPath.startsWith('/')
+          ? relativeDirPath
+          : `/${relativeDirPath}`;
 
-        // Only allow strictly application-local paths (starting with single slash, no schema, no double slash, no dot-dot)
-        if (
-          !safeRedirectPath.startsWith('/') ||
-          safeRedirectPath.startsWith('//') ||
-          safeRedirectPath.includes('..') ||
-          /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(safeRedirectPath) // blocks http: https: etc
-        ) {
-          logger.warn('Rejected potentially unsafe redirect', { path: safeRedirectPath });
+        // Ensure it ends with a slash
+        const finalRedirectPath = canonicalRedirectPath.endsWith('/')
+          ? canonicalRedirectPath
+          : `${canonicalRedirectPath}/`;
+
+        // Final safety check - this path is now constructed from server-validated filesystem path
+        if (!finalRedirectPath.startsWith('/') || finalRedirectPath.includes('..')) {
+          logger.warn('Invalid canonical redirect path', { path: finalRedirectPath });
           return res.status(400).send('Invalid redirect path');
         }
 
-        if (typeof isLocalUrl === 'function' && isLocalUrl(safeRedirectPath)) {
-          return res.redirect(301, safeRedirectPath);
-        }
-        logger.warn('Blocked attempted open redirect', { path: safeRedirectPath });
-        return res.status(400).send('Invalid redirect path');
+        return res.redirect(301, finalRedirectPath);
       }
       return handleDirectoryListing(req, res, fullPath, requestPath);
     }
