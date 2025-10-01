@@ -166,7 +166,7 @@ const startServer = async () => {
     ) {
       return next();
     }
-    
+
     // Apply CSRF protection for web form operations
     return lusca.csrf()(req, res, next);
   };
