@@ -56,9 +56,9 @@ const startServer = async () => {
 
   // CORS configuration from production config
   const corsConfig = configLoader.getCorsConfig();
-  
+
   let origin = false; // Secure default
-  
+
   if (corsConfig.allow_origin === true && corsConfig.whitelist && corsConfig.whitelist.length > 0) {
     // Use whitelist from config for production
     origin = corsConfig.whitelist;
