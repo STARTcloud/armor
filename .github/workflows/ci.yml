@@ -158,7 +158,7 @@ jobs:
       - name: Install backend dependencies
         run: npm run cinstall:backend
 
-      - name: Install frontend dependencies  
+      - name: Install frontend dependencies
         run: npm run cinstall:frontend
 
       - name: Check for known vulnerabilities in backend
@@ -175,5 +175,13 @@ jobs:
 
   codeql-analysis:
     name: CodeQL
-    needs: [backend-security, frontend-security, lint-and-format, build-frontend, verify-scripts, dependency-check]
+    needs:
+      [
+        backend-security,
+        frontend-security,
+        lint-and-format,
+        build-frontend,
+        verify-scripts,
+        dependency-check,
+      ]
     uses: ./.github/workflows/codeql.yml
