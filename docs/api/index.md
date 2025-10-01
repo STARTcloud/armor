@@ -32,7 +32,7 @@ The Swagger UI provides:
 
 ### Direct Links
 
-- **[Live Swagger UI](/api-docs)** - Interactive API documentation with testing
+- **[Live Swagger UI](swagger-ui.html)** - Interactive API documentation with testing
 - **[OpenAPI Specification](openapi.json)** - Raw OpenAPI 3.0 spec for tools and integrations
 
 ## Authentication Methods
