@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
 
@@ -12,6 +12,7 @@ const Header = () => {
   const location = useLocation();
   const { t, i18n } = useTranslation();
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
@@ -89,6 +90,27 @@ const Header = () => {
     return userInfo.username || t("user.user");
   };
 
+  // Close dropdown on navigation or outside click
+  useEffect(() => {
+    setShowUserDropdown(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.dropdown')) {
+        setShowUserDropdown(false);
+      }
+    };
+
+    if (showUserDropdown) {
+      document.addEventListener('click', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [showUserDropdown]);
+
   return (
     <header className="bg-dark border-bottom border-secondary">
       <div className="container-fluid">
@@ -102,15 +124,16 @@ const Header = () => {
                 className="btn btn-outline-light dropdown-toggle"
                 type="button"
                 id="userDropdown"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-                data-bs-auto-close="true"
+                aria-expanded={showUserDropdown}
+                onClick={() => setShowUserDropdown(!showUserDropdown)}
               >
                 <i className="bi bi-person-circle me-1" />
                 {getUserDisplayName(user)}
               </button>
               <ul
-                className="dropdown-menu dropdown-menu-end bg-dark border-secondary"
+                className={`dropdown-menu dropdown-menu-end bg-dark border-secondary ${
+                  showUserDropdown ? "show" : ""
+                }`}
                 aria-labelledby="userDropdown"
               >
                 {location.pathname !== "/" &&

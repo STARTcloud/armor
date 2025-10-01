@@ -64,7 +64,7 @@ const Footer = () => {
             rel="noreferrer"
           >
             <img
-              src="https://startcloud.com/assets/images/logos/startcloud-logo40.png"
+              src="/images/logo.png"
               alt="STARTcloud"
               height="20"
               className="me-2"
