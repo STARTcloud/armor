@@ -1100,38 +1100,51 @@ router.post('*splat', (req, res, next) => {
       res.status(200).send('Authenticated');
     });
   } else if (req.query.action === 'create-folder') {
-    // Build newPath and further sanitize
-    let newPath = `${req.path}/folders`;
-
-    // Normalize the path to prevent directory traversal, double slashes, etc.
-    // Guarantee it starts with a single "/", no "//", no "..", and is not a full URL
-    newPath = newPath.replace(/\/{2,}/g, '/');
-
-    if (
-      typeof newPath !== 'string' ||
-      !newPath.startsWith('/') ||
-      newPath.includes('..') ||
-      newPath.includes('//') ||
-      /https?:\/\//i.test(newPath) ||
-      !isLocalUrl(newPath)
-    ) {
-      logger.warn('Rejected potentially unsafe redirect', { path: newPath });
-      return res.status(400).send('Invalid redirect path');
+    // Instead of redirecting with user input, validate the path through the same security layer
+    // and construct canonical path from server-validated filesystem path
+    try {
+      const requestPath = decodeURIComponent(req.path);
+      const fullPath = getSecurePath(requestPath);
+      
+      // Generate canonical redirect path from server-validated path
+      const relativeDirPath = fullPath.replace(SERVED_DIR, '').replace(/\\/g, '/');
+      const canonicalPath = relativeDirPath.startsWith('/') ? relativeDirPath : `/${relativeDirPath}`;
+      const finalRedirectPath = `${canonicalPath}/folders`;
+      
+      // Final safety check - path is now constructed from server-validated filesystem path
+      if (!finalRedirectPath.startsWith('/') || finalRedirectPath.includes('..')) {
+        logger.warn('Invalid canonical redirect path for create-folder', { path: finalRedirectPath });
+        return res.status(400).send('Invalid redirect path');
+      }
+      
+      return res.redirect(307, finalRedirectPath);
+    } catch (error) {
+      logger.warn('Error constructing create-folder redirect path', { error: error.message });
+      return res.status(400).send('Invalid path');
     }
-
-    return res.redirect(307, newPath);
   } else if (req.query.action === 'search') {
-    // Construct safe search path by removing any potential malicious content
-    const safePath = req.path.replace(/[^a-zA-Z0-9/_-]/g, '');
-    const newPath = `${safePath}/search`;
-
-    // Additional validation to ensure path is safe for internal redirect
-    if (!isLocalUrl(newPath)) {
-      logger.warn('Rejected potentially unsafe redirect', { path: newPath });
-      return res.status(400).send('Invalid redirect path');
+    // Instead of redirecting with user input, validate the path through the same security layer
+    // and construct canonical path from server-validated filesystem path
+    try {
+      const requestPath = decodeURIComponent(req.path);
+      const fullPath = getSecurePath(requestPath);
+      
+      // Generate canonical redirect path from server-validated path
+      const relativeDirPath = fullPath.replace(SERVED_DIR, '').replace(/\\/g, '/');
+      const canonicalPath = relativeDirPath.startsWith('/') ? relativeDirPath : `/${relativeDirPath}`;
+      const finalRedirectPath = `${canonicalPath}/search`;
+      
+      // Final safety check - path is now constructed from server-validated filesystem path
+      if (!finalRedirectPath.startsWith('/') || finalRedirectPath.includes('..')) {
+        logger.warn('Invalid canonical redirect path for search', { path: finalRedirectPath });
+        return res.status(400).send('Invalid redirect path');
+      }
+      
+      return res.redirect(307, finalRedirectPath);
+    } catch (error) {
+      logger.warn('Error constructing search redirect path', { error: error.message });
+      return res.status(400).send('Invalid path');
     }
-
-    return res.redirect(307, newPath);
   }
   return next();
 });
