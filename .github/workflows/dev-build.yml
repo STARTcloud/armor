@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   calculate-version:
-    name: Calculate Development Version
+    name: Calculate Version
     runs-on: ubuntu-latest
     outputs:
       dev_version: ${{ steps.version.outputs.dev_version }}
@@ -38,7 +38,7 @@ jobs:
           echo "dev_version=$DEV_VERSION" >> $GITHUB_OUTPUT
 
   build-development-packages:
-    name: Build Development Packages
+    name: Build Packages
     needs: calculate-version
     runs-on: self-hosted
     env:

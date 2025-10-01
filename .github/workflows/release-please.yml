@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   backend-security:
-    name: Backend Security Checks
+    name: Backend Security
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -41,7 +41,7 @@ jobs:
         run: npm run security:supply-chain
 
   frontend-security:
-    name: Frontend Security Checks
+    name: Frontend Security
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

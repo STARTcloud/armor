@@ -27,7 +27,7 @@ permissions:
 
 jobs:
   build-production-packages:
-    name: Build Production Packages
+    name: Build Packages
     runs-on: self-hosted
     steps:
       # Debian Build Steps
