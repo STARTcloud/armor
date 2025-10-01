@@ -15,7 +15,7 @@ const options = {
       },
       contact: {
         name: 'Armor Project',
-        url: 'https://github.com/STARTcloud/armor_private',
+        url: 'https://github.com/STARTcloud/armor',
       },
     },
     tags: [

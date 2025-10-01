@@ -2,7 +2,17 @@ name: Development Build
 
 on:
   workflow_call:
+    inputs:
+      version:
+        description: 'Development version to build (optional - auto-calculated if not provided)'
+        required: false
+        type: string
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Development version to build (optional - auto-calculated if not provided)'
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -15,24 +25,31 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Calculate development version
+      - name: Set development version
         id: version
         run: |
-          # Get current version from package.json
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          # Use input version if provided, otherwise auto-calculate
+          if [ -n "${{ inputs.version }}" ]; then
+            DEV_VERSION="${{ inputs.version }}"
+            echo "Using provided version: $DEV_VERSION"
+          else
+            # Get current version from package.json
+            CURRENT_VERSION=$(node -p "require('./package.json').version")
 
-          # Split version into parts
-          IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
-          MAJOR=${VERSION_PARTS[0]}
-          MINOR=${VERSION_PARTS[1]}
-          PATCH=${VERSION_PARTS[2]}
+            # Split version into parts
+            IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
+            MAJOR=${VERSION_PARTS[0]}
+            MINOR=${VERSION_PARTS[1]}
+            PATCH=${VERSION_PARTS[2]}
 
-          # Increment patch version for development (no -dev suffix in version)
-          NEW_PATCH=$((PATCH + 1))
-          DEV_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+            # Increment patch version for development (no -dev suffix in version)
+            NEW_PATCH=$((PATCH + 1))
+            DEV_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+            
+            echo "Current version: $CURRENT_VERSION"
+            echo "Auto-calculated development version: $DEV_VERSION"
+          fi
 
-          echo "Current version: $CURRENT_VERSION"
-          echo "Development version: $DEV_VERSION"
           echo "VERSION=$DEV_VERSION" >> $GITHUB_ENV
           echo "PACKAGE_NAME=armor-dev" >> $GITHUB_ENV
           echo "ARCH=amd64" >> $GITHUB_ENV
@@ -97,7 +114,7 @@ jobs:
           Description: Armor (Development) - Armor Reliably Manages Online Resources
            A secure Node.js file server that provides directory listings with SHA256 checksums and authenticated file upload capabilities over HTTPS.
            This is a development version.
-          Homepage: https://github.com/STARTcloud/armor_private
+          Homepage: https://github.com/STARTcloud/armor
           EOF
 
       - name: Set Debian package permissions

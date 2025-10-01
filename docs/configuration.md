@@ -452,4 +452,4 @@ Armor validates configuration on startup and will:
 
 ---
 
-For more help, see [Support Documentation](../support/) or [open an issue](https://github.com/STARTcloud/armor_private/issues).
+For more help, see [Support Documentation](../support/) or [open an issue](https://github.com/STARTcloud/armor/issues).

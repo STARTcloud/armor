@@ -36,7 +36,7 @@ Before starting, ensure you have:
 #### Option A: DEBIAN Package (Recommended)
 ```bash
 # Download and install package
-wget https://github.com/STARTcloud/armor_private/releases/latest/download/armor_*_amd64.deb
+wget https://github.com/STARTcloud/armor/releases/latest/download/armor_*_amd64.deb
 sudo gdebi -n armor_*.deb
 
 # Start service
@@ -49,8 +49,8 @@ sudo systemctl status armor
 #### Option B: From Source
 ```bash
 # Clone repository
-git clone https://github.com/STARTcloud/armor_private.git
-cd armor_private
+git clone https://github.com/STARTcloud/armor.git
+cd armor
 
 # Install dependencies
 npm ci
@@ -268,4 +268,4 @@ Once Armor is running:
 
 ---
 
-Need help? Check our [Support Documentation](../support/) or [open an issue](https://github.com/STARTcloud/armor_private/issues).
+Need help? Check our [Support Documentation](../support/) or [open an issue](https://github.com/STARTcloud/armor/issues).

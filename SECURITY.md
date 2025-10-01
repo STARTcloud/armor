@@ -8,7 +8,7 @@ If you discover a security vulnerability in Armor, please report it responsibly:
 
 ### Preferred Method: Security Advisory
 
-1. Go to the [GitHub Security Advisory page](https://github.com/STARTcloud/armor_private/security/advisories)
+1. Go to the [GitHub Security Advisory page](https://github.com/STARTcloud/armor/security/advisories)
 2. Click "Report a vulnerability"
 3. Fill out the advisory form with detailed information
 4. Submit the advisory

@@ -300,4 +300,4 @@ API requests are subject to configurable rate limiting:
 
 ---
 
-Need help? Check our [Support Documentation](../support/) or [open an issue](https://github.com/STARTcloud/armor_private/issues).
+Need help? Check our [Support Documentation](../support/) or [open an issue](https://github.com/STARTcloud/armor/issues).

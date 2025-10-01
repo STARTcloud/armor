@@ -18,7 +18,7 @@
       var releaseDiv = document.getElementById('latest-release-content');
       if (releaseDiv) {
         fetch(
-          'https://raw.githubusercontent.com/STARTcloud/armor_private/refs/heads/main/package.json'
+          'https://raw.githubusercontent.com/STARTcloud/armor/refs/heads/main/package.json'
         )
           .then(function (response) {
             return response.json();
@@ -29,14 +29,14 @@
             var p5pLink = document.querySelector('a[href*="armor.p5p"]');
             if (p5pLink) {
               p5pLink.href =
-                'https://github.com/STARTcloud/armor_private/releases/latest/download/armor-' +
+                'https://github.com/STARTcloud/armor/releases/latest/download/armor-' +
                 data.version +
                 '.p5p';
             }
             var debLink = document.querySelector('a[href*="armor.deb"]');
             if (debLink) {
               debLink.href =
-                'https://github.com/STARTcloud/armor_private/releases/latest/download/armor_' +
+                'https://github.com/STARTcloud/armor/releases/latest/download/armor_' +
                 data.version +
                 '_amd64.deb';
             }
@@ -53,7 +53,7 @@
       var releaseDiv = document.getElementById('latest-release-content');
       if (releaseDiv) {
         fetch(
-          'https://raw.githubusercontent.com/STARTcloud/armor_private/refs/heads/main/package.json'
+          'https://raw.githubusercontent.com/STARTcloud/armor/refs/heads/main/package.json'
         )
           .then(function (response) {
             return response.json();
@@ -73,7 +73,7 @@
     if (window.location.pathname.includes('/security/')) {
       var versionsDiv = document.getElementById('supported-versions-content');
       if (versionsDiv) {
-        fetch('https://api.github.com/repos/STARTcloud/armor_private/releases')
+        fetch('https://api.github.com/repos/STARTcloud/armor/releases')
           .then(function (response) {
             return response.json();
           })

@@ -436,4 +436,4 @@ sudo systemctl restart armor
 
 ---
 
-Need help? Check our [Support Documentation](../../support/) or [open an issue](https://github.com/STARTcloud/armor_private/issues).
+Need help? Check our [Support Documentation](../../support/) or [open an issue](https://github.com/STARTcloud/armor/issues).

@@ -45,7 +45,7 @@ For Ubuntu, Debian, and compatible systems:
 
 ```bash
 # Download latest package
-wget https://github.com/STARTcloud/armor_private/releases/latest/download/armor_*_amd64.deb
+wget https://github.com/STARTcloud/armor/releases/latest/download/armor_*_amd64.deb
 
 # Install package
 sudo gdebi -n armor_*.deb
@@ -94,8 +94,8 @@ For development or custom deployments:
 
 ```bash
 # Clone repository
-git clone https://github.com/STARTcloud/armor_private.git
-cd armor_private
+git clone https://github.com/STARTcloud/armor.git
+cd armor
 
 # Install dependencies
 npm ci

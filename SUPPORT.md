@@ -14,14 +14,14 @@ Start with our comprehensive documentation:
 
 ### 🐛 Issues and Bug Reports
 For bugs and technical issues:
-- **[GitHub Issues](https://github.com/STARTcloud/armor_private/issues)** - Report bugs or request features
+- **[GitHub Issues](https://github.com/STARTcloud/armor/issues)** - Report bugs or request features
 - Use the appropriate issue template (bug report, feature request, question)
 - Search existing issues first to avoid duplicates
 
 ### 💬 Community Discussion
 For general questions and discussions:
-- **[GitHub Discussions](https://github.com/STARTcloud/armor_private/discussions)** - Ask questions, share ideas
-- **[GitHub Issues](https://github.com/STARTcloud/armor_private/issues)** - Use the "question" template for specific inquiries
+- **[GitHub Discussions](https://github.com/STARTcloud/armor/discussions)** - Ask questions, share ideas
+- **[GitHub Issues](https://github.com/STARTcloud/armor/issues)** - Use the "question" template for specific inquiries
 
 ## Support Expectations
 

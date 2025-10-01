@@ -14,7 +14,7 @@ A secure Node.js file server with comprehensive Swagger UI integration and real-
 
 [Get started now](#getting-started){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [View API Reference](docs/api/){: .btn .fs-5 .mb-4 .mb-md-0 }
-[View on GitHub](https://github.com/STARTcloud/armor_private){: .btn .fs-5 .mb-4 .mb-md-0 }
+[View on GitHub](https://github.com/STARTcloud/armor){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
 
@@ -91,11 +91,11 @@ Armor is &copy; 2025 by STARTcloud.
 
 ### License
 
-Armor is distributed under an [MIT license](https://github.com/STARTcloud/armor_private/blob/main/LICENSE.md).
+Armor is distributed under an [MIT license](https://github.com/STARTcloud/armor/blob/main/LICENSE.md).
 
 ### Contributing
 
-When contributing to this repository, please first discuss the change you wish to make via issue, email, or any other method with the owners of this repository before making a change. Read more about becoming a contributor in [our GitHub repo](https://github.com/STARTcloud/armor_private#contributing).
+When contributing to this repository, please first discuss the change you wish to make via issue, email, or any other method with the owners of this repository before making a change. Read more about becoming a contributor in [our GitHub repo](https://github.com/STARTcloud/armor#contributing).
 
 #### Thank you to the contributors of Armor!
 
@@ -111,4 +111,4 @@ When contributing to this repository, please first discuss the change you wish t
 
 Armor is committed to fostering a welcoming community.
 
-[View our Code of Conduct](https://github.com/STARTcloud/armor_private/tree/main/CODE_OF_CONDUCT.md) on our GitHub repository.
+[View our Code of Conduct](https://github.com/STARTcloud/armor/tree/main/CODE_OF_CONDUCT.md) on our GitHub repository.

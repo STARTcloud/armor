@@ -22,9 +22,9 @@ Download the latest version of Armor.
 
 | Package Type | Platform | Download |
 |:-------------|:---------|:---------|
-| **Debian Package** | x86_64 | [📦 Download .deb](https://github.com/STARTcloud/armor_private/releases/latest/download/armor.deb){: .btn .btn-primary } |
-| **OmniOS Package** | x86_64 | [📦 Download .p5p](https://github.com/STARTcloud/armor_private/releases/latest/download/armor.p5p){: .btn .btn-primary } |
-| **Source Code** | All | [📁 Download Source](https://github.com/STARTcloud/armor_private/archive/refs/heads/main.tar.gz){: .btn .btn-outline } |
+| **Debian Package** | x86_64 | [📦 Download .deb](https://github.com/STARTcloud/armor/releases/latest/download/armor.deb){: .btn .btn-primary } |
+| **OmniOS Package** | x86_64 | [📦 Download .p5p](https://github.com/STARTcloud/armor/releases/latest/download/armor.p5p){: .btn .btn-primary } |
+| **Source Code** | All | [📁 Download Source](https://github.com/STARTcloud/armor/archive/refs/heads/main.tar.gz){: .btn .btn-outline } |
 
 ---
 
@@ -40,4 +40,4 @@ Download the latest version of Armor.
 ## Release History
 
 [📋 View Changelog](/docs/changelog/){: .btn .btn-outline }
-[🔍 All Releases](https://github.com/STARTcloud/armor_private/releases){: .btn .btn-outline }
+[🔍 All Releases](https://github.com/STARTcloud/armor/releases){: .btn .btn-outline }
