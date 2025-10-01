@@ -1126,7 +1126,7 @@ router.post('*splat', (req, res, next) => {
     const newPath = `${safePath}/search`;
 
     // Additional validation to ensure path is safe for internal redirect
-    if (!newPath.startsWith('/') || newPath.includes('..') || newPath.includes('//')) {
+    if (!isLocalUrl(newPath)) {
       logger.warn('Rejected potentially unsafe redirect', { path: newPath });
       return res.status(400).send('Invalid redirect path');
     }
