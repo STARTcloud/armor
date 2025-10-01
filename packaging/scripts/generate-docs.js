@@ -401,18 +401,18 @@ title: Interactive API Reference
 layout: default
 nav_order: 1
 parent: API Reference
-permalink: /docs/api/reference/
+permalink: /docs/api/swagger-ui.html
 ---
 
 # Interactive API Reference
 
 <div style="width: 100%; height: 800px; border: none; margin: 0; padding: 0;">
   <iframe 
-    src="swagger-ui.html" 
+    src="../swagger-ui.html" 
     style="width: 100%; height: 100%; border: none; background: white;" 
     title="Armor Reference">
     <p>Your browser does not support iframes. 
-       <a href="swagger-ui.html">Click here to view the API documentation</a>
+       <a href="../swagger-ui.html">Click here to view the API documentation</a>
     </p>
   </iframe>
 </div>
@@ -452,11 +452,8 @@ const generateDocs = () => {
     fs.writeFileSync(path.join(docsDir, 'swagger-ui.html'), swaggerHtml);
     console.log('Generated docs/api/swagger-ui.html');
 
-    // Generate Jekyll redirect page
-    console.log('Generating Jekyll redirect page...');
-    const redirectPage = generateRedirectPage();
-    fs.writeFileSync(path.join(docsDir, 'reference.md'), redirectPage);
-    console.log('Generated docs/api/reference.md');
+    // Skip generating Jekyll redirect page to avoid navigation conflicts
+    console.log('Skipping Jekyll redirect page (using direct swagger-ui.html access)...');
 
     console.log('Documentation generation completed successfully!');
     console.log('');
