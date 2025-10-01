@@ -1096,11 +1096,17 @@ router.post('*splat', (req, res, next) => {
     // Only allow strictly relative paths, no path traversal, not protocol-relative, not external host
     function isSafeRelativePath(path) {
       // must start with a single "/"
-      if (typeof path !== 'string' || !path.startsWith('/')) return false;
+      if (typeof path !== 'string' || !path.startsWith('/')) {
+        return false;
+      }
       // must not contain "//"
-      if (path.includes('//')) return false;
+      if (path.includes('//')) {
+        return false;
+      }
       // must not contain ".."
-      if (path.includes('..')) return false;
+      if (path.includes('..')) {
+        return false;
+      }
       // optional: restrict to allowed base directory/prefix
       return true;
     }
