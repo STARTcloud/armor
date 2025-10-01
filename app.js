@@ -119,8 +119,6 @@ const startServer = async () => {
     }
 
     helmetConfig.contentSecurityPolicy = { directives: cspDirectives };
-  } else {
-    helmetConfig.contentSecurityPolicy = false;
   }
 
   // Configure HSTS if enabled
@@ -130,8 +128,6 @@ const startServer = async () => {
       includeSubDomains: securityConfig.hsts.include_subdomains,
       preload: securityConfig.hsts.preload,
     };
-  } else {
-    helmetConfig.hsts = false;
   }
 
   // Configure additional security headers

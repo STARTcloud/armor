@@ -137,6 +137,12 @@ export const configAwareI18nMiddleware = (req, res, next) => {
       // Normal auto-detection: Priority: query param > header > configured default
       let locale = req.query.lang || req.get('Accept-Language') || i18nConfig.default_language;
 
+      if (Array.isArray(locale)) {
+        [locale] = locale;
+      } else if (typeof locale !== 'string') {
+        locale = i18nConfig.default_language;
+      }
+
       // Parse Accept-Language header if present
       if (locale && locale.includes(',')) {
         [locale] = locale.split(',');
@@ -151,6 +157,13 @@ export const configAwareI18nMiddleware = (req, res, next) => {
       // Fallback to simple locale detection if config loading fails
       console.warn('Config loading failed in i18n middleware, using fallback:', error.message);
       let locale = req.query.lang || req.get('Accept-Language') || defaultLocale;
+
+      if (Array.isArray(locale)) {
+        [locale] = locale;
+      } else if (typeof locale !== 'string') {
+        locale = defaultLocale;
+      }
+
       if (locale && locale.includes(',')) {
         [locale] = locale.split(',');
       }
