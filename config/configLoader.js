@@ -29,11 +29,7 @@ class ConfigLoader {
         }
 
         // Then check local files in priority order
-        configFiles.push(
-          join(__dirname, '../dev.config.yaml'),
-          join(__dirname, '../config.yaml'),
-          join(__dirname, '../auth.yaml') // Legacy fallback
-        );
+        configFiles.push(join(__dirname, '../dev.config.yaml'), join(__dirname, '../config.yaml'));
 
         let configContent = null;
         let loadedFile = null;
@@ -49,9 +45,7 @@ class ConfigLoader {
         }
 
         if (!configContent) {
-          throw new Error(
-            'No configuration file found. Expected dev.config.yaml, config.yaml, or auth.yaml'
-          );
+          throw new Error('No configuration file found. Expected dev.config.yaml, config.yaml');
         }
 
         this.config = yaml.load(configContent);

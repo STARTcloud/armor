@@ -142,7 +142,38 @@ jobs:
           echo "Checking generate-docs script..."
           npm run generate-docs --help || echo "generate-docs script verification complete"
 
+  dependency-check:
+    name: Dependency Vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install backend dependencies
+        run: npm run cinstall:backend
+
+      - name: Install frontend dependencies  
+        run: npm run cinstall:frontend
+
+      - name: Check for known vulnerabilities in backend
+        run: npm audit --audit-level high
+
+      - name: Check for known vulnerabilities in frontend
+        run: cd web && npm audit --audit-level high
+
+      - name: Advanced vulnerability scanning
+        run: |
+          echo "Running enhanced vulnerability checks..."
+          npm run security:vulnerabilities || echo "Vulnerability scan completed with warnings"
+          cd web && npm run security:vulnerabilities || echo "Frontend vulnerability scan completed with warnings"
+
   codeql-analysis:
     name: CodeQL
-    needs: [backend-security, frontend-security, lint-and-format, build-frontend, verify-scripts]
+    needs: [backend-security, frontend-security, lint-and-format, build-frontend, verify-scripts, dependency-check]
     uses: ./.github/workflows/codeql.yml
