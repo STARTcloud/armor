@@ -155,3 +155,20 @@ jobs:
     needs: release-please
     if: ${{ !needs.release-please.outputs.release_created }}
     uses: ./.github/workflows/dev-build.yml
+
+  deploy-documentation:
+    name: Deploy Documentation
+    needs: build-production
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Documentation Build
+        uses: actions/github-script@v8
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'docs.yml',
+              ref: 'main'
+            });

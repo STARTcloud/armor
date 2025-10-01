@@ -255,19 +255,3 @@ jobs:
       - name: Cleanup temporary files
         run: |
           ssh startcloud@172.17.204.177 "rm -f /tmp/armor_*.deb"
-
-  deploy-documentation:
-    name: Deploy Documentation
-    needs: build-production-packages
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Documentation Build
-        uses: actions/github-script@v8
-        with:
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'docs.yml',
-              ref: 'main'
-            });
