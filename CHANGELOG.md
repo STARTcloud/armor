@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.14.2](https://github.com/STARTcloud/armor/compare/v1.14.1...v1.14.2) (2025-10-01)
+
+
+### Bug Fixes
+
+* documentation ([beb0348](https://github.com/STARTcloud/armor/commit/beb0348e7c9db0e363343320f7d9ae5f50b982ee))
+* documentation ([e27c304](https://github.com/STARTcloud/armor/commit/e27c304ae9b9e5bc711836a6500dd2bb4ea13937))
+* documentation ([d851938](https://github.com/STARTcloud/armor/commit/d85193839b50551b44a9af79ead09d7707104803))
+* documentation ([1d0fe15](https://github.com/STARTcloud/armor/commit/1d0fe15cc4022e7e7296dd00a9fc9b53b45af1fe))
+* documentation ([c47677f](https://github.com/STARTcloud/armor/commit/c47677f1663cb3262342e4c420f05bbe0e17b942))
+* documentation ([748d90b](https://github.com/STARTcloud/armor/commit/748d90b89c55bd2f64bb0c40e8cb7204b199ce29))
+
 ## [1.14.1](https://github.com/STARTcloud/armor/compare/v1.14.0...v1.14.1) (2025-10-01)
 
 
