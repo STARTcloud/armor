@@ -67,6 +67,26 @@ const startServer = async () => {
   app.use(cors(corsOptions));
   app.options('*splat', cors(corsOptions));
 
+  // Serve static assets from Vite build FIRST - before any other routes
+  const frontendDistPath = 'web/dist';
+  if (existsSync(frontendDistPath)) {
+    app.use('/assets', express.static(path.join(frontendDistPath, 'assets'), {
+      setHeaders: (response, filePath) => {
+        // Ensure proper MIME types for Vite assets
+        if (filePath.endsWith('.js')) {
+          response.setHeader('Content-Type', 'application/javascript');
+        } else if (filePath.endsWith('.css')) {
+          response.setHeader('Content-Type', 'text/css');
+        } else if (filePath.endsWith('.woff2')) {
+          response.setHeader('Content-Type', 'font/woff2');
+        }
+      },
+    }));
+    app.use(express.static(frontendDistPath));
+  } else {
+    logger.warn('Frontend dist directory not found. Run "npm run build" to build the frontend.');
+  }
+
   // Enhanced security headers with configurable CSP
   const securityConfig = configLoader.getSecurityConfig();
   const serverConfig = configLoader.getServerConfig();
@@ -191,6 +211,8 @@ const startServer = async () => {
   // Swagger and API documentation routes
   app.use('/api', swaggerRoutes);
 
+  // Static assets are now served at the top of the middleware stack
+
   // Serve static CSS files for Swagger theming
   app.use(
     '/static',
@@ -204,14 +226,6 @@ const startServer = async () => {
     })
   );
 
-  // Serve static assets from Vite build
-  const frontendDistPath = 'web/dist';
-  if (existsSync(frontendDistPath)) {
-    app.use(express.static(frontendDistPath));
-  } else {
-    logger.warn('Frontend dist directory not found. Run "npm run build" to build the frontend.');
-  }
-
   if (configLoader.getServerConfig().enable_api_docs) {
     logger.info('API documentation enabled at /api-docs (React implementation)');
   }
@@ -220,7 +234,7 @@ const startServer = async () => {
   app.use('/api/files', fileServerRoutes);
 
   // File server routes for directory listings and custom index.html serving
-  // CRITICAL: This must come BEFORE the React app catch-all to allow custom index.html files
+  // CRITICAL: This must come AFTER static asset serving to avoid interfering with /assets/* paths
   app.use('/', fileServerRoutes);
 
   // React app catch-all for client-side routing
@@ -230,7 +244,8 @@ const startServer = async () => {
       req.path.startsWith('/api/') ||
       req.path.startsWith('/auth/') ||
       req.path.startsWith('/static/') ||
-      req.path.startsWith('/swagger/')
+      req.path.startsWith('/swagger/') ||
+      req.path.startsWith('/assets/')
     ) {
       return next();
     }
