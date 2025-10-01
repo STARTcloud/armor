@@ -157,7 +157,7 @@ jobs:
     uses: ./.github/workflows/dev-build.yml
 
   deploy-documentation:
-    name: Deploy Documentation
+    name: Generate and Publish Documentation
     needs: build-production
     if: ${{ needs.release-please.outputs.release_created }}
     runs-on: ubuntu-latest

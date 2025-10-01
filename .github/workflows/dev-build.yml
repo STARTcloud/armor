@@ -8,11 +8,9 @@ permissions:
   contents: read
 
 jobs:
-  calculate-version:
-    name: Calculate Version
-    runs-on: ubuntu-latest
-    outputs:
-      dev_version: ${{ steps.version.outputs.dev_version }}
+  build-development-packages:
+    name: Build Packages
+    runs-on: self-hosted
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -35,17 +33,10 @@ jobs:
 
           echo "Current version: $CURRENT_VERSION"
           echo "Development version: $DEV_VERSION"
-          echo "dev_version=$DEV_VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION=$DEV_VERSION" >> $GITHUB_ENV
+          echo "PACKAGE_NAME=armor-dev" >> $GITHUB_ENV
+          echo "ARCH=amd64" >> $GITHUB_ENV
 
-  build-development-packages:
-    name: Build Packages
-    needs: calculate-version
-    runs-on: self-hosted
-    env:
-      VERSION: ${{ needs.calculate-version.outputs.dev_version }}
-      PACKAGE_NAME: armor-dev
-      ARCH: amd64
-    steps:
       # Debian Build Steps
       - name: Checkout for Debian build
         uses: actions/checkout@v5
