@@ -70,18 +70,21 @@ const startServer = async () => {
   // Serve static assets from Vite build FIRST - before any other routes
   const frontendDistPath = 'web/dist';
   if (existsSync(frontendDistPath)) {
-    app.use('/assets', express.static(path.join(frontendDistPath, 'assets'), {
-      setHeaders: (response, filePath) => {
-        // Ensure proper MIME types for Vite assets
-        if (filePath.endsWith('.js')) {
-          response.setHeader('Content-Type', 'application/javascript');
-        } else if (filePath.endsWith('.css')) {
-          response.setHeader('Content-Type', 'text/css');
-        } else if (filePath.endsWith('.woff2')) {
-          response.setHeader('Content-Type', 'font/woff2');
-        }
-      },
-    }));
+    app.use(
+      '/assets',
+      express.static(path.join(frontendDistPath, 'assets'), {
+        setHeaders: (response, filePath) => {
+          // Ensure proper MIME types for Vite assets
+          if (filePath.endsWith('.js')) {
+            response.setHeader('Content-Type', 'application/javascript');
+          } else if (filePath.endsWith('.css')) {
+            response.setHeader('Content-Type', 'text/css');
+          } else if (filePath.endsWith('.woff2')) {
+            response.setHeader('Content-Type', 'font/woff2');
+          }
+        },
+      })
+    );
     app.use(express.static(frontendDistPath));
   } else {
     logger.warn('Frontend dist directory not found. Run "npm run build" to build the frontend.');
