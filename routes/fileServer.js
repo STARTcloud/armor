@@ -5,7 +5,7 @@ import { join, basename, extname, resolve } from 'path';
 import { Op } from 'sequelize';
 import auth from 'basic-auth';
 import escapeHtml from 'escape-html';
-import { SERVED_DIR, getSecurePath, isLocalUrl } from '../config/paths.js';
+import { SERVED_DIR, getSecurePath } from '../config/paths.js';
 import {
   authenticateDownloads,
   authenticateUploads,
@@ -1105,18 +1105,22 @@ router.post('*splat', (req, res, next) => {
     try {
       const requestPath = decodeURIComponent(req.path);
       const fullPath = getSecurePath(requestPath);
-      
+
       // Generate canonical redirect path from server-validated path
       const relativeDirPath = fullPath.replace(SERVED_DIR, '').replace(/\\/g, '/');
-      const canonicalPath = relativeDirPath.startsWith('/') ? relativeDirPath : `/${relativeDirPath}`;
+      const canonicalPath = relativeDirPath.startsWith('/')
+        ? relativeDirPath
+        : `/${relativeDirPath}`;
       const finalRedirectPath = `${canonicalPath}/folders`;
-      
+
       // Final safety check - path is now constructed from server-validated filesystem path
       if (!finalRedirectPath.startsWith('/') || finalRedirectPath.includes('..')) {
-        logger.warn('Invalid canonical redirect path for create-folder', { path: finalRedirectPath });
+        logger.warn('Invalid canonical redirect path for create-folder', {
+          path: finalRedirectPath,
+        });
         return res.status(400).send('Invalid redirect path');
       }
-      
+
       return res.redirect(307, finalRedirectPath);
     } catch (error) {
       logger.warn('Error constructing create-folder redirect path', { error: error.message });
@@ -1128,18 +1132,20 @@ router.post('*splat', (req, res, next) => {
     try {
       const requestPath = decodeURIComponent(req.path);
       const fullPath = getSecurePath(requestPath);
-      
+
       // Generate canonical redirect path from server-validated path
       const relativeDirPath = fullPath.replace(SERVED_DIR, '').replace(/\\/g, '/');
-      const canonicalPath = relativeDirPath.startsWith('/') ? relativeDirPath : `/${relativeDirPath}`;
+      const canonicalPath = relativeDirPath.startsWith('/')
+        ? relativeDirPath
+        : `/${relativeDirPath}`;
       const finalRedirectPath = `${canonicalPath}/search`;
-      
+
       // Final safety check - path is now constructed from server-validated filesystem path
       if (!finalRedirectPath.startsWith('/') || finalRedirectPath.includes('..')) {
         logger.warn('Invalid canonical redirect path for search', { path: finalRedirectPath });
         return res.status(400).send('Invalid redirect path');
       }
-      
+
       return res.redirect(307, finalRedirectPath);
     } catch (error) {
       logger.warn('Error constructing search redirect path', { error: error.message });
