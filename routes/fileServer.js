@@ -227,7 +227,7 @@ router.get('*splat', authenticateDownloads, async (req, res) => {
       if (!requestPath.endsWith('/')) {
         // Construct safe redirect path using validated requestPath instead of raw originalUrl
         // Construct safe redirect path using trusted server-side logic only
-        let normalizedPath = '/' + (requestPath.replace(/^\/+/, '') || '');
+        let normalizedPath = `/${requestPath.replace(/^\/+/, '') || ''}`;
         // Always add trailing slash (but not double slash)
         if (!normalizedPath.endsWith('/')) {
           normalizedPath += '/';
