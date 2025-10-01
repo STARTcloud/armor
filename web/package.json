@@ -51,7 +51,7 @@
     "perf:budget": "npm run build && node -e \"const fs=require('fs');const path=require('path');function getDirSize(dir){let size=0;const files=fs.readdirSync(dir);for(const file of files){const filePath=path.join(dir,file);const stat=fs.statSync(filePath);if(stat.isDirectory()){size+=getDirSize(filePath);}else{size+=stat.size;}}return size;}const totalSize=getDirSize('dist');const budgetMB=3;const budgetBytes=budgetMB*1048576;console.log('📦 Total build size:',Math.round(totalSize/1024)+'KB','('+(totalSize/1048576).toFixed(1)+'MB)');console.log('📋 Budget limit:',budgetMB+'MB');if(totalSize>budgetBytes){console.log('❌ OVER BUDGET');process.exit(1);}else{console.log('✅ Within budget');process.exit(0);}\",",
     "security:audit": "npm audit --audit-level moderate",
     "security:vulnerabilities": "npm audit && npx better-npm-audit audit",
-    "security:licenses": "npx license-checker --onlyAllow 'MIT;Apache-2.0;BSD;BSD-2-Clause;BSD-3-Clause;ISC;GPL-3.0;LGPL-2.1;LGPL-3.0;MPL-2.0;CC0-1.0;CC-BY-3.0;CC-BY-4.0;Unlicense;Python-2.0;Unicode-DFS-2016' --excludePrivatePackages",
+    "security:licenses": "npx license-checker --onlyAllow 'MIT;Apache-2.0;BSD;BSD-2-Clause;BSD-3-Clause;ISC;GPL-3.0;LGPL-2.1;LGPL-3.0;MPL-2.0;CC0-1.0;CC-BY-3.0;CC-BY-4.0;Unlicense;Python-2.0;Unicode-DFS-2016;Apache 2.0' --excludePrivatePackages",
     "security:licenses-report": "npx license-checker --out web/dist/licenses.json --json",
     "security:supply-chain": "npx audit-ci --moderate",
     "security:all": "npm run security:vulnerabilities && npm run security:licenses && npm run security:supply-chain"
