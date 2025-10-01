@@ -55,13 +55,41 @@ permalink: /docs/architecture/
 
 /* Dark theme for mermaid diagrams to match app */
 .mermaid {
-    background-color: #0d1117 !important;
+    background-color: #32313a !important;
     color: #f0f6fc !important;
     border-radius: 6px !important;
     padding: 1rem !important;
     margin: 1rem 0 !important;
     width: 100% !important;
     overflow-x: auto !important;
+}
+
+/* Mermaid subgraph styling for better visibility */
+.mermaid .cluster rect {
+    fill: #3e3d4a !important;
+    stroke: #58576b !important;
+    stroke-width: 1px !important;
+}
+
+.mermaid .cluster text {
+    fill: #f0f6fc !important;
+}
+
+/* Node connection lines visibility */
+.mermaid .edge-pattern-solid {
+    stroke: #8b949e !important;
+    stroke-width: 2px !important;
+}
+
+.mermaid .edge-pattern-dotted {
+    stroke: #6e7681 !important;
+    stroke-width: 2px !important;
+}
+
+/* Arrow heads */
+.mermaid .arrowheadPath {
+    fill: #8b949e !important;
+    stroke: #8b949e !important;
 }
 </style>
 
