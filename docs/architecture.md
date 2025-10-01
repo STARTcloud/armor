@@ -108,21 +108,6 @@ Armor is an enterprise-grade file management system built with a modern microser
 ## Detailed Architecture Diagram
 
 ```mermaid
----
-config:
-  theme: 'dark'
-  themeVariables:
-    darkMode: true
-    background: '#32313a'
-    primaryColor: '#4a9eff'
-    primaryTextColor: '#ffffff'
-    primaryBorderColor: '#2563eb'
-    lineColor: '#8b949e'
-    clusterBkg: '#3e3d4a'
-    clusterBorder: '#58576b'
-    edgeLabelBackground: '#32313a'
-    tertiaryColor: '#3e3d4a'
----
 graph LR
     subgraph "Clients"
         WB[Web Browser<br/>React SPA]
