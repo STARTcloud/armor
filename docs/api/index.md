@@ -2,7 +2,7 @@
 title: API Reference
 layout: default
 nav_order: 2
-has_children: false
+has_children: true
 permalink: /docs/api/
 ---
 
@@ -65,23 +65,23 @@ curl -k -u admin:admin123 https://your-server/file.txt
 
 ## API Categories
 
-### 🔑 API Key Management
+### API Key Management
 - `GET /api/api-keys` - List your API keys
 - `POST /api/api-keys` - Create new API key
 - `PUT /api/api-keys/{id}` - Update API key
 - `DELETE /api/api-keys/{id}` - Delete API key
 
-### 📁 File Operations
+### File Operations
 - `GET /{path}` - Download file or list directory
 - `POST /{path}` - Upload file (multipart/form-data)
 - `POST /{path}/folders` - Create folder
 - `PUT /{path}?action=rename` - Rename file or folder
 - `DELETE /{path}` - Delete file or directory
 
-### 🔍 Search Operations
+### Search Operations
 - `POST /{path}/search` - Search files by name or checksum
 
-### 🔐 Authentication
+### Authentication
 - `GET /auth/methods` - Get available authentication methods
 - `POST /auth/login/basic` - Basic username/password login
 - `POST /auth/logout` - Logout and clear token

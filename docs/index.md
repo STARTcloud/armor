@@ -54,19 +54,19 @@ graph TD
 
 ### Core Capabilities
 
-#### 🔐 **Universal Authentication**
+#### **Universal Authentication**
 - **HTTP Basic Auth**: `wget --user=admin --password=pass https://domain.com/file.txt`
 - **JWT Sessions**: Browser-based authentication with OIDC support
 - **API Keys**: Bearer token authentication with configurable permissions
 
-#### 📁 **Complete File Management**
+#### **Complete File Management**
 - **Upload**: Drag-and-drop or API with automatic checksum calculation
 - **Download**: Direct download or force download via long-press
 - **Search**: Find files by name or SHA256 checksum
 - **Rename**: Real-time file/folder renaming with SSE updates
 - **Delete**: Secure deletion with multi-user notification
 
-#### 🎨 **Swagger UI Integration**
+#### **Swagger UI Integration**
 - **Dark theme**: Professional appearance with seamless integration
 - **Dynamic server detection**: Auto-detects current host with custom override
 - **API key integration**: Fill authentication directly from your existing keys
@@ -91,7 +91,7 @@ Armor is &copy; 2025 by STARTcloud.
 
 ### License
 
-Armor is distributed under an [MIT license](https://github.com/STARTcloud/armor/blob/main/LICENSE.md).
+Armor is distributed under a [GPL-3.0 license](https://github.com/STARTcloud/armor/blob/main/LICENSE.md).
 
 ### Contributing
 

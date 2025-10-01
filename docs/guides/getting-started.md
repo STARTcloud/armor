@@ -110,7 +110,7 @@ served_directory: "/var/lib/armor/files"
 
 ## Core Features Overview
 
-### 🔐 **Authentication Methods**
+### **Authentication Methods**
 
 #### Web Interface Login
 - Navigate to your Armor server
@@ -133,7 +133,7 @@ curl -k -H "Authorization: Bearer YOUR_API_KEY" \
   https://your-server/api/api-keys
 ```
 
-### 📁 **File Operations**
+### **File Operations**
 
 #### Upload Files
 - **Web**: Drag-and-drop to upload area
@@ -151,7 +151,7 @@ curl -k -H "Authorization: Bearer YOUR_API_KEY" \
 - **Web**: Click pencil icon next to file/folder
 - **API**: `PUT /{path}?action=rename` with `{"newName":"name"}`
 
-### 🎨 **Swagger UI Features**
+### **Swagger UI Features**
 
 Access comprehensive API documentation at `/api-docs`:
 

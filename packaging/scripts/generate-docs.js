@@ -431,7 +431,7 @@ permalink: /docs/api/reference/
  * Generate static API documentation files
  */
 const generateDocs = () => {
-  console.log('🔧 Generating API documentation...');
+  console.log('Generating API documentation...');
 
   // Ensure docs/api directory exists
   const docsDir = path.join(process.cwd(), 'docs', 'api');
@@ -441,24 +441,24 @@ const generateDocs = () => {
 
   try {
     // Generate OpenAPI JSON spec
-    console.log('📝 Writing OpenAPI specification...');
+    console.log('Writing OpenAPI specification...');
     const openApiJson = JSON.stringify(specs, null, 2);
     fs.writeFileSync(path.join(docsDir, 'openapi.json'), openApiJson);
-    console.log('✅ Generated docs/api/openapi.json');
+    console.log('Generated docs/api/openapi.json');
 
     // Generate static Swagger UI HTML (pure HTML, no Jekyll processing)
-    console.log('📝 Generating Swagger UI HTML...');
+    console.log('Generating Swagger UI HTML...');
     const swaggerHtml = generateSwaggerUI();
     fs.writeFileSync(path.join(docsDir, 'swagger-ui.html'), swaggerHtml);
-    console.log('✅ Generated docs/api/swagger-ui.html');
+    console.log('Generated docs/api/swagger-ui.html');
 
     // Generate Jekyll redirect page
-    console.log('📝 Generating Jekyll redirect page...');
+    console.log('Generating Jekyll redirect page...');
     const redirectPage = generateRedirectPage();
     fs.writeFileSync(path.join(docsDir, 'reference.md'), redirectPage);
-    console.log('✅ Generated docs/api/reference.md');
+    console.log('Generated docs/api/reference.md');
 
-    console.log('🎉 Documentation generation completed successfully!');
+    console.log('Documentation generation completed successfully!');
     console.log('');
     console.log('Generated files:');
     console.log('  - docs/api/openapi.json - Raw OpenAPI specification');
@@ -466,7 +466,7 @@ const generateDocs = () => {
     console.log('  - docs/api/reference.md - Jekyll page with embedded Swagger UI');
     console.log('');
   } catch (error) {
-    console.error('❌ Error generating documentation:', error.message);
+    console.error('Error generating documentation:', error.message);
     throw new Error(`Documentation generation failed: ${error.message}`);
   }
 }
