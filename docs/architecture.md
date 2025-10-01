@@ -108,187 +108,108 @@ Armor is an enterprise-grade file management system built with a modern microser
 ## Detailed Architecture Diagram
 
 ```mermaid
-graph TB
-    subgraph "Client Layer"
-        WB[Web Browser<br/>React SPA<br/>Progressive Web App]
-        CLI[CLI Tools<br/>wget/curl<br/>HTTP Basic Auth]
-        API[API Clients<br/>Third-party Apps<br/>Bearer Token Auth]
-        MOBILE[Mobile Devices<br/>Responsive Interface]
+---
+config:
+  theme: 'dark'
+  themeVariables:
+    darkMode: true
+    background: '#32313a'
+    primaryColor: '#4a9eff'
+    primaryTextColor: '#ffffff'
+    primaryBorderColor: '#2563eb'
+    lineColor: '#8b949e'
+    clusterBkg: '#3e3d4a'
+    clusterBorder: '#58576b'
+    edgeLabelBackground: '#32313a'
+    tertiaryColor: '#3e3d4a'
+---
+graph LR
+    subgraph "Clients"
+        WB[Web Browser<br/>React SPA]
+        CLI[CLI Tools<br/>wget/curl]
+        API[API Clients]
     end
     
-    subgraph "Load Balancer & SSL"
-        LB[Load Balancer<br/>HTTPS Termination]
-        SSL[SSL Manager<br/>Auto-generation<br/>Certificate Management]
+    subgraph "Authentication"
+        AUTH{Auth<br/>Middleware}
+        JWT[JWT Sessions]
+        KEYS[API Keys]
+        BASIC[Basic Auth]
+        OIDC[OIDC/SSO]
     end
     
-    subgraph "Authentication & Authorization"
-        AUTH{Authentication<br/>Middleware<br/>Multi-method Support}
-        JWT[JWT Sessions<br/>Web Interface<br/>Cookie-based]
-        APIKEY[API Keys<br/>Bearer Tokens<br/>Scoped Permissions]
-        BASIC[HTTP Basic Auth<br/>CLI Compatible<br/>wget/curl Support]
-        OIDC[OIDC Providers<br/>Google/GitHub/Enterprise<br/>SSO Integration]
-        RBAC[Role-Based Access<br/>Downloads/Uploads/Delete<br/>Permission Matrix]
+    subgraph "Server Core"
+        EXPRESS[Express.js<br/>HTTPS Server]
+        ROUTES[REST API<br/>Routes]
+        SECURITY[Security<br/>Middleware]
     end
     
-    subgraph "Armor Server Core"
-        EXPRESS[Express.js Server<br/>HTTPS/HTTP<br/>Port Configuration]
-        SECURITY[Security Middleware<br/>Helmet/CORS/CSRF<br/>Rate Limiting/CSP]
-        ROUTER[Route Handlers<br/>REST API Endpoints<br/>File Operations]
-        VALIDATION[Input Validation<br/>Path Security<br/>Upload Sanitization]
+    subgraph "Real-time"
+        SSE[Server-Sent<br/>Events]
+        EVENTS[Event<br/>Broadcasting]
     end
     
-    subgraph "Real-time Communication System"
-        SSE[Server-Sent Events<br/>Live Updates<br/>Multi-client Broadcast]
-        EVENTS[Event Broadcasting<br/>File Operations<br/>Checksum Progress]
-        WSMANAGER[WebSocket Manager<br/>Connection Handling<br/>Client Tracking]
+    subgraph "Background Services"
+        WATCHER[File Watcher<br/>Chokidar]
+        CHECKSUM[Checksum<br/>Service]
+        CACHE[Cache<br/>Service]
     end
     
-    subgraph "Background Processing Services"
-        FILEWATCHER[File Watcher Service<br/>Chokidar Integration<br/>Real-time FS Monitoring<br/>Change Detection]
-        CHECKSUM[Checksum Service<br/>SHA256 Calculation<br/>Worker Pool Management<br/>Progress Tracking]
-        MAINTENANCE[Maintenance Service<br/>Database Optimization<br/>Cleanup Operations<br/>Performance Tuning]
-        CACHE[Cache Service<br/>Directory Listings<br/>Performance Optimization<br/>Memory Management]
-        BATCHOPS[Batch Operations<br/>Database Upserts<br/>Bulk Processing<br/>Performance Optimization]
+    subgraph "Data Layer"
+        DB[(Database<br/>Multi-engine)]
+        FS[File System<br/>Secure Serving]
+        CONFIG[YAML<br/>Configuration]
     end
     
-    subgraph "Data Persistence Layer"
-        DB[(Database Layer<br/>SQLite/PostgreSQL/MySQL<br/>Sequelize ORM<br/>Connection Pooling)]
-        DBMETA[File Metadata<br/>Checksums/Timestamps<br/>Directory Structure<br/>User Associations]
-        APIKEYS[API Key Storage<br/>Encrypted Keys<br/>Permission Matrix<br/>Expiration Management]
-        USERS[User Management<br/>Local Users<br/>OIDC Mappings<br/>Permission Inheritance]
+    subgraph "Frontend"
+        REACT[React SPA]
+        SWAGGER[Swagger UI]
+        PWA[Progressive<br/>Web App]
     end
     
-    subgraph "File System Layer"
-        FS[Secure File System<br/>Directory Serving<br/>Path Validation<br/>Access Control]
-        UPLOAD[Upload Handler<br/>Multer Integration<br/>File Validation<br/>Temporary Processing]
-        STATIC[Static Content<br/>Custom index.html<br/>Theme Assets<br/>PWA Resources]
-    end
+    %% Client flows
+    WB -->|HTTPS| EXPRESS
+    CLI -->|Basic Auth| EXPRESS
+    API -->|Bearer Token| EXPRESS
     
-    subgraph "Configuration & Localization"
-        CONFIG[Configuration System<br/>YAML-based<br/>Environment Variables<br/>Runtime Reload]
-        I18N[Internationalization<br/>Multi-language Support<br/>Auto-detection<br/>Locale Fallbacks]
-        LOGGING[Centralized Logging<br/>Winston Integration<br/>Multiple Transports<br/>Log Rotation]
-    end
-    
-    subgraph "Frontend Architecture"
-        REACT[React Application<br/>Single Page App<br/>Client-side Routing]
-        COMPONENTS[Component Library<br/>File Management UI<br/>Upload Components<br/>Search Interface]
-        HOOKS[Custom Hooks<br/>SSE Integration<br/>File Operations<br/>Authentication State]
-        PWA[Progressive Web App<br/>Service Worker<br/>Offline Capabilities<br/>Push Notifications]
-        SWAGGER[Swagger UI Integration<br/>API Documentation<br/>Live Testing<br/>Dark Theme]
-    end
-    
-    subgraph "API Documentation System"
-        APIDOCS[API Documentation<br/>OpenAPI 3.0<br/>Auto-generation<br/>Interactive Testing]
-        DOCGEN[Documentation Generation<br/>Static Site Generation<br/>GitHub Pages<br/>Jekyll Integration]
-    end
-    
-    %% Client connections with protocols
-    WB -.->|HTTPS/WSS<br/>Modern Browsers| LB
-    CLI -.->|HTTPS + Basic Auth<br/>wget/curl Compatible| LB
-    API -.->|HTTPS + Bearer Token<br/>RESTful API| LB
-    MOBILE -.->|HTTPS/Responsive<br/>Mobile Optimized| LB
-    
-    %% Load balancing and SSL
-    LB --> SSL
-    SSL --> EXPRESS
-    
-    %% Authentication flow
-    EXPRESS --> SECURITY
-    SECURITY --> AUTH
+    %% Authentication
+    EXPRESS --> AUTH
     AUTH --> JWT
-    AUTH --> APIKEY
+    AUTH --> KEYS
     AUTH --> BASIC
     AUTH --> OIDC
-    AUTH --> RBAC
     
-    %% Core server processing
-    EXPRESS --> VALIDATION
-    VALIDATION --> ROUTER
-    ROUTER --> FILEWATCHER
-    ROUTER --> UPLOAD
+    %% Core processing
+    EXPRESS --> SECURITY
+    SECURITY --> ROUTES
+    ROUTES --> WATCHER
+    ROUTES --> SSE
     
     %% Real-time communication
-    ROUTER --> SSE
     SSE --> EVENTS
-    EVENTS --> WSMANAGER
-    WSMANAGER -.->|Live Updates<br/>Multi-user Sync| WB
-    WSMANAGER -.->|Progress Updates<br/>Real-time Status| MOBILE
+    EVENTS -.->|Live Updates| WB
     
-    %% Background services orchestration
-    FILEWATCHER --> BATCHOPS
-    BATCHOPS --> CHECKSUM
-    CHECKSUM --> MAINTENANCE
-    MAINTENANCE --> CACHE
-    
-    %% Event propagation
-    FILEWATCHER --> EVENTS
+    %% Background processing
+    WATCHER --> CHECKSUM
+    CHECKSUM --> CACHE
+    WATCHER --> EVENTS
     CHECKSUM --> EVENTS
-    UPLOAD --> EVENTS
     
-    %% Data layer interactions
-    ROUTER --> DB
-    FILEWATCHER --> DBMETA
-    CHECKSUM --> DBMETA
-    AUTH --> APIKEYS
-    AUTH --> USERS
-    BATCHOPS --> DB
+    %% Data persistence
+    ROUTES --> DB
+    ROUTES --> FS
+    WATCHER --> DB
+    CHECKSUM --> DB
     
-    %% File system operations
-    ROUTER --> FS
-    UPLOAD --> FS
-    FS --> STATIC
-    FS --> FILEWATCHER
-    
-    %% Configuration and localization
+    %% Configuration
     CONFIG --> EXPRESS
     CONFIG --> AUTH
-    CONFIG --> FILEWATCHER
-    CONFIG --> I18N
-    CONFIG --> LOGGING
-    I18N --> ROUTER
-    LOGGING --> EXPRESS
+    CONFIG --> WATCHER
     
-    %% Frontend architecture
+    %% Frontend integration
     WB --> REACT
-    REACT --> COMPONENTS
-    COMPONENTS --> HOOKS
-    HOOKS --> PWA
     REACT --> SWAGGER
-    
-    %% API documentation
-    ROUTER --> APIDOCS
-    APIDOCS --> DOCGEN
-    DOCGEN -.->|Static Generation| SWAGGER
-    
-    %% Database relationships
-    DB --> DBMETA
-    DB --> APIKEYS
-    DB --> USERS
-    
-    classDef client fill:#1f2937,stroke:#3b82f6,stroke-width:2px,color:#f9fafb
-    classDef loadbalancer fill:#065f46,stroke:#10b981,stroke-width:2px,color:#f0fdf4
-    classDef auth fill:#581c87,stroke:#a855f7,stroke-width:2px,color:#faf5ff
-    classDef server fill:#0f172a,stroke:#06b6d4,stroke-width:2px,color:#f0f9ff
-    classDef realtime fill:#92400e,stroke:#f59e0b,stroke-width:2px,color:#fffbeb
-    classDef services fill:#14532d,stroke:#22c55e,stroke-width:2px,color:#f0fdf4
-    classDef data fill:#7c2d12,stroke:#ef4444,stroke-width:2px,color:#fef2f2
-    classDef filesystem fill:#1e293b,stroke:#64748b,stroke-width:2px,color:#f8fafc
-    classDef config fill:#4c1d95,stroke:#8b5cf6,stroke-width:2px,color:#f5f3ff
-    classDef frontend fill:#0c4a6e,stroke:#0ea5e9,stroke-width:2px,color:#f0f9ff
-    classDef docs fill:#166534,stroke:#16a34a,stroke-width:2px,color:#f0fdf4
-    
-    class WB,CLI,API,MOBILE client
-    class LB,SSL loadbalancer
-    class AUTH,JWT,APIKEY,BASIC,OIDC,RBAC auth
-    class EXPRESS,SECURITY,ROUTER,VALIDATION server
-    class SSE,EVENTS,WSMANAGER realtime
-    class FILEWATCHER,CHECKSUM,MAINTENANCE,CACHE,BATCHOPS services
-    class DB,DBMETA,APIKEYS,USERS data
-    class FS,UPLOAD,STATIC filesystem
-    class CONFIG,I18N,LOGGING config
-    class REACT,COMPONENTS,HOOKS,PWA,SWAGGER frontend
-    class APIDOCS,DOCGEN docs
+    REACT --> PWA
 ```
 
 ## Component Details
