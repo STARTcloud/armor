@@ -240,10 +240,9 @@ router.get('*splat', authenticateDownloads, async (req, res) => {
 
         if (isLocalUrl(safeRedirectPath)) {
           return res.redirect(301, safeRedirectPath);
-        } else {
-          logger.warn('Blocked attempted open redirect', { path: safeRedirectPath });
-          return res.status(400).send('Invalid redirect path');
         }
+        logger.warn('Blocked attempted open redirect', { path: safeRedirectPath });
+        return res.status(400).send('Invalid redirect path');
       }
       return handleDirectoryListing(req, res, fullPath, requestPath);
     }
