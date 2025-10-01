@@ -5,7 +5,7 @@ import { join, basename, extname, resolve } from 'path';
 import { Op } from 'sequelize';
 import auth from 'basic-auth';
 import escapeHtml from 'escape-html';
-import { SERVED_DIR, getSecurePath } from '../config/paths.js';
+import { SERVED_DIR, getSecurePath, isLocalUrl } from '../config/paths.js';
 import {
   authenticateDownloads,
   authenticateUploads,
@@ -228,6 +228,12 @@ router.get('*splat', authenticateDownloads, async (req, res) => {
         const redirectPath = req.originalUrl.endsWith('/')
           ? req.originalUrl
           : `${req.originalUrl}/`;
+
+        if (!isLocalUrl(redirectPath)) {
+          logger.warn('Rejected potentially unsafe redirect', { path: redirectPath });
+          return res.status(400).send('Invalid redirect path');
+        }
+
         return res.redirect(301, redirectPath);
       }
       return handleDirectoryListing(req, res, fullPath, requestPath);
@@ -1085,12 +1091,22 @@ router.post('*splat', (req, res, next) => {
       res.status(200).send('Authenticated');
     });
   } else if (req.query.action === 'create-folder') {
-    // Redirect to new endpoint
     const newPath = `${req.path}/folders`;
+
+    if (!isLocalUrl(newPath)) {
+      logger.warn('Rejected potentially unsafe redirect', { path: newPath });
+      return res.status(400).send('Invalid redirect path');
+    }
+
     return res.redirect(307, newPath);
   } else if (req.query.action === 'search') {
-    // Redirect to new endpoint
     const newPath = `${req.path}/search`;
+
+    if (!isLocalUrl(newPath)) {
+      logger.warn('Rejected potentially unsafe redirect', { path: newPath });
+      return res.status(400).send('Invalid redirect path');
+    }
+
     return res.redirect(307, newPath);
   }
   return next();
