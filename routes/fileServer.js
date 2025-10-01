@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import { promises as fs } from 'fs';
-import { join, basename, extname } from 'path';
+import { join, basename, extname, resolve } from 'path';
 import { Op } from 'sequelize';
 import auth from 'basic-auth';
 import escapeHtml from 'escape-html';
@@ -268,7 +268,15 @@ router.put('*splat', authenticateUploads, async (req, res, next) => {
         0,
         oldFullPath.lastIndexOf('/') || oldFullPath.lastIndexOf('\\')
       );
-      const newFullPath = join(parentDir, sanitizedNewName);
+      let newFullPath = join(parentDir, sanitizedNewName);
+      // Normalize and verify the new path is inside SERVED_DIR
+      newFullPath = resolve(SERVED_DIR, newFullPath.replace(SERVED_DIR, ''));
+      if (!newFullPath.startsWith(SERVED_DIR)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid path: operation not allowed',
+        });
+      }
 
       // Check if old file/folder exists
       try {
