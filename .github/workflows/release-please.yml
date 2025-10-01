@@ -125,16 +125,14 @@ jobs:
           echo "Checking generate-docs script..."
           npm run generate-docs --help || echo "generate-docs script verification complete"
 
-  # codeql-analysis:
-  #   name: CodeQL
-  #   needs: [backend-security, frontend-security, lint-and-format, build-frontend, verify-scripts]
-  #   uses: ./.github/workflows/codeql.yml
+  codeql-analysis:
+    name: CodeQL
+    needs: [backend-security, frontend-security, lint-and-format, build-frontend, verify-scripts]
+    uses: ./.github/workflows/codeql.yml
 
   release-please:
     name: Release Please
-    needs: [backend-security, frontend-security, lint-and-format, build-frontend, verify-scripts]
-    # Uncomment line below when repo is public and Advanced Security is enabled:
-    # needs: codeql-analysis
+    needs: codeql-analysis
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
