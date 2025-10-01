@@ -1100,10 +1100,21 @@ router.post('*splat', (req, res, next) => {
       res.status(200).send('Authenticated');
     });
   } else if (req.query.action === 'create-folder') {
-    const newPath = `${req.path}/folders`;
+    // Build newPath and further sanitize
+    let newPath = `${req.path}/folders`;
 
-    // Ensure the redirect is only to a local path and not to an external or dangerous location
-    if (!isLocalUrl(newPath)) {
+    // Normalize the path to prevent directory traversal, double slashes, etc.
+    // Guarantee it starts with a single "/", no "//", no "..", and is not a full URL
+    newPath = newPath.replace(/\/{2,}/g, '/');
+
+    if (
+      typeof newPath !== 'string' ||
+      !newPath.startsWith('/') ||
+      newPath.includes('..') ||
+      newPath.includes('//') ||
+      /https?:\/\//i.test(newPath) ||
+      !isLocalUrl(newPath)
+    ) {
       logger.warn('Rejected potentially unsafe redirect', { path: newPath });
       return res.status(400).send('Invalid redirect path');
     }
