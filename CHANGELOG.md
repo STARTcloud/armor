@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.7](https://github.com/STARTcloud/armor/compare/v1.14.6...v1.14.7) (2025-10-03)
+
+
+### Bug Fixes
+
+* Helmet ([2cd6f33](https://github.com/STARTcloud/armor/commit/2cd6f33243775c7ff9b9af653a4fff1da3ee3182))
+
 ## [1.14.6](https://github.com/STARTcloud/armor/compare/v1.14.5...v1.14.6) (2025-10-03)
 
 
