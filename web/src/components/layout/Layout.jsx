@@ -6,9 +6,8 @@ import Header from "./Header";
 
 const Layout = ({ children }) => (
   <div className="min-vh-100 bg-dark text-light d-flex flex-column">
-    <Helmet>
+    <Helmet titleTemplate="%s - Armor">
       <title>Armor</title>
-      <titleTemplate>%s - Armor</titleTemplate>
     </Helmet>
     <div className="main-content">
       <div className="container layout-container">
