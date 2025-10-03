@@ -114,7 +114,7 @@ export default defineConfig({
           utils: ["axios", "jwt-decode", "prop-types"],
 
           // Web APIs (safe to separate)
-          webapis: ["web-vitals", "register-service-worker"],
+          webapis: ["web-vitals"],
 
           // Swagger dependencies (split from main swagger chunk)
           swaggerdeps: ["js-yaml", "yaml", "@swagger-api/apidom-core"],
