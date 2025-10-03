@@ -61,6 +61,7 @@
     "js-yaml": "^4.1.0",
     "json-merger": "^3.0.0",
     "jsonwebtoken": "^9.0.2",
+    "license-checker-rseidelsohn": "^4.4.2",
     "lusca": "^1.7.0",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
@@ -85,7 +86,6 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "globals": "^16.4.0",
-    "license-checker": "^25.0.1",
     "prettier": "^3.6.2",
     "supertest": "^7.1.4",
     "vitest": "^3.2.4"
