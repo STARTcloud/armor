@@ -1,5 +1,5 @@
-import PropTypes from "prop-types";
 import { Helmet } from "@dr.pogodin/react-helmet";
+import PropTypes from "prop-types";
 
 import Footer from "./Footer";
 import Header from "./Header";

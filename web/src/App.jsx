@@ -1,5 +1,5 @@
-import { Suspense } from "react";
 import { HelmetProvider } from "@dr.pogodin/react-helmet";
+import { Suspense } from "react";
 import { I18nextProvider, useTranslation } from "react-i18next";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
@@ -58,16 +58,16 @@ const App = () => {
               <Router>
                 <Routes>
                   <Route path="/login" element={loginElement} />
-                <Route path="/api-keys" element={apiKeysElement} />
-                <Route path="/api-docs" element={apiDocsElement} />
-                <Route path="*" element={fileRouteElement} />
-              </Routes>
-            </Router>
-          </AuthProvider>
-        </Suspense>
-      </ErrorBoundary>
-    </I18nextProvider>
-  </HelmetProvider>
+                  <Route path="/api-keys" element={apiKeysElement} />
+                  <Route path="/api-docs" element={apiDocsElement} />
+                  <Route path="*" element={fileRouteElement} />
+                </Routes>
+              </Router>
+            </AuthProvider>
+          </Suspense>
+        </ErrorBoundary>
+      </I18nextProvider>
+    </HelmetProvider>
   );
 };
 

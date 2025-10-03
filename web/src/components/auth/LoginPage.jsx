@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
 import { Helmet } from "@dr.pogodin/react-helmet";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Navigate, a, useSearchParams } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 
 import api from "../../utils/api";
 
