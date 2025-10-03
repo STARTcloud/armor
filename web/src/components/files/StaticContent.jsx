@@ -63,7 +63,10 @@ const StaticContent = ({ currentPath }) => {
     return null;
   }
 
-  const sanitizedHtml = DOMPurify.sanitize(staticHtml);
+  // Add base tag to ensure relative links work correctly
+  const baseUrl = currentPath.endsWith("/") ? currentPath : `${currentPath}/`;
+  const htmlWithBase = `<base href="${baseUrl}" />${staticHtml}`;
+  const sanitizedHtml = DOMPurify.sanitize(htmlWithBase);
   const parsedContent = parse(sanitizedHtml);
 
   return <div className="static-content-container">{parsedContent}</div>;
