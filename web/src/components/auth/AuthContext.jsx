@@ -44,8 +44,8 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await api.post("/auth/login/basic", credentials);
       if (response.data.success) {
-        setUser(response.data.user);
-        setIsAuthenticated(true);
+        // Re-fetch user data to get permissions
+        await checkAuthStatus();
         return { success: true };
       }
       return { success: false, error: response.data.message };

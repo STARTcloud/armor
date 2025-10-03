@@ -74,29 +74,195 @@ ChecksumDisplay.propTypes = {
   t: PropTypes.func.isRequired,
 };
 
-const FileRow = ({
-  file,
-  currentPath,
-  onDelete,
-  onRename,
-  isSelected,
-  onSelectionChange,
-  selectedFiles,
-  onMoveToFolder,
-  dragOverFolder,
-  setDragOverFolder,
-}) => {
-  const { t } = useTranslation(["files", "common"]);
-  const [isRenaming, setIsRenaming] = useState(false);
-  const [newName, setNewName] = useState(file.name || "");
+const FileIcon = ({ file, onIconClick, t }) => {
   const [pressTimer, setPressTimer] = useState(null);
   const [isLongPress, setIsLongPress] = useState(false);
 
-  const handleSelectionChange = (e) => {
-    onSelectionChange(file.path, e.target.checked);
+  const handleDownload = () => {
+    if (!file.isDirectory) {
+      const downloadUrl = `${window.location.origin}${file.path}`;
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = file.name;
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
-  const handleRename = async (e) => {
+  const handleMouseDown = () => {
+    if (file.isDirectory) {
+      return;
+    }
+
+    setIsLongPress(false);
+    const timer = setTimeout(() => {
+      setIsLongPress(true);
+      handleDownload();
+    }, 500);
+    setPressTimer(timer);
+  };
+
+  const handleMouseUp = () => {
+    if (pressTimer) {
+      clearTimeout(pressTimer);
+      setPressTimer(null);
+    }
+    setTimeout(() => setIsLongPress(false), 100);
+  };
+
+  const handleClick = async (e) => {
+    if (!isLongPress) {
+      e.preventDefault();
+      await onIconClick();
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleClick(e);
+    }
+  };
+
+  return (
+    <i
+      className={`bi ${getFileIcon(file)} me-2`}
+      style={{ cursor: "pointer" }}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-label={
+        file.isDirectory
+          ? t("files:file.clickToCopyLink")
+          : t("files:file.clickToCopyLinkHoldToDownload")
+      }
+      title={
+        file.isDirectory
+          ? t("files:file.clickToCopyLink")
+          : t("files:file.clickToCopyLinkHoldToDownload")
+      }
+    />
+  );
+};
+
+FileIcon.propTypes = {
+  file: PropTypes.shape({
+    path: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired,
+    isDirectory: PropTypes.bool.isRequired,
+  }).isRequired,
+  onIconClick: PropTypes.func.isRequired,
+  t: PropTypes.func.isRequired,
+};
+
+const RenameInput = ({ value, onChange, onSubmit, onCancel }) => (
+  <form onSubmit={onSubmit} className="d-flex align-items-center">
+    <input
+      type="text"
+      className="form-control form-control-sm bg-dark text-light border-secondary"
+      value={value}
+      onChange={onChange}
+      onBlur={onSubmit}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          onCancel();
+        } else if (e.key === "Enter") {
+          onSubmit(e);
+        }
+      }}
+      style={{ maxWidth: "200px" }}
+    />
+  </form>
+);
+
+RenameInput.propTypes = {
+  value: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func.isRequired,
+  onCancel: PropTypes.func.isRequired,
+};
+
+const ActionButtons = ({
+  canDelete,
+  onCopyLink,
+  onRename,
+  onDelete,
+  file,
+  t,
+}) => (
+  <div className="btn-group btn-group-sm" role="group">
+    <button
+      className="btn btn-outline-info"
+      onClick={onCopyLink}
+      title={
+        file.isDirectory
+          ? t("files:file.copyFolderLink")
+          : t("files:file.copyDownloadLink")
+      }
+    >
+      <i className="bi bi-link-45deg" />
+    </button>
+    {canDelete ? (
+      <>
+        <button
+          className="btn btn-outline-warning"
+          onClick={onRename}
+          title={t("files:file.rename")}
+        >
+          <i className="bi bi-pencil" />
+        </button>
+        <button
+          className="btn btn-outline-danger"
+          onClick={onDelete}
+          title={t("files:file.delete")}
+        >
+          <i className="bi bi-trash" />
+        </button>
+      </>
+    ) : null}
+  </div>
+);
+
+ActionButtons.propTypes = {
+  canDelete: PropTypes.bool.isRequired,
+  onCopyLink: PropTypes.func.isRequired,
+  onRename: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+  file: PropTypes.shape({
+    isDirectory: PropTypes.bool.isRequired,
+  }).isRequired,
+  t: PropTypes.func.isRequired,
+};
+
+const useFileRowHandlers = (file, onRename, setIsRenaming, setNewName) => {
+  const handleCopyLink = async () => {
+    try {
+      const url = `${window.location.origin}${file.path}`;
+      await navigator.clipboard.writeText(url);
+    } catch (error) {
+      console.error("Failed to copy link:", error);
+    }
+  };
+
+  const handleCopyChecksum = async () => {
+    if (!file.checksum) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(file.checksum);
+    } catch (error) {
+      console.error("Failed to copy checksum:", error);
+    }
+  };
+
+  const handleRenameSubmit = async (e, newName) => {
     e.preventDefault();
     if (!newName.trim() || newName === file.name) {
       setIsRenaming(false);
@@ -112,91 +278,46 @@ const FileRow = ({
     }
   };
 
-  const handleCopyChecksum = async () => {
-    if (file.checksum) {
-      try {
-        await navigator.clipboard.writeText(file.checksum);
-      } catch (error) {
-        console.error("Failed to copy checksum:", error);
-      }
-    }
+  const handleRenameCancel = () => {
+    setIsRenaming(false);
+    setNewName(file.name || "");
   };
 
-  const handleCopyLink = async () => {
-    try {
-      const url = `${window.location.origin}${file.path}`;
-      await navigator.clipboard.writeText(url);
-    } catch (error) {
-      console.error("Failed to copy link:", error);
-    }
+  return {
+    handleCopyLink,
+    handleCopyChecksum,
+    handleRenameSubmit,
+    handleRenameCancel,
   };
+};
 
-  const handleDownloadFile = () => {
-    if (!file.isDirectory) {
-      const downloadUrl = `${window.location.origin}${file.path}`;
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = file.name;
-      link.style.display = "none";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  };
-
-  const handleIconMouseDown = () => {
-    if (!file.isDirectory) {
-      setIsLongPress(false);
-      const timer = setTimeout(() => {
-        setIsLongPress(true);
-        handleDownloadFile();
-      }, 500);
-      setPressTimer(timer);
-    }
-  };
-
-  const handleIconMouseUp = () => {
-    if (pressTimer) {
-      clearTimeout(pressTimer);
-      setPressTimer(null);
-    }
-    setTimeout(() => setIsLongPress(false), 100);
-  };
-
-  const handleIconClick = async (e) => {
-    if (!isLongPress) {
-      e.preventDefault();
-      await handleCopyLink();
-    }
-  };
-
-  const getFileLink = () => {
-    if (file.isDirectory) {
-      const newPath =
-        currentPath === "/" ? `/${file.name}` : `${currentPath}/${file.name}`;
-      return newPath;
-    }
-    return file.path;
-  };
-
+const useDragAndDrop = (
+  file,
+  selectedFiles,
+  dragOverFolder,
+  setDragOverFolder,
+  onMoveToFolder,
+  isSelected
+) => {
   const handleDragStart = (e) => {
-    if (isSelected) {
-      e.dataTransfer.setData("text/plain", file.path);
-      e.dataTransfer.effectAllowed = "move";
+    if (!isSelected) {
+      return;
     }
+
+    e.dataTransfer.setData("text/plain", file.path);
+    e.dataTransfer.effectAllowed = "move";
   };
 
-  // Folder drag and drop handlers
   const handleFolderDragOver = (e) => {
     e.preventDefault();
     e.stopPropagation();
 
-    // Only allow dropping on folders that aren't selected
-    if (
+    const canDrop =
       file.isDirectory &&
       selectedFiles.length > 0 &&
-      !selectedFiles.includes(file.path)
-    ) {
+      !selectedFiles.includes(file.path);
+
+    if (canDrop) {
       setDragOverFolder(file.path);
       e.dataTransfer.dropEffect = "move";
     }
@@ -206,15 +327,13 @@ const FileRow = ({
     e.preventDefault();
     e.stopPropagation();
 
-    // Only clear if we're actually leaving this folder row
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX;
-    const y = e.clientY;
+    const { clientX: x, clientY: y } = e;
+    const isOutside =
+      x < rect.left || x > rect.right || y < rect.top || y > rect.bottom;
 
-    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
-      if (dragOverFolder === file.path) {
-        setDragOverFolder(null);
-      }
+    if (isOutside && dragOverFolder === file.path) {
+      setDragOverFolder(null);
     }
   };
 
@@ -222,11 +341,12 @@ const FileRow = ({
     e.preventDefault();
     e.stopPropagation();
 
-    if (
+    const canDrop =
       file.isDirectory &&
       selectedFiles.length > 0 &&
-      !selectedFiles.includes(file.path)
-    ) {
+      !selectedFiles.includes(file.path);
+
+    if (canDrop) {
       onMoveToFolder(file.path, file.name);
     }
 
@@ -239,75 +359,108 @@ const FileRow = ({
     selectedFiles.length > 0 &&
     !selectedFiles.includes(file.path);
 
+  return {
+    handleDragStart,
+    handleFolderDragOver,
+    handleFolderDragLeave,
+    handleFolderDrop,
+    isDraggedOver,
+    canAcceptDrop,
+  };
+};
+
+const FileRow = ({
+  file,
+  currentPath,
+  onDelete,
+  onRename,
+  isSelected,
+  onSelectionChange,
+  selectedFiles,
+  onMoveToFolder,
+  dragOverFolder,
+  setDragOverFolder,
+  canDelete = false,
+  showMultiSelect = false,
+}) => {
+  const { t } = useTranslation(["files", "common"]);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [newName, setNewName] = useState(file.name || "");
+
+  const {
+    handleCopyLink,
+    handleCopyChecksum,
+    handleRenameSubmit,
+    handleRenameCancel,
+  } = useFileRowHandlers(file, onRename, setIsRenaming, setNewName);
+
+  const {
+    handleDragStart,
+    handleFolderDragOver,
+    handleFolderDragLeave,
+    handleFolderDrop,
+    isDraggedOver,
+    canAcceptDrop,
+  } = useDragAndDrop(
+    file,
+    selectedFiles,
+    dragOverFolder,
+    setDragOverFolder,
+    onMoveToFolder,
+    isSelected
+  );
+
+  const getFileLink = () => {
+    if (file.isDirectory) {
+      return currentPath === "/"
+        ? `/${file.name}`
+        : `${currentPath}/${file.name}`;
+    }
+    return file.path;
+  };
+
+  const handleSelectionChange = (e) => {
+    onSelectionChange(file.path, e.target.checked);
+  };
+
+  const rowClassName = `${isSelected ? "table-active" : ""} ${isDraggedOver ? "drag-over-folder" : ""}`;
+  const dragEnabled = showMultiSelect && isSelected;
+  const dropEnabled = showMultiSelect && canAcceptDrop;
+
   return (
     <tr
-      className={`${isSelected ? "table-active" : ""} ${isDraggedOver ? "drag-over-folder" : ""}`}
-      draggable={isSelected}
-      onDragStart={handleDragStart}
-      onDragOver={canAcceptDrop ? handleFolderDragOver : undefined}
-      onDragLeave={canAcceptDrop ? handleFolderDragLeave : undefined}
-      onDrop={canAcceptDrop ? handleFolderDrop : undefined}
+      className={rowClassName}
+      draggable={dragEnabled}
+      onDragStart={dragEnabled ? handleDragStart : undefined}
+      onDragOver={dropEnabled ? handleFolderDragOver : undefined}
+      onDragLeave={dropEnabled ? handleFolderDragLeave : undefined}
+      onDrop={dropEnabled ? handleFolderDrop : undefined}
       style={{
         backgroundColor: isDraggedOver ? "rgba(25, 135, 84, 0.2)" : undefined,
-        cursor: canAcceptDrop && selectedFiles.length > 0 ? "copy" : undefined,
+        cursor: dropEnabled ? "copy" : undefined,
       }}
     >
       <td style={{ width: "5%", padding: "8px" }}>
-        <input
-          type="checkbox"
-          className="form-check-input"
-          checked={isSelected}
-          onChange={handleSelectionChange}
-          title={t("files:file.selectFile")}
-        />
+        {showMultiSelect ? (
+          <input
+            type="checkbox"
+            className="form-check-input"
+            checked={isSelected}
+            onChange={handleSelectionChange}
+            title={t("files:file.selectFile")}
+          />
+        ) : null}
       </td>
       <td>
         <div className="d-flex align-items-center">
-          <i
-            className={`bi ${getFileIcon(file)} me-2`}
-            style={{ cursor: "pointer" }}
-            onMouseDown={handleIconMouseDown}
-            onMouseUp={handleIconMouseUp}
-            onMouseLeave={handleIconMouseUp}
-            onClick={handleIconClick}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                handleIconClick(e);
-              }
-            }}
-            role="button"
-            tabIndex={0}
-            aria-label={
-              file.isDirectory
-                ? t("files:file.clickToCopyLink")
-                : t("files:file.clickToCopyLinkHoldToDownload")
-            }
-            title={
-              file.isDirectory
-                ? t("files:file.clickToCopyLink")
-                : t("files:file.clickToCopyLinkHoldToDownload")
-            }
-          />
+          <FileIcon file={file} onIconClick={handleCopyLink} t={t} />
           {isRenaming ? (
-            <form onSubmit={handleRename} className="d-flex align-items-center">
-              <input
-                type="text"
-                className="form-control form-control-sm bg-dark text-light border-secondary"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                onBlur={handleRename}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") {
-                    setIsRenaming(false);
-                    setNewName(file.name || "");
-                  } else if (e.key === "Enter") {
-                    handleRename(e);
-                  }
-                }}
-                style={{ maxWidth: "200px" }}
-              />
-            </form>
+            <RenameInput
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onSubmit={(e) => handleRenameSubmit(e, newName)}
+              onCancel={handleRenameCancel}
+            />
           ) : (
             <FileNameLink file={file} getFileLink={getFileLink} />
           )}
@@ -328,36 +481,17 @@ const FileRow = ({
         />
       </td>
       <td>
-        <div className="btn-group btn-group-sm" role="group">
-          <button
-            className="btn btn-outline-info"
-            onClick={handleCopyLink}
-            title={
-              file.isDirectory
-                ? t("files:file.copyFolderLink")
-                : t("files:file.copyDownloadLink")
-            }
-          >
-            <i className="bi bi-link-45deg" />
-          </button>
-          <button
-            className="btn btn-outline-warning"
-            onClick={() => {
-              setNewName(file.name || "");
-              setIsRenaming(true);
-            }}
-            title={t("files:file.rename")}
-          >
-            <i className="bi bi-pencil" />
-          </button>
-          <button
-            className="btn btn-outline-danger"
-            onClick={() => onDelete(file.path)}
-            title={t("files:file.delete")}
-          >
-            <i className="bi bi-trash" />
-          </button>
-        </div>
+        <ActionButtons
+          canDelete={canDelete}
+          onCopyLink={handleCopyLink}
+          onRename={() => {
+            setNewName(file.name || "");
+            setIsRenaming(true);
+          }}
+          onDelete={() => onDelete(file.path)}
+          file={file}
+          t={t}
+        />
       </td>
     </tr>
   );
@@ -381,6 +515,8 @@ FileRow.propTypes = {
   onMoveToFolder: PropTypes.func.isRequired,
   dragOverFolder: PropTypes.string,
   setDragOverFolder: PropTypes.func.isRequired,
+  canDelete: PropTypes.bool,
+  showMultiSelect: PropTypes.bool,
 };
 
 export default FileRow;

@@ -144,14 +144,14 @@ const LoginPage = () => {
                 <p className="powered-by-text mb-0">{subtitle}</p>
               </div>
 
-              {Boolean(error) && (
+              {error ? (
                 <div className="alert alert-danger" role="alert">
                   {error}
                 </div>
-              )}
+              ) : null}
 
               {/* OIDC Providers */}
-              {oidcMethods.length > 0 && (
+              {oidcMethods.length > 0 ? (
                 <div>
                   {oidcMethods.map((method) => {
                     const provider = method.id.replace("oidc-", "");
@@ -176,17 +176,17 @@ const LoginPage = () => {
                     );
                   })}
                 </div>
-              )}
+              ) : null}
 
               {/* Divider between OIDC and Basic Auth */}
-              {Boolean(oidcMethods.length > 0 && hasBasicAuth) && (
+              {oidcMethods.length > 0 && hasBasicAuth ? (
                 <div className="divider">
                   <span />
                 </div>
-              )}
+              ) : null}
 
               {/* Basic Auth Form */}
-              {Boolean(hasBasicAuth) && (
+              {hasBasicAuth ? (
                 <>
                   <h5 className="text-light mb-3 text-center">
                     {t("auth:login.basicAuth")}
@@ -255,7 +255,7 @@ const LoginPage = () => {
                     </button>
                   </form>
                 </>
-              )}
+              ) : null}
 
               <div className="text-center mt-3">
                 <small className="powered-by-text">

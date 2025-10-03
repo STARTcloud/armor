@@ -285,7 +285,9 @@ router.put('*splat', authenticateUploads, async (req, res, next) => {
       );
       let newFullPath = join(parentDir, sanitizedNewName);
       // Normalize and verify the new path is inside SERVED_DIR
-      newFullPath = resolve(SERVED_DIR, newFullPath.replace(SERVED_DIR, ''));
+      // Strip leading slash to ensure resolve() treats it as relative
+      const relativePath = newFullPath.replace(SERVED_DIR, '').replace(/^[/\\]/, '');
+      newFullPath = resolve(SERVED_DIR, relativePath);
       if (!newFullPath.startsWith(SERVED_DIR)) {
         return res.status(400).json({
           success: false,

@@ -100,21 +100,21 @@ const PWAStatus = () => {
       ) : null}
 
       {/* Offline Status Indicator */}
-      {!isAppOnline && (
+      {!isAppOnline ? (
         <span className="badge bg-warning text-dark me-2">
           <i className="bi bi-wifi-off" /> {t("common:pwa.offline")}
         </span>
-      )}
+      ) : null}
 
       {/* Queued Uploads Indicator */}
-      {queuedUploads > 0 && (
+      {queuedUploads > 0 ? (
         <span
           className="badge bg-info me-2"
           title={t("common:pwa.uploadsQueuedForSync", { count: queuedUploads })}
         >
           <i className="bi bi-cloud-upload" /> {queuedUploads}
         </span>
-      )}
+      ) : null}
 
       {/* Toast Notifications */}
       <ToastContainer position="top-end" className="p-3">

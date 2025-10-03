@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 
 import { getSupportedLanguages } from "../../i18n";
 import { useAuth } from "../auth/AuthContext";
@@ -19,7 +19,7 @@ const Header = () => {
     setShowLanguageModal(false);
   };
 
-  // Get language display name
+  // Get language display name ## Note from a human, this should be put in the translations files, not statically defined here
   const getLanguageDisplayName = (languageCode) => {
     const languageNames = {
       en: "English",
@@ -137,38 +137,33 @@ const Header = () => {
                 aria-labelledby="userDropdown"
               >
                 {location.pathname !== "/" &&
-                  !location.pathname.includes("view=index") && (
-                    <li>
-                      <a
-                        className="dropdown-item text-light"
-                        href="/?view=index"
-                      >
-                        <i className="bi bi-shield me-2" />
-                        {t("navigation.dashboard")}
-                      </a>
-                    </li>
-                  )}
-                {location.pathname !== "/api-keys" && (
+                !location.pathname.includes("view=index") ? (
                   <li>
-                    <a className="dropdown-item text-light" href="/api-keys">
+                    <Link
+                      to="/?view=index"
+                      className="dropdown-item text-light"
+                    >
+                      <i className="bi bi-shield me-2" />
+                      {t("navigation.dashboard")}
+                    </Link>
+                  </li>
+                ) : null}
+                {location.pathname !== "/api-keys" ? (
+                  <li>
+                    <Link to="/api-keys" className="dropdown-item text-light">
                       <i className="bi bi-key me-2" />
                       {t("navigation.apiKeys")}
-                    </a>
+                    </Link>
                   </li>
-                )}
-                {location.pathname !== "/api-docs" && (
+                ) : null}
+                {location.pathname !== "/api-docs" ? (
                   <li>
-                    <a
-                      className="dropdown-item text-light"
-                      href="/api-docs"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
+                    <Link to="/api-docs" className="dropdown-item text-light">
                       <i className="bi bi-book me-2" />
                       {t("navigation.apiDocumentation")}
-                    </a>
+                    </Link>
                   </li>
-                )}
+                ) : null}
                 <li>
                   <hr className="dropdown-divider border-secondary" />
                 </li>
@@ -241,9 +236,9 @@ const Header = () => {
                         <i className="bi bi-globe me-2" />
                         {getLanguageDisplayName(lang)}
                       </span>
-                      {i18n.language === lang && (
+                      {i18n.language === lang ? (
                         <i className="bi bi-check-circle text-success" />
-                      )}
+                      ) : null}
                     </button>
                   ))}
                 </div>

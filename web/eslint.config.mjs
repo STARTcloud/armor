@@ -270,7 +270,7 @@ export default [
       ],
       "react/no-unstable-nested-components": "error",
       "react/jsx-fragments": ["error", "syntax"],
-      "react/jsx-no-leaked-render": "error",
+      "react/jsx-no-leaked-render": ["error", { validStrategies: ["ternary"] }],
       "react/jsx-no-useless-fragment": "error",
 
       // === REACT HOOKS RULES ===

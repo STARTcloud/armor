@@ -5,18 +5,20 @@ import { useLocation } from "react-router-dom";
 import useFileOperations from "../../hooks/useFileOperations";
 import useSSE from "../../hooks/useSSE";
 import api from "../../utils/api";
+import { useAuth } from "../auth/AuthContext";
 import ConfirmModal from "../common/ConfirmModal";
-import SearchBar from "../search/SearchBar";
 import SearchResults from "../search/SearchResults";
 
 import ChecksumProgress from "./ChecksumProgress";
 import CreateFolderModal from "./CreateFolderModal";
+import FileManagerActionBar from "./FileManagerActionBar";
 import FileTable from "./FileTable";
 import UploadZone from "./UploadZone";
 
 const FileManager = () => {
   const location = useLocation();
   const { t } = useTranslation(["files", "common"]);
+  const { user } = useAuth();
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -35,6 +37,10 @@ const FileManager = () => {
   };
 
   const currentPath = getCurrentPath();
+
+  // Permission checks
+  const canUpload = user?.permissions?.includes("uploads") || false;
+  const canDelete = user?.permissions?.includes("delete") || false;
 
   const loadFiles = useCallback(async () => {
     try {
@@ -302,7 +308,7 @@ const FileManager = () => {
 
   return (
     <div className="container-fluid py-4">
-      {Boolean(error) && (
+      {error ? (
         <div
           className="alert alert-danger alert-dismissible fade show"
           role="alert"
@@ -315,70 +321,31 @@ const FileManager = () => {
             aria-label="Close"
           />
         </div>
-      )}
+      ) : null}
 
       {/* Upload Zone */}
-      {Boolean(showUpload) && (
+      {showUpload ? (
         <UploadZone
           currentPath={currentPath}
           onUploadComplete={() => loadFiles()}
         />
-      )}
+      ) : null}
 
       {/* Action Bar */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <div className="d-flex align-items-center gap-2">
-          <button
-            type="button"
-            className="btn btn-success"
-            onClick={() => setShowCreateFolder(true)}
-            title={t("files:folder.createFolderTooltip")}
-          >
-            <i className="bi bi-folder-plus" />
-          </button>
-          <button
-            type="button"
-            className={`btn ${showUpload ? "btn-primary" : "btn-outline-primary"}`}
-            onClick={() => setShowUpload(!showUpload)}
-            title={
-              showUpload
-                ? t("common:actions.hideUploadSection")
-                : t("common:actions.showUploadSection")
-            }
-          >
-            <i className="bi bi-cloud-upload" />
-          </button>
-          {selectedFiles.length > 0 && (
-            <>
-              <button
-                type="button"
-                className="btn btn-outline-danger"
-                onClick={handleDeleteSelected}
-                title={t("common:actions.deleteSelectedTooltip", {
-                  count: selectedFiles.length,
-                })}
-              >
-                <i className="bi bi-trash" />
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline-secondary"
-                onClick={clearSelection}
-                title={t("common:actions.clearSelectionTooltip")}
-              >
-                <i className="bi bi-x-circle" /> {t("common:buttons.clear")}
-              </button>
-            </>
-          )}
-        </div>
-        <div className="d-flex align-items-center gap-2">
-          <SearchBar
-            onSearch={handleSearch}
-            onClear={clearSearch}
-            value={searchQuery}
-          />
-        </div>
-      </div>
+      <FileManagerActionBar
+        canUpload={canUpload}
+        canDelete={canDelete}
+        selectedFiles={selectedFiles}
+        onCreateFolder={() => setShowCreateFolder(true)}
+        showUpload={showUpload}
+        onToggleUpload={() => setShowUpload(!showUpload)}
+        onDeleteSelected={handleDeleteSelected}
+        onClearSelection={clearSelection}
+        onSearch={handleSearch}
+        onClearSearch={clearSearch}
+        searchQuery={searchQuery}
+        t={t}
+      />
 
       {/* Search Results or File Table */}
       <div className="row">
@@ -400,6 +367,8 @@ const FileManager = () => {
               onSelectAll={handleSelectAll}
               onMoveToParent={handleMoveToParent}
               onMoveToFolder={handleMoveToFolder}
+              canDelete={canDelete}
+              canUpload={canUpload}
             />
           )}
         </div>

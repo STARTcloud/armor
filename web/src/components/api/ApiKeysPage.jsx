@@ -297,7 +297,7 @@ const ApiKeysPage = () => {
           >
             <i className="bi bi-key" />
           </button>
-          {selectedKeys.length > 0 && (
+          {selectedKeys.length > 0 ? (
             <button
               type="button"
               className="btn btn-outline-danger"
@@ -306,7 +306,7 @@ const ApiKeysPage = () => {
             >
               <i className="bi bi-trash me-1" />({selectedKeys.length})
             </button>
-          )}
+          ) : null}
         </div>
         <SearchBar
           onSearch={handleSearch}
@@ -315,7 +315,7 @@ const ApiKeysPage = () => {
         />
       </div>
 
-      {Boolean(error) && (
+      {error ? (
         <div
           className="alert alert-danger alert-dismissible fade show"
           role="alert"
@@ -328,7 +328,7 @@ const ApiKeysPage = () => {
             aria-label="Close"
           />
         </div>
-      )}
+      ) : null}
 
       <ApiKeysTable
         sortedKeys={sortedKeys}
@@ -353,7 +353,7 @@ const ApiKeysPage = () => {
       />
 
       {/* Show New Key Modal */}
-      {Boolean(showKeyModal && newKeyData) && (
+      {showKeyModal && newKeyData ? (
         <div
           className="modal show d-block"
           tabIndex="-1"
@@ -432,7 +432,7 @@ const ApiKeysPage = () => {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Delete Confirmation Modal */}
       <ConfirmModal

@@ -36,7 +36,7 @@ const router = express.Router();
  *               description: HTML content of the login page
  */
 router.get('/login', (req, res) => {
-  console.log('Login page requested from:', req.ip);
+  logAccess(req, 'LOGIN_PAGE', 'serving React app');
   res.sendFile('index.html', { root: './web/dist' });
 });
 
@@ -422,6 +422,7 @@ router.get('/auth/status', (req, res) => {
         email: decoded.email,
         name: decoded.name,
         provider: decoded.provider || 'basic',
+        permissions: decoded.permissions || [],
       },
     });
   } catch (error) {

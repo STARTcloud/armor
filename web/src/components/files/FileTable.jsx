@@ -14,6 +14,8 @@ const FileTable = ({
   onSelectAll,
   onMoveToParent,
   onMoveToFolder,
+  canDelete = false,
+  canUpload = false,
 }) => {
   const { t } = useTranslation(["files", "common"]);
   const [sortField, setSortField] = useState("name");
@@ -112,6 +114,39 @@ const FileTable = ({
     }
   };
 
+  // Only show multi-select if user has delete or upload permissions
+  const showMultiSelect = canDelete || canUpload;
+
+  const renderParentDirectoryRow = () => {
+    if (currentPath === "/" || selectedFiles.length === 0 || !showMultiSelect) {
+      return null;
+    }
+
+    return (
+      <tr
+        className={`parent-directory-row ${dragOver ? "drag-over" : ""}`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        style={{
+          backgroundColor: dragOver ? "rgba(129, 25, 55, 0.2)" : "transparent",
+          cursor: selectedFiles.length > 0 ? "pointer" : "default",
+        }}
+      >
+        <td style={{ width: "5%" }} />
+        <td>
+          <i className="bi bi-folder-up me-2 text-warning" />
+          <span className="text-muted">{t("files:table.parentDirectory")}</span>
+        </td>
+        <td className="text-muted">{t("files:table.folder")}</td>
+        <td className="text-muted">-</td>
+        <td className="text-muted">-</td>
+        <td className="text-muted">-</td>
+        <td />
+      </tr>
+    );
+  };
+
   return (
     <div className="card bg-dark border-secondary">
       <div className="card-header bg-dark border-secondary">
@@ -125,18 +160,20 @@ const FileTable = ({
           <thead>
             <tr>
               <th scope="col" style={{ width: "5%" }}>
-                <input
-                  type="checkbox"
-                  className="form-check-input"
-                  checked={allSelected}
-                  ref={(input) => {
-                    if (input) {
-                      input.indeterminate = someSelected;
-                    }
-                  }}
-                  onChange={handleSelectAllChange}
-                  title={t("files:table.selectAllFiles")}
-                />
+                {showMultiSelect ? (
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    checked={allSelected}
+                    ref={(input) => {
+                      if (input) {
+                        input.indeterminate = someSelected;
+                      }
+                    }}
+                    onChange={handleSelectAllChange}
+                    title={t("files:table.selectAllFiles")}
+                  />
+                ) : null}
               </th>
               <th
                 scope="col"
@@ -170,33 +207,7 @@ const FileTable = ({
             </tr>
           </thead>
           <tbody>
-            {currentPath !== "/" && selectedFiles.length > 0 && (
-              <tr
-                className={`parent-directory-row ${dragOver ? "drag-over" : ""}`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                style={{
-                  backgroundColor: dragOver
-                    ? "rgba(129, 25, 55, 0.2)"
-                    : "transparent",
-                  cursor: selectedFiles.length > 0 ? "pointer" : "default",
-                }}
-              >
-                <td style={{ width: "5%" }} />
-                <td>
-                  <i className="bi bi-folder-up me-2 text-warning" />
-                  <span className="text-muted">
-                    {t("files:table.parentDirectory")}
-                  </span>
-                </td>
-                <td className="text-muted">{t("files:table.folder")}</td>
-                <td className="text-muted">-</td>
-                <td className="text-muted">-</td>
-                <td className="text-muted">-</td>
-                <td />
-              </tr>
-            )}
+            {renderParentDirectoryRow()}
             {isEmpty ? (
               <tr>
                 <td colSpan="7" className="text-center py-5">
@@ -225,6 +236,8 @@ const FileTable = ({
                   onMoveToFolder={onMoveToFolder}
                   dragOverFolder={dragOverFolder}
                   setDragOverFolder={setDragOverFolder}
+                  canDelete={canDelete}
+                  showMultiSelect={showMultiSelect}
                 />
               ))
             )}
@@ -245,6 +258,8 @@ FileTable.propTypes = {
   onSelectAll: PropTypes.func.isRequired,
   onMoveToParent: PropTypes.func.isRequired,
   onMoveToFolder: PropTypes.func.isRequired,
+  canDelete: PropTypes.bool,
+  canUpload: PropTypes.bool,
 };
 
 export default FileTable;

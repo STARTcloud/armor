@@ -50,7 +50,7 @@ const UploadProgress = ({ upload, onRemove, onRetry }) => {
             <div className="text-light fw-medium">{upload.file.name}</div>
             <small className="text-muted">
               {formatFileSize(upload.file.size)}
-              {upload.status === "uploading" && ` • ${upload.progress}%`}
+              {upload.status === "uploading" ? ` • ${upload.progress}%` : null}
               {upload.status === "error" && upload.error
                 ? ` • ${upload.error}`
                 : null}
@@ -58,7 +58,7 @@ const UploadProgress = ({ upload, onRemove, onRetry }) => {
           </div>
         </div>
         <div className="btn-group btn-group-sm ms-2">
-          {upload.status === "error" && (
+          {upload.status === "error" ? (
             <button
               className="btn btn-outline-warning"
               onClick={() => onRetry(upload)}
@@ -66,7 +66,7 @@ const UploadProgress = ({ upload, onRemove, onRetry }) => {
             >
               <i className="bi bi-arrow-clockwise" />
             </button>
-          )}
+          ) : null}
           <button
             className="btn btn-outline-secondary"
             onClick={() => onRemove(upload.id)}
@@ -78,7 +78,7 @@ const UploadProgress = ({ upload, onRemove, onRetry }) => {
       </div>
 
       {/* Progress Bar */}
-      {(upload.status === "uploading" || upload.status === "completed") && (
+      {upload.status === "uploading" || upload.status === "completed" ? (
         <div className="progress" style={{ height: "4px" }}>
           <div
             className={`progress-bar ${getProgressBarClass()}`}
@@ -89,7 +89,7 @@ const UploadProgress = ({ upload, onRemove, onRetry }) => {
             aria-valuemax="100"
           />
         </div>
-      )}
+      ) : null}
     </div>
   );
 };

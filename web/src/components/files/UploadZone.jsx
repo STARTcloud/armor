@@ -177,7 +177,7 @@ const UploadZone = ({ currentPath, onUploadComplete }) => {
       </div>
 
       {/* Upload Progress */}
-      {uploads.length > 0 && (
+      {uploads.length > 0 ? (
         <div className="upload-list">
           <div className="d-flex justify-content-between align-items-center mb-3">
             <h6 className="text-light mb-0">
@@ -185,14 +185,14 @@ const UploadZone = ({ currentPath, onUploadComplete }) => {
               {uploads.filter((u) => u.status === "completed").length}/
               {uploads.length})
             </h6>
-            {uploads.some((u) => u.status === "completed") && (
+            {uploads.some((u) => u.status === "completed") ? (
               <button
                 className="btn btn-sm btn-outline-secondary"
                 onClick={clearCompleted}
               >
                 {t("common:actions.clear")} {t("common:status.completed")}
               </button>
-            )}
+            ) : null}
           </div>
           <div className="list-group list-group-flush">
             {uploads.map((upload) => (
@@ -205,7 +205,7 @@ const UploadZone = ({ currentPath, onUploadComplete }) => {
             ))}
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 };

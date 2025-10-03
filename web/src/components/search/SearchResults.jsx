@@ -256,7 +256,7 @@ const SearchResults = ({ results, query, onClear }) => {
                       </a>
                     )}
 
-                    {file.path !== "/" && (
+                    {file.path !== "/" ? (
                       <Link
                         to={getContainingFolder(file.path)}
                         className="btn btn-outline-secondary"
@@ -264,7 +264,7 @@ const SearchResults = ({ results, query, onClear }) => {
                       >
                         <i className="bi bi-folder" />
                       </Link>
-                    )}
+                    ) : null}
                   </div>
                 </td>
               </tr>

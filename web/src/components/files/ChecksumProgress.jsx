@@ -68,7 +68,7 @@ const ChecksumProgress = ({ progressData }) => {
             <strong>{progressData.percentage.toFixed(1)}%</strong>
           </small>
 
-          {progressData.activeProcessing > 0 && (
+          {progressData.activeProcessing > 0 ? (
             <small className="text-primary">
               <i
                 className="bi bi-gear-fill me-1"
@@ -80,17 +80,17 @@ const ChecksumProgress = ({ progressData }) => {
                 count: progressData.activeProcessing,
               })}
             </small>
-          )}
+          ) : null}
 
           <small className="text-light">{getStatusText()}</small>
         </div>
 
-        {progressData.error > 0 && (
+        {progressData.error > 0 ? (
           <small className="text-danger">
             <i className="bi bi-exclamation-triangle me-1" />
             {progressData.error} {t("files:checksum.failed")}
           </small>
-        )}
+        ) : null}
       </div>
     </div>
   );

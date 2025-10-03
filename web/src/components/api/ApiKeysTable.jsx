@@ -38,8 +38,9 @@ const ApiKeysTable = ({
                     type="checkbox"
                     className="form-check-input"
                     checked={
-                      sortedKeys.length > 0 &&
-                      selectedKeys.length === sortedKeys.length
+                      sortedKeys.length > 0
+                        ? selectedKeys.length === sortedKeys.length
+                        : null
                     }
                     ref={(input) => {
                       if (input) {
@@ -67,11 +68,11 @@ const ApiKeysTable = ({
                   aria-label="Sort by name"
                 >
                   {t("api:keys.name")}{" "}
-                  {sortField === "name" && (
+                  {sortField === "name" ? (
                     <i
                       className={`bi bi-arrow-${sortDirection === "asc" ? "up" : "down"} ms-1`}
                     />
-                  )}
+                  ) : null}
                 </th>
                 <th scope="col">{t("api:keys.keyPreview")}</th>
                 <th scope="col">{t("api:keys.permissions")}</th>
@@ -90,11 +91,11 @@ const ApiKeysTable = ({
                   aria-label="Sort by expiration date"
                 >
                   {t("api:keys.expires")}{" "}
-                  {sortField === "expires_at" && (
+                  {sortField === "expires_at" ? (
                     <i
                       className={`bi bi-arrow-${sortDirection === "asc" ? "up" : "down"} ms-1`}
                     />
-                  )}
+                  ) : null}
                 </th>
                 <th
                   scope="col"
@@ -111,11 +112,11 @@ const ApiKeysTable = ({
                   aria-label="Sort by last used date"
                 >
                   {t("api:keys.lastUsed")}{" "}
-                  {sortField === "last_used" && (
+                  {sortField === "last_used" ? (
                     <i
                       className={`bi bi-arrow-${sortDirection === "asc" ? "up" : "down"} ms-1`}
                     />
-                  )}
+                  ) : null}
                 </th>
                 <th scope="col" width="120">
                   {t("api:keys.actions")}

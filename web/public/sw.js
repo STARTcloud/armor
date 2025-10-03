@@ -8,9 +8,8 @@ const STATIC_CACHE = "armor-static-v1.13.3";
 const API_CACHE = "armor-api-v1.13.3";
 
 // Resources to cache immediately
+// NOTE: Do NOT cache "/" or "/index.html" as they depend on authentication state
 const STATIC_RESOURCES = [
-  "/",
-  "/index.html",
   "/favicon.ico",
   "/images/logo192.png",
   "/images/logo512.png",
@@ -77,10 +76,16 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests, chrome-extension requests, and SSE endpoints
+  // Skip non-GET requests, browser extension requests, SSE endpoints, and auth-dependent pages
   if (
     request.method !== "GET" ||
+    url.pathname === "/" ||
+    url.pathname === "/index.html" ||
+    url.pathname.startsWith("/login") ||
+    url.pathname.startsWith("/api/") ||
+    url.pathname.startsWith("/auth/") ||
     url.protocol === "chrome-extension:" ||
+    url.protocol === "moz-extension:" ||
     url.pathname.startsWith("/api/events") ||
     request.headers.get("accept")?.includes("text/event-stream") ||
     request.headers.get("cache-control") === "no-cache"
