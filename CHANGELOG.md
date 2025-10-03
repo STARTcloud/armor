@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.15.0](https://github.com/STARTcloud/armor/compare/v1.14.7...v1.15.0) (2025-10-03)
+
+
+### Features
+
+* guest user -- restricted access ([495e6b8](https://github.com/STARTcloud/armor/commit/495e6b88043ac2fbcbf958845bdd14112d2a491c))
+
+
+### Bug Fixes
+
+* index.html ([3b1878d](https://github.com/STARTcloud/armor/commit/3b1878d5407c317b598650b61de5ab60ff48b90a))
+
 ## [1.14.7](https://github.com/STARTcloud/armor/compare/v1.14.6...v1.14.7) (2025-10-03)
 
 
