@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { HelmetProvider } from "@dr.pogodin/react-helmet";
 import { I18nextProvider, useTranslation } from "react-i18next";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
@@ -49,13 +50,14 @@ const App = () => {
   );
 
   return (
-    <I18nextProvider i18n={i18n}>
-      <ErrorBoundary showErrorDetails={isDevelopment}>
-        <Suspense fallback={<LoadingFallback />}>
-          <AuthProvider>
-            <Router>
-              <Routes>
-                <Route path="/login" element={loginElement} />
+    <HelmetProvider>
+      <I18nextProvider i18n={i18n}>
+        <ErrorBoundary showErrorDetails={isDevelopment}>
+          <Suspense fallback={<LoadingFallback />}>
+            <AuthProvider>
+              <Router>
+                <Routes>
+                  <Route path="/login" element={loginElement} />
                 <Route path="/api-keys" element={apiKeysElement} />
                 <Route path="/api-docs" element={apiDocsElement} />
                 <Route path="*" element={fileRouteElement} />
@@ -65,6 +67,7 @@ const App = () => {
         </Suspense>
       </ErrorBoundary>
     </I18nextProvider>
+  </HelmetProvider>
   );
 };
 

@@ -1,10 +1,15 @@
 import PropTypes from "prop-types";
+import { Helmet } from "@dr.pogodin/react-helmet";
 
 import Footer from "./Footer";
 import Header from "./Header";
 
 const Layout = ({ children }) => (
   <div className="min-vh-100 bg-dark text-light d-flex flex-column">
+    <Helmet>
+      <title>Armor</title>
+      <titleTemplate>%s - Armor</titleTemplate>
+    </Helmet>
     <div className="main-content">
       <div className="container layout-container">
         <Header />

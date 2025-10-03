@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
+import { Helmet } from "@dr.pogodin/react-helmet";
 import { useTranslation } from "react-i18next";
-import { Navigate, useSearchParams } from "react-router-dom";
+import { Navigate, a, useSearchParams } from "react-router-dom";
 
 import api from "../../utils/api";
 
@@ -134,6 +135,9 @@ const LoginPage = () => {
 
   return (
     <div className="login-container">
+      <Helmet>
+        <title>{t("auth:login.title")}</title>
+      </Helmet>
       <div className="container">
         <div className="row justify-content-center">
           <div className="col-md-6 col-lg-4">
