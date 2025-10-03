@@ -4,7 +4,6 @@ import { promises as fs } from 'fs';
 import { join, basename, extname, resolve } from 'path';
 import { Op } from 'sequelize';
 import auth from 'basic-auth';
-import escapeHtml from 'escape-html';
 import { SERVED_DIR, getSecurePath } from '../config/paths.js';
 import {
   authenticateDownloads,
@@ -55,7 +54,7 @@ const handleLandingPageResponse = (req, res) => {
 };
 
 // Helper function to handle directory listing
-const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
+const handleDirectoryListing = async (req, res, fullPath) => {
   const uploadCredentials = auth(req);
   const isAllowed = isAllowedDirectory(fullPath, SERVED_DIR);
 
@@ -64,19 +63,12 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
     return res.redirect('/');
   }
 
-  // Guest users should never see directory listings - serve landing page instead
-  const isGuest = req.oidcUser?.permissions?.includes('restricted');
-  if (isGuest) {
-    logAccess(req, 'GUEST_DIRECTORY_BLOCKED', 'serving landing page for guest user');
-    const indexPath = join(process.cwd(), 'web', 'dist', 'index.html');
-    return res.sendFile(indexPath);
-  }
-
   const serverConfig = configLoader.getServerConfig();
   const relativePath = fullPath.replace(SERVED_DIR, '').replace(/\\/g, '/');
   const isRoot = fullPath === SERVED_DIR || fullPath === `${SERVED_DIR}/`;
   const isAdmin =
     req.oidcUser?.permissions?.includes('uploads') || req.isAuthenticated === 'uploads';
+  const isGuest = req.oidcUser?.permissions?.includes('restricted');
   const viewIndex = req.query.view === 'index';
 
   accessLogger.info('Root page check', {
@@ -85,7 +77,7 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
     isRoot,
     showRootIndex: serverConfig.show_root_index,
     isAdmin,
-    isGuest: isGuest,
+    isGuest,
     viewIndex,
     willShowLandingPage: shouldShowLandingPage(isRoot, serverConfig, isAdmin, viewIndex, req.query),
   });
@@ -96,14 +88,17 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
 
   const staticContent = await getStaticContent(fullPath);
   if (staticContent) {
-    const baseUrl = requestPath.endsWith('/') ? requestPath : `${requestPath}/`;
-    const escapedBaseUrl = escapeHtml(baseUrl);
-    const contentWithBase = staticContent.replace(
-      '</head>',
-      `<base href="${escapedBaseUrl}"></head>`
-    );
-    logAccess(req, 'STATIC_PAGE', 'serving static index.html');
-    return res.send(contentWithBase);
+    // Serve React app so static content can be displayed within Layout
+    const indexPath = join(process.cwd(), 'web', 'dist', 'index.html');
+    logAccess(req, 'STATIC_PAGE', 'serving React app for static content display');
+    return res.sendFile(indexPath);
+  }
+
+  // Guest users without static content should see landing page
+  if (isGuest) {
+    logAccess(req, 'GUEST_DIRECTORY_BLOCKED', 'serving landing page for guest user');
+    const indexPath = join(process.cwd(), 'web', 'dist', 'index.html');
+    return res.sendFile(indexPath);
   }
 
   if (shouldShowLandingPage(isRoot, serverConfig, isAdmin, viewIndex, req.query)) {
@@ -149,6 +144,133 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
+
+/**
+ * @swagger
+ * /static:
+ *   get:
+ *     summary: Get static HTML content for root directory
+ *     description: Retrieve custom index.html content from root directory if it exists
+ *     tags: [Files]
+ *     security:
+ *       - ApiKeyAuth: []
+ *       - JwtAuth: []
+ *     responses:
+ *       200:
+ *         description: Static content retrieved or not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 hasStatic:
+ *                   type: boolean
+ *                   description: Whether static content exists
+ *                   example: true
+ *                 content:
+ *                   type: string
+ *                   description: HTML body content from index.html
+ *                   example: "<h1>Welcome</h1><p>This is custom content</p>"
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.get('/static', authenticateDownloads, async (req, res) => {
+  try {
+    logger.debug('Fetching static content for root', { ip: req.ip });
+    const fullPath = getSecurePath('');
+    const staticContent = await getStaticContent(fullPath);
+
+    if (staticContent) {
+      return res.json({
+        hasStatic: true,
+        content: staticContent,
+      });
+    }
+
+    return res.json({
+      hasStatic: false,
+    });
+  } catch (error) {
+    logger.error('Static content fetch error (root)', { error: error.message });
+    return res.status(500).json({
+      hasStatic: false,
+      error: 'Failed to fetch static content',
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /{path}/static:
+ *   get:
+ *     summary: Get static HTML content for directory
+ *     description: Retrieve custom index.html content from specified directory if it exists
+ *     tags: [Files]
+ *     security:
+ *       - ApiKeyAuth: []
+ *       - JwtAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Directory path to check for static content
+ *         example: /uploads
+ *     responses:
+ *       200:
+ *         description: Static content retrieved or not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 hasStatic:
+ *                   type: boolean
+ *                   description: Whether static content exists
+ *                   example: true
+ *                 content:
+ *                   type: string
+ *                   description: HTML body content from index.html
+ *                   example: "<h1>Welcome</h1><p>This is custom content</p>"
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.get('*splat/static', authenticateDownloads, async (req, res) => {
+  const requestPath = Array.isArray(req.params.splat)
+    ? req.params.splat.join('/')
+    : req.params.splat || '';
+
+  try {
+    const fullPath = getSecurePath(requestPath);
+    const staticContent = await getStaticContent(fullPath);
+
+    if (staticContent) {
+      return res.json({
+        hasStatic: true,
+        content: staticContent,
+      });
+    }
+
+    return res.json({
+      hasStatic: false,
+    });
+  } catch (error) {
+    logger.error('Static content fetch error', { error: error.message, path: requestPath });
+    return res.status(500).json({
+      hasStatic: false,
+      error: 'Failed to fetch static content',
+    });
+  }
+});
 
 /**
  * @swagger
@@ -243,14 +365,14 @@ router.get('*splat', authenticateDownloads, async (req, res) => {
         if (!isAdmin) {
           const staticContent = await getStaticContent(fullPath);
           if (staticContent) {
-            const baseUrl = requestPath.endsWith('/') ? requestPath : `${requestPath}/`;
-            const escapedBaseUrl = escapeHtml(baseUrl);
-            const contentWithBase = staticContent.replace(
-              '</head>',
-              `<base href="${escapedBaseUrl}"></head>`
+            // Serve React app so static content can be displayed within Layout
+            const indexPath = join(process.cwd(), 'web', 'dist', 'index.html');
+            logAccess(
+              req,
+              'STATIC_PAGE',
+              'serving React app for static content display (no slash)'
             );
-            logAccess(req, 'STATIC_PAGE', 'serving static index.html (no redirect needed)');
-            return res.send(contentWithBase);
+            return res.sendFile(indexPath);
           }
 
           // Guest users with no static index.html should see landing page
@@ -279,7 +401,7 @@ router.get('*splat', authenticateDownloads, async (req, res) => {
 
         return res.redirect(301, finalRedirectPath);
       }
-      return handleDirectoryListing(req, res, fullPath, requestPath);
+      return handleDirectoryListing(req, res, fullPath);
     }
 
     // Handle file download
@@ -922,6 +1044,133 @@ router.post('*splat/search', authenticateDownloads, async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Search failed',
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /static:
+ *   get:
+ *     summary: Get static HTML content for root directory
+ *     description: Retrieve custom index.html content from root directory if it exists
+ *     tags: [Files]
+ *     security:
+ *       - ApiKeyAuth: []
+ *       - JwtAuth: []
+ *     responses:
+ *       200:
+ *         description: Static content retrieved or not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 hasStatic:
+ *                   type: boolean
+ *                   description: Whether static content exists
+ *                   example: true
+ *                 content:
+ *                   type: string
+ *                   description: HTML body content from index.html
+ *                   example: "<h1>Welcome</h1><p>This is custom content</p>"
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.get('/static', authenticateDownloads, async (req, res) => {
+  try {
+    logger.debug('Fetching static content for root', { ip: req.ip });
+    const fullPath = getSecurePath('');
+    const staticContent = await getStaticContent(fullPath);
+
+    if (staticContent) {
+      return res.json({
+        hasStatic: true,
+        content: staticContent,
+      });
+    }
+
+    return res.json({
+      hasStatic: false,
+    });
+  } catch (error) {
+    logger.error('Static content fetch error (root)', { error: error.message });
+    return res.status(500).json({
+      hasStatic: false,
+      error: 'Failed to fetch static content',
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /{path}/static:
+ *   get:
+ *     summary: Get static HTML content for directory
+ *     description: Retrieve custom index.html content from specified directory if it exists
+ *     tags: [Files]
+ *     security:
+ *       - ApiKeyAuth: []
+ *       - JwtAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Directory path to check for static content
+ *         example: /uploads
+ *     responses:
+ *       200:
+ *         description: Static content retrieved or not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 hasStatic:
+ *                   type: boolean
+ *                   description: Whether static content exists
+ *                   example: true
+ *                 content:
+ *                   type: string
+ *                   description: HTML body content from index.html
+ *                   example: "<h1>Welcome</h1><p>This is custom content</p>"
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.get('*splat/static', authenticateDownloads, async (req, res) => {
+  const requestPath = Array.isArray(req.params.splat)
+    ? req.params.splat.join('/')
+    : req.params.splat || '';
+
+  try {
+    const fullPath = getSecurePath(requestPath);
+    const staticContent = await getStaticContent(fullPath);
+
+    if (staticContent) {
+      return res.json({
+        hasStatic: true,
+        content: staticContent,
+      });
+    }
+
+    return res.json({
+      hasStatic: false,
+    });
+  } catch (error) {
+    logger.error('Static content fetch error', { error: error.message, path: requestPath });
+    return res.status(500).json({
+      hasStatic: false,
+      error: 'Failed to fetch static content',
     });
   }
 });

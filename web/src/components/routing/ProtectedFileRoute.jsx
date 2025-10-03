@@ -20,9 +20,10 @@ const ProtectedFileRoute = () => {
   const viewIndex = searchParams.get("view") === "index";
   const isRoot = currentPath === "/";
   const isGuest = user?.permissions?.includes("restricted");
-  
-  // Guest users should always see the landing page, never the file manager
-  const showLandingPage = isGuest || (isRoot && !viewIndex);
+
+  // Guest users see landing page at root OR when accessing paths without view param
+  // FileManager will check for static content and handle accordingly
+  const showLandingPage = isGuest && isRoot && !viewIndex;
 
   return (
     <ProtectedRoute>

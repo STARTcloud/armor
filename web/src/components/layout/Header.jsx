@@ -148,7 +148,8 @@ const Header = () => {
                     </Link>
                   </li>
                 ) : null}
-                {location.pathname !== "/api-keys" ? (
+                {!user?.permissions?.includes("restricted") &&
+                location.pathname !== "/api-keys" ? (
                   <li>
                     <Link to="/api-keys" className="dropdown-item text-light">
                       <i className="bi bi-key me-2" />
@@ -156,7 +157,8 @@ const Header = () => {
                     </Link>
                   </li>
                 ) : null}
-                {location.pathname !== "/api-docs" ? (
+                {!user?.permissions?.includes("restricted") &&
+                location.pathname !== "/api-docs" ? (
                   <li>
                     <Link to="/api-docs" className="dropdown-item text-light">
                       <i className="bi bi-book me-2" />
