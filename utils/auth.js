@@ -18,9 +18,9 @@ export const isValidUser = (credentials, requiredRole = null) => {
     return foundUser;
   }
 
-  // Role-based permissions: user = downloads only, admin = downloads + uploads
+  // Role-based permissions: guest/user = downloads only, admin = downloads + uploads
   if (requiredRole === 'downloads') {
-    return foundUser.role === 'user' || foundUser.role === 'admin';
+    return foundUser.role === 'user' || foundUser.role === 'admin' || foundUser.role === 'guest';
   }
 
   if (requiredRole === 'uploads') {
@@ -36,6 +36,11 @@ export const getUserPermissions = user => {
   if (user.role === 'admin') {
     permissions.push('uploads'); // Admins also get uploads
     permissions.push('delete'); // Admins can delete files
+  }
+
+  // Guest users only get downloads, no directory listings
+  if (user.role === 'guest') {
+    permissions.push('restricted'); // Mark as restricted access
   }
 
   return permissions;

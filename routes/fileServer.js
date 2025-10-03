@@ -64,6 +64,14 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
     return res.redirect('/');
   }
 
+  // Guest users should never see directory listings - serve landing page instead
+  const isGuest = req.oidcUser?.permissions?.includes('restricted');
+  if (isGuest) {
+    logAccess(req, 'GUEST_DIRECTORY_BLOCKED', 'serving landing page for guest user');
+    const indexPath = join(process.cwd(), 'web', 'dist', 'index.html');
+    return res.sendFile(indexPath);
+  }
+
   const serverConfig = configLoader.getServerConfig();
   const relativePath = fullPath.replace(SERVED_DIR, '').replace(/\\/g, '/');
   const isRoot = fullPath === SERVED_DIR || fullPath === `${SERVED_DIR}/`;
@@ -77,6 +85,7 @@ const handleDirectoryListing = async (req, res, fullPath, requestPath) => {
     isRoot,
     showRootIndex: serverConfig.show_root_index,
     isAdmin,
+    isGuest: isGuest,
     viewIndex,
     willShowLandingPage: shouldShowLandingPage(isRoot, serverConfig, isAdmin, viewIndex, req.query),
   });
@@ -224,9 +233,34 @@ router.get('*splat', authenticateDownloads, async (req, res) => {
     const stats = await fs.stat(fullPath);
 
     if (stats.isDirectory()) {
+      // Check if user is non-admin and if static index.html exists
+      const isAdmin =
+        req.oidcUser?.permissions?.includes('uploads') || req.isAuthenticated === 'uploads';
+      const isGuest = req.oidcUser?.permissions?.includes('restricted');
+
       if (!requestPath.endsWith('/')) {
-        // Instead of using user input for redirect, reconstruct the canonical directory path
-        // using server-side logic based on the validated full path
+        // For non-admin users, check for static index.html before redirecting
+        if (!isAdmin) {
+          const staticContent = await getStaticContent(fullPath);
+          if (staticContent) {
+            const baseUrl = requestPath.endsWith('/') ? requestPath : `${requestPath}/`;
+            const escapedBaseUrl = escapeHtml(baseUrl);
+            const contentWithBase = staticContent.replace(
+              '</head>',
+              `<base href="${escapedBaseUrl}"></head>`
+            );
+            logAccess(req, 'STATIC_PAGE', 'serving static index.html (no redirect needed)');
+            return res.send(contentWithBase);
+          }
+
+          // Guest users with no static index.html should see landing page
+          if (isGuest) {
+            logAccess(req, 'GUEST_NO_INDEX', 'redirecting guest user to landing page');
+            return res.redirect('/');
+          }
+        }
+
+        // Admin users or no static content found - redirect to add trailing slash
         const relativeDirPath = fullPath.replace(SERVED_DIR, '').replace(/\\/g, '/');
         const canonicalRedirectPath = relativeDirPath.startsWith('/')
           ? relativeDirPath
@@ -1095,7 +1129,6 @@ router.post('*splat/folders', authenticateUploads, async (req, res) => {
   }
 });
 
-// Keep legacy support for backwards compatibility
 router.post('*splat', (req, res, next) => {
   if (req.query.auth === '1') {
     return authenticateUploads(req, res, () => {

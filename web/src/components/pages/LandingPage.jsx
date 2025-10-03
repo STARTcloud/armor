@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import api from "../../utils/api";
+import { useAuth } from "../auth/AuthContext";
 import Footer from "../layout/Footer";
 
 const getConfigValue = (config, uiKey, fallbackKey, defaultValue) =>
@@ -42,6 +43,7 @@ const getStyles = (primaryColor) => ({
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { t } = useTranslation(["common", "auth"]);
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -116,13 +118,16 @@ const LandingPage = () => {
 
   const styles = getStyles(primaryColor);
 
+  // Check if user is a guest (has restricted permission)
+  const isGuest = user?.permissions?.includes("restricted");
+
   return (
     <div style={styles.body}>
       <div style={styles.mainContent}>
         <div style={styles.landingCard}>
           <div style={styles.shieldIcon}>
             <button
-              onClick={() => navigate("/?view=index")}
+              onClick={() => !isGuest && navigate("/?view=index")}
               style={{
                 color: "inherit",
                 textDecoration: "none",

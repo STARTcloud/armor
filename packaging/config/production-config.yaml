@@ -1,5 +1,5 @@
 server:
-  config_version: 1.14.5
+  config_version: 1.14.7
   domain: "local.home.Mydomain.net"
   port: 443
   show_root_index: false
