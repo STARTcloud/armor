@@ -1,5 +1,6 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import * as jose from 'jose';
 import * as client from 'openid-client';
 import configLoader from '../config/configLoader.js';
 import { isValidUser, getUserPermissions } from '../utils/auth.js';
@@ -928,9 +929,21 @@ router.post('/auth/logout/backchannel', async (req, res) => {
       });
     }
 
-    // Verify the logout_token signature
+    // Verify the logout_token signature using jose library
     try {
-      await client.validateJWTLogoutToken(oidcConfig, logout_token);
+      const jwksUri = oidcConfig.serverMetadata().jwks_uri;
+      const JWKS = jose.createRemoteJWKSet(new URL(jwksUri));
+
+      const { payload } = await jose.jwtVerify(logout_token, JWKS, {
+        issuer: iss,
+        audience: providerEntry[1].client_id,
+      });
+
+      logger.info('Logout token validated successfully', {
+        provider: providerName,
+        sub: payload.sub,
+        sid: payload.sid,
+      });
     } catch (error) {
       logger.error('Logout token validation failed', {
         provider: providerName,
