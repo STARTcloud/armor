@@ -255,9 +255,13 @@ router.get('/auth/oidc/callback', async (req, res) => {
     // Handle the callback using v6 API
     const { user, tokens } = await handleOidcCallback(provider, currentUrl, state, codeVerifier);
 
-    // Generate JWT token with jti for revocation support
+    // Generate JWT token with jti and sub for revocation support
     const authConfig = configLoader.getAuthenticationConfig();
     const jti = `${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
+    // Extract sub from ID token for backchannel logout matching
+    const idTokenClaims = tokens?.claims();
+    const oidcSub = idTokenClaims?.sub;
 
     const token = jwt.sign(
       {
@@ -268,6 +272,7 @@ router.get('/auth/oidc/callback', async (req, res) => {
         permissions: user.permissions,
         role: user.role,
         id_token: tokens?.id_token,
+        sub: oidcSub, // Store OIDC sub for backchannel logout
         jti,
       },
       authConfig.jwt_secret,
