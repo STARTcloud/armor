@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.2](https://github.com/STARTcloud/armor/compare/v1.16.1...v1.16.2) (2025-10-05)
+
+
+### Bug Fixes
+
+* backchannel logout verification via jose sinece openid-client won't support this, including sub in jwt token generation for revocation to work ([1106624](https://github.com/STARTcloud/armor/commit/1106624dc7e497633cd1eb2b8aa03b2b7e992e39))
+
 ## [1.16.1](https://github.com/STARTcloud/armor/compare/v1.16.0...v1.16.1) (2025-10-05)
 
 
