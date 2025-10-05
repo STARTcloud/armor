@@ -4,6 +4,7 @@ import { databaseLogger } from './logger.js';
 import { initializeFileModel } from '../models/File.js';
 import { initializeUserModel } from '../models/User.js';
 import { initializeApiKeyModel } from '../models/ApiKey.js';
+import { initializeRevokedTokenModel } from '../models/RevokedToken.js';
 
 let sequelize = null;
 
@@ -76,6 +77,7 @@ export const initializeDatabase = async () => {
     initializeFileModel(sequelize);
     initializeUserModel(sequelize);
     initializeApiKeyModel(sequelize);
+    initializeRevokedTokenModel(sequelize);
 
     await sequelize.sync({ alter: false });
     databaseLogger.info('Database synchronized');
@@ -93,6 +95,13 @@ export const initializeDatabase = async () => {
 };
 
 export const getDatabase = () => {
+  if (!sequelize) {
+    throw new Error('Database not initialized. Call initializeDatabase() first.');
+  }
+  return sequelize;
+};
+
+export const getSequelize = () => {
   if (!sequelize) {
     throw new Error('Database not initialized. Call initializeDatabase() first.');
   }

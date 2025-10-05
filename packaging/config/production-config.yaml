@@ -57,6 +57,10 @@ authentication:
   oidc_global_hidden: false  # Set to true to hide all OIDC providers by default
   basic_auth_hidden: false   # Set to true to hide basic authentication by default
   
+  # Backchannel logout configuration
+  backchannel_logout:
+    enabled: true  # Enable/disable backchannel logout endpoint
+  
   local:
     users:
     allowed_directories:

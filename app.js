@@ -25,6 +25,7 @@ import swaggerRoutes from './routes/swagger.js';
 import { setupHTTPSServer } from './utils/sslManager.js';
 import maintenanceService from './services/maintenanceService.js';
 import checksumService from './services/checksumService.js';
+import { checkTokenRevocation } from './middleware/tokenRevocation.js';
 
 const app = express();
 
@@ -209,6 +210,9 @@ const startServer = async () => {
 
   // Apply selective CSRF protection
   app.use(selectiveCSRF);
+
+  // Check for revoked tokens (applies to all authenticated requests)
+  app.use(checkTokenRevocation);
 
   app.use('/', authRoutes);
 

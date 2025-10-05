@@ -8,7 +8,9 @@ import {
   buildAuthorizationUrl,
   handleOidcCallback,
   buildEndSessionUrl,
+  getOidcConfiguration,
 } from '../config/passport.js';
+import { revokeUserTokens } from '../middleware/tokenRevocation.js';
 
 /**
  * @swagger
@@ -252,8 +254,10 @@ router.get('/auth/oidc/callback', async (req, res) => {
     // Handle the callback using v6 API
     const { user, tokens } = await handleOidcCallback(provider, currentUrl, state, codeVerifier);
 
-    // Generate JWT token
+    // Generate JWT token with jti for revocation support
     const authConfig = configLoader.getAuthenticationConfig();
+    const jti = `${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
     const token = jwt.sign(
       {
         userId: user.id,
@@ -263,6 +267,7 @@ router.get('/auth/oidc/callback', async (req, res) => {
         permissions: user.permissions,
         role: user.role,
         id_token: tokens?.id_token,
+        jti,
       },
       authConfig.jwt_secret,
       {
@@ -602,12 +607,15 @@ router.post('/auth/login/basic', (req, res) => {
   const permissions = getUserPermissions(user);
 
   const authConfig = configLoader.getAuthenticationConfig();
+  const jti = `basic-${username}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
   const token = jwt.sign(
     {
       username: user.username,
       role: user.role,
       permissions,
       authType: 'basic',
+      jti,
     },
     authConfig.jwt_secret,
     {
@@ -782,6 +790,183 @@ router.post('/auth/logout/local', (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Local logout failed',
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /auth/logout/backchannel:
+ *   post:
+ *     summary: OIDC backchannel logout
+ *     description: Receives logout notifications from OIDC providers when users log out. Validates the logout_token JWT and revokes user sessions based on configuration.
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/x-www-form-urlencoded:
+ *           schema:
+ *             type: object
+ *             required: [logout_token]
+ *             properties:
+ *               logout_token:
+ *                 type: string
+ *                 description: Signed JWT containing logout information
+ *                 example: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+ *     responses:
+ *       200:
+ *         description: Logout processed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       400:
+ *         description: Invalid logout token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: invalid_request
+ *                 error_description:
+ *                   type: string
+ *                   example: Invalid logout_token
+ *       501:
+ *         description: Backchannel logout not enabled
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: unsupported_logout_method
+ *                 error_description:
+ *                   type: string
+ *                   example: Backchannel logout is not enabled
+ */
+router.post('/auth/logout/backchannel', async (req, res) => {
+  try {
+    const authConfig = configLoader.getAuthenticationConfig();
+
+    // Check if backchannel logout is enabled
+    if (!authConfig.backchannel_logout?.enabled) {
+      logger.warn('Backchannel logout request received but feature is disabled');
+      return res.status(501).json({
+        error: 'unsupported_logout_method',
+        error_description: 'Backchannel logout is not enabled',
+      });
+    }
+
+    const { logout_token } = req.body;
+
+    if (!logout_token) {
+      return res.status(400).json({
+        error: 'invalid_request',
+        error_description: 'logout_token parameter is required',
+      });
+    }
+
+    // Decode the logout_token to get the issuer (before verification)
+    const decodedToken = jwt.decode(logout_token, { complete: true });
+
+    if (!decodedToken) {
+      return res.status(400).json({
+        error: 'invalid_request',
+        error_description: 'Invalid logout_token format',
+      });
+    }
+
+    const { iss, sub, sid, events } = decodedToken.payload;
+
+    // Validate required claims
+    if (!iss || !events || (!sub && !sid)) {
+      return res.status(400).json({
+        error: 'invalid_request',
+        error_description: 'logout_token missing required claims',
+      });
+    }
+
+    // Validate events claim
+    if (!events['http://schemas.openid.net/event/backchannel-logout']) {
+      return res.status(400).json({
+        error: 'invalid_request',
+        error_description: 'logout_token missing backchannel-logout event',
+      });
+    }
+
+    // Find the provider configuration by matching issuer
+    const oidcProviders = authConfig.oidc_providers || {};
+    const providerEntry = Object.entries(oidcProviders).find(
+      ([, config]) => config.issuer === iss && config.enabled
+    );
+
+    if (!providerEntry) {
+      logger.warn('Backchannel logout from unknown provider', { iss });
+      return res.status(400).json({
+        error: 'invalid_request',
+        error_description: 'Unknown issuer',
+      });
+    }
+
+    const [providerName] = providerEntry;
+
+    // Get OIDC configuration to verify token signature
+    const oidcConfig = getOidcConfiguration(providerName);
+
+    if (!oidcConfig) {
+      logger.error('OIDC configuration not found for provider', { providerName });
+      return res.status(400).json({
+        error: 'invalid_request',
+        error_description: 'Provider configuration not available',
+      });
+    }
+
+    // Verify the logout_token signature
+    try {
+      await client.validateJWTLogoutToken(oidcConfig, logout_token);
+    } catch (error) {
+      logger.error('Logout token validation failed', {
+        provider: providerName,
+        error: error.message,
+      });
+      return res.status(400).json({
+        error: 'invalid_request',
+        error_description: 'Invalid logout_token signature or claims',
+      });
+    }
+
+    // Revoke all user tokens
+    if (sub) {
+      await revokeUserTokens(sub, 'backchannel_logout');
+
+      logger.info('Backchannel logout processed successfully', {
+        provider: providerName,
+        sub,
+        sid,
+      });
+    }
+
+    logAccess(
+      req,
+      'BACKCHANNEL_LOGOUT',
+      `provider: ${providerName}, sub: ${sub || 'N/A'}, sid: ${sid || 'N/A'}`
+    );
+
+    return res.status(200).json({
+      success: true,
+    });
+  } catch (error) {
+    logger.error('Backchannel logout error', { error: error.message, stack: error.stack });
+    return res.status(400).json({
+      error: 'invalid_request',
+      error_description: 'Failed to process logout_token',
     });
   }
 });
