@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.0](https://github.com/STARTcloud/armor/compare/v1.15.1...v1.16.0) (2025-10-05)
+
+
+### Features
+
+* backchannel logout ([1df627f](https://github.com/STARTcloud/armor/commit/1df627f09fc83bb127a0e3edaa2f37484f1979a8))
+
 ## [1.15.1](https://github.com/STARTcloud/armor/compare/v1.15.0...v1.15.1) (2025-10-03)
 
 
