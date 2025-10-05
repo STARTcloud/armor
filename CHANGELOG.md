@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.1](https://github.com/STARTcloud/armor/compare/v1.16.0...v1.16.1) (2025-10-05)
+
+
+### Bug Fixes
+
+* backchannel logout verification via jose sinece openid-client won't support this ([579019d](https://github.com/STARTcloud/armor/commit/579019d9f531705fe81faa1524e69c46b37c9b9f))
+
 ## [1.16.0](https://github.com/STARTcloud/armor/compare/v1.15.1...v1.16.0) (2025-10-05)
 
 
