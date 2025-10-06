@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.5](https://github.com/STARTcloud/armor/compare/v1.16.4...v1.16.5) (2025-10-06)
+
+
+### Bug Fixes
+
+* sse max sessions ([e570475](https://github.com/STARTcloud/armor/commit/e57047531ca5312b4b478e0ddb3670a500a54c49))
+
 ## [1.16.4](https://github.com/STARTcloud/armor/compare/v1.16.3...v1.16.4) (2025-10-06)
 
 
