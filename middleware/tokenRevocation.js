@@ -32,8 +32,8 @@ export const checkTokenRevocation = async (req, res, next) => {
     }
 
     // Determine the sub identifier to check
-    // For OIDC users, use userId; for basic auth, use email or username
-    const sub = decoded.userId || decoded.email || decoded.username;
+    // For OIDC users, use sub from ID token; for basic auth, use userId/email/username
+    const sub = decoded.sub || decoded.userId || decoded.email || decoded.username;
 
     const RevokedToken = getRevokedTokenModel();
 

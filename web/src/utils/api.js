@@ -15,7 +15,18 @@ const api = axios.create({
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error)
+  (error) => {
+    // Handle revoked tokens from backchannel logout
+    if (
+      error.response?.status === 401 &&
+      error.response?.data?.error === "token_revoked"
+    ) {
+      // Clear any local state and redirect to login
+      window.location.href = "/login?session=expired";
+      return Promise.reject(error);
+    }
+    return Promise.reject(error);
+  }
 );
 
 /**
