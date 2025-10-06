@@ -60,6 +60,7 @@ authentication:
   # Backchannel logout configuration
   backchannel_logout:
     enabled: true  # Enable/disable backchannel logout endpoint
+    revocation_scope: "both"  # Options: sid (session-specific), sub (all user sessions), both
   
   local:
     users:

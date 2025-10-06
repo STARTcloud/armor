@@ -11,7 +11,7 @@ import {
   buildEndSessionUrl,
   getOidcConfiguration,
 } from '../config/passport.js';
-import { revokeUserTokens } from '../middleware/tokenRevocation.js';
+import { revokeUserTokens, trackIssuedToken } from '../middleware/tokenRevocation.js';
 
 /**
  * @swagger
@@ -255,13 +255,14 @@ router.get('/auth/oidc/callback', async (req, res) => {
     // Handle the callback using v6 API
     const { user, tokens } = await handleOidcCallback(provider, currentUrl, state, codeVerifier);
 
-    // Generate JWT token with jti and sub for revocation support
+    // Generate JWT token with jti, sub, and sid for revocation support
     const authConfig = configLoader.getAuthenticationConfig();
     const jti = `${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
-    // Extract sub from ID token for backchannel logout matching
+    // Extract sub and sid from ID token for backchannel logout matching
     const idTokenClaims = tokens?.claims();
     const oidcSub = idTokenClaims?.sub;
+    const oidcSid = idTokenClaims?.sid;
 
     const token = jwt.sign(
       {
@@ -273,6 +274,7 @@ router.get('/auth/oidc/callback', async (req, res) => {
         role: user.role,
         id_token: tokens?.id_token,
         sub: oidcSub, // Store OIDC sub for backchannel logout
+        sid: oidcSid, // Store OIDC sid for session-specific revocation
         jti,
       },
       authConfig.jwt_secret,
@@ -283,13 +285,22 @@ router.get('/auth/oidc/callback', async (req, res) => {
       }
     );
 
+    // Track this token for potential revocation
+    const decoded = jwt.decode(token);
+    await trackIssuedToken(jti, oidcSub, oidcSid, decoded.exp);
+
     res.cookie('auth_token', token, {
       httpOnly: true,
       secure: true,
       maxAge: 24 * 60 * 60 * 1000,
     });
 
-    logger.info('OIDC authentication completed successfully', { email: user.email, provider });
+    logger.info('OIDC authentication completed successfully', {
+      email: user.email,
+      provider,
+      jti,
+      sid: oidcSid,
+    });
     logAccess(req, 'OIDC_SUCCESS', `user: ${user.email}`);
     return res.redirect(returnUrl);
   } catch (error) {
@@ -960,16 +971,14 @@ router.post('/auth/logout/backchannel', async (req, res) => {
       });
     }
 
-    // Revoke all user tokens
-    if (sub) {
-      await revokeUserTokens(sub, 'backchannel_logout');
+    // Revoke tokens based on configuration (sid, sub, or both)
+    await revokeUserTokens(sub, sid, 'backchannel_logout');
 
-      logger.info('Backchannel logout processed successfully', {
-        provider: providerName,
-        sub,
-        sid,
-      });
-    }
+    logger.info('Backchannel logout processed successfully', {
+      provider: providerName,
+      sub,
+      sid,
+    });
 
     logAccess(
       req,

@@ -25,6 +25,11 @@ export const initializeRevokedTokenModel = () => {
         allowNull: true,
         comment: 'Subject claim from the JWT (user identifier)',
       },
+      sid: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        comment: 'Session ID from the OIDC ID token',
+      },
       exp: {
         type: DataTypes.DATE,
         allowNull: false,
@@ -32,9 +37,8 @@ export const initializeRevokedTokenModel = () => {
       },
       revoked_at: {
         type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
-        comment: 'Timestamp when the token was revoked',
+        allowNull: true,
+        comment: 'Timestamp when the token was revoked (null if not revoked)',
       },
       revocation_reason: {
         type: DataTypes.STRING(50),
@@ -52,6 +56,9 @@ export const initializeRevokedTokenModel = () => {
         },
         {
           fields: ['sub'],
+        },
+        {
+          fields: ['sid'],
         },
         {
           fields: ['exp'],

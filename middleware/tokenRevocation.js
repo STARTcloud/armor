@@ -5,9 +5,29 @@ import { getRevokedTokenModel } from '../models/RevokedToken.js';
 import { authLogger as logger } from '../config/logger.js';
 
 /**
+ * Track an issued JWT token
+ * Called when we issue a new JWT to store it for potential revocation
+ */
+export const trackIssuedToken = async (jti, sub, sid, exp) => {
+  const RevokedToken = getRevokedTokenModel();
+
+  // Store the issued token (not revoked yet)
+  // Using exp directly from JWT - no artificial timers
+  await RevokedToken.create({
+    jti,
+    sub,
+    sid,
+    exp: new Date(exp * 1000), // Use JWT's natural expiration
+    revoked_at: null,
+    revocation_reason: null,
+  });
+
+  logger.info('Tracked issued token', { jti, sub, sid });
+};
+
+/**
  * Middleware to check if a JWT token has been revoked
  * This runs after authentication middleware but before route handlers
- * CRITICAL: Checks both specific token JTI and user-level revocations
  */
 export const checkTokenRevocation = async (req, res, next) => {
   try {
@@ -24,32 +44,29 @@ export const checkTokenRevocation = async (req, res, next) => {
       return next();
     }
 
-    // Decode token without verification to get jti and userId/email for sub lookup
+    // Decode token without verification to get jti
     const decoded = jwt.decode(token);
 
     if (!decoded || !decoded.jti) {
       return next();
     }
 
-    // Determine the sub identifier to check
-    // For OIDC users, use sub from ID token; for basic auth, use userId/email/username
-    const sub = decoded.sub || decoded.userId || decoded.email || decoded.username;
-
     const RevokedToken = getRevokedTokenModel();
 
-    // Check if token is revoked by JTI OR if user has been revoked
+    // Check if this specific jti is revoked
     const revokedToken = await RevokedToken.findOne({
       where: {
-        [Op.or]: [{ jti: decoded.jti }, { sub: sub?.toString() }],
+        jti: decoded.jti,
+        revoked_at: { [Op.ne]: null }, // Only check actually revoked tokens
       },
     });
 
     if (revokedToken) {
       logger.warn('Revoked token used', {
         jti: decoded.jti,
-        sub,
+        sub: decoded.sub,
+        sid: decoded.sid,
         reason: revokedToken.revocation_reason,
-        matchType: revokedToken.jti === decoded.jti ? 'jti' : 'sub',
       });
 
       res.clearCookie('auth_token');
@@ -69,38 +86,57 @@ export const checkTokenRevocation = async (req, res, next) => {
 };
 
 /**
- * Revoke all tokens for a given subject (user)
- * Used when backchannel logout receives a logout_token
+ * Revoke tokens based on sub/sid from backchannel logout
  */
-export const revokeUserTokens = async (sub, reason = 'backchannel_logout') => {
+export const revokeUserTokens = async (sub, sid, reason = 'backchannel_logout') => {
   const RevokedToken = getRevokedTokenModel();
+  const authConfig = configLoader.getAuthenticationConfig();
+  const revocationScope = authConfig.backchannel_logout?.revocation_scope || 'both';
 
-  // Create a user-level revocation marker
-  // This will match ANY token with this sub in the middleware check
-  await RevokedToken.create({
-    jti: `user-revocation-${sub}-${Date.now()}`,
+  const whereConditions = [];
+
+  if (revocationScope === 'sid' && sid) {
+    // Only revoke tokens with matching sid
+    whereConditions.push({ sid });
+  } else if (revocationScope === 'sub' && sub) {
+    // Revoke all tokens for this user
+    whereConditions.push({ sub });
+  } else if (revocationScope === 'both') {
+    // Revoke by both sid and sub
+    if (sid) {
+      whereConditions.push({ sid });
+    }
+    if (sub) {
+      whereConditions.push({ sub });
+    }
+  }
+
+  if (whereConditions.length === 0) {
+    logger.warn('No revocation conditions met', { sub, sid, revocationScope });
+    return;
+  }
+
+  // Mark matching tokens as revoked
+  const updated = await RevokedToken.update(
+    {
+      revoked_at: new Date(),
+      revocation_reason: reason,
+    },
+    {
+      where: {
+        [Op.or]: whereConditions,
+        revoked_at: null, // Only revoke tokens that aren't already revoked
+      },
+    }
+  );
+
+  logger.info('Revoked tokens', {
+    count: updated[0],
     sub,
-    exp: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
-    revocation_reason: reason,
+    sid,
+    reason,
+    scope: revocationScope,
   });
-
-  logger.info('Created user token revocation marker', { sub, reason });
-};
-
-/**
- * Revoke a specific token by its JTI
- */
-export const revokeTokenByJti = async (jti, sub, exp, reason = 'backchannel_logout') => {
-  const RevokedToken = getRevokedTokenModel();
-
-  await RevokedToken.create({
-    jti,
-    sub,
-    exp: new Date(exp * 1000), // Convert Unix timestamp to Date
-    revocation_reason: reason,
-  });
-
-  logger.info('Revoked token by JTI', { jti, sub, reason });
 };
 
 /**
@@ -110,7 +146,10 @@ export const isTokenRevoked = async jti => {
   const RevokedToken = getRevokedTokenModel();
 
   const revokedToken = await RevokedToken.findOne({
-    where: { jti },
+    where: {
+      jti,
+      revoked_at: { [Op.ne]: null },
+    },
   });
 
   return !!revokedToken;
