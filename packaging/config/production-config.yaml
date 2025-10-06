@@ -4,6 +4,7 @@ server:
   port: 443
   show_root_index: false
   enable_api_docs: true
+  sse_max_connections: 1000  # Maximum concurrent SSE connections before warning
   login_title: "Armor"
   login_subtitle: "ARMOR Reliably Manages Online Resources"
   login_icon_class: "bi bi-cloud-download"

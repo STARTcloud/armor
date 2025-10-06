@@ -1,4 +1,5 @@
 import express from 'express';
+import configLoader from '../config/configLoader.js';
 import { sseLogger as logger } from '../config/logger.js';
 import { authenticateDownloads } from '../middleware/auth.middleware.js';
 
@@ -61,6 +62,11 @@ let clients = [];
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get('/', authenticateDownloads, (req, res) => {
+  // Set max listeners based on configuration to prevent false memory leak warnings
+  const serverConfig = configLoader.getServerConfig();
+  const maxConnections = serverConfig.sse_max_connections || 1000;
+  res.setMaxListeners(maxConnections);
+
   const headers = {
     'Content-Type': 'text/event-stream',
     Connection: 'keep-alive',
