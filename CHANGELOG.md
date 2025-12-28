@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.16.6](https://github.com/STARTcloud/armor/compare/v1.16.5...v1.16.6) (2025-12-28)
+
+
+### Bug Fixes
+
+* package-lock.json ([ffe7195](https://github.com/STARTcloud/armor/commit/ffe71958748abcb00243d43a66ca738167724d80))
+* package-lock.json ([cc80bfb](https://github.com/STARTcloud/armor/commit/cc80bfbc051b0820efaabb176614e68b34a82a1e))
+* package-lock.json ([ba0dd96](https://github.com/STARTcloud/armor/commit/ba0dd967c364834959da70b91c2c24778910b87d))
+* uploading packages ([7970574](https://github.com/STARTcloud/armor/commit/7970574b235570b8d44d7a2a11fe4a38001e0aa0))
+
 ## [1.16.5](https://github.com/STARTcloud/armor/compare/v1.16.4...v1.16.5) (2025-10-06)
 
 
