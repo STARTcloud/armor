@@ -165,18 +165,18 @@ jobs:
 
       - name: Upload Debian package to repository server
         run: |
-          rsync -av ${PACKAGE_NAME}_*.deb startcloud@172.17.204.177:/tmp/
+          rsync -av ${PACKAGE_NAME}_*.deb startcloud@packages.debian.startcloud.com:/tmp/
 
       - name: Add package to repository pool
         run: |
-          ssh startcloud@172.17.204.177 "
+          ssh startcloud@packages.debian.startcloud.com "
             mkdir -p /local/public/debian/pool/main/z/armor-dev
             cp /tmp/${PACKAGE_NAME}_*.deb /local/public/debian/pool/main/z/armor-dev/
           "
 
       - name: Update repository Packages files for all suites
         run: |
-          ssh startcloud@172.17.204.177 "
+          ssh startcloud@packages.debian.startcloud.com "
             cd /local/public/debian
             # Generate Packages files for each suite
             for suite in bookworm trixie; do
@@ -187,7 +187,7 @@ jobs:
 
       - name: Generate Release files for all suites
         run: |
-          ssh startcloud@172.17.204.177 "
+          ssh startcloud@packages.debian.startcloud.com "
             cd /local/public/debian
             # Generate Release files for each suite
             for suite in bookworm trixie; do
@@ -199,7 +199,7 @@ jobs:
 
       - name: Create stable distribution with proper Release file
         run: |
-          ssh startcloud@172.17.204.177 "
+          ssh startcloud@packages.debian.startcloud.com "
             cd /local/public/debian/dists
             rm -rf stable 2>/dev/null || true
             cp -r trixie stable
@@ -209,7 +209,7 @@ jobs:
 
       - name: Sign repository for all suites including stable
         run: |
-          ssh startcloud@172.17.204.177 "
+          ssh startcloud@packages.debian.startcloud.com "
             cd /local/public/debian
             # Sign each suite including stable
             for suite in bookworm trixie stable; do
@@ -288,7 +288,7 @@ jobs:
       - name: Clean up
         run: |
           ssh ghrunner@omnios.packages.startcloud.com "rm -rf /local/builds/armor-dev/*"
-          ssh startcloud@172.17.204.177 "rm -f /tmp/${PACKAGE_NAME}_*.deb"
+          ssh startcloud@packages.debian.startcloud.com "rm -f /tmp/${PACKAGE_NAME}_*.deb"
 
       - name: Summary
         run: |
