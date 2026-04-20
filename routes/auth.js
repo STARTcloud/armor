@@ -94,7 +94,8 @@ router.get('/auth/methods', (req, res) => {
     const methods = [];
 
     const isBasicHidden = authConfig.basic_auth_hidden || false;
-    const shouldShowBasic = authMethodParam === 'basic' || !isBasicHidden;
+    const shouldShowBasic =
+      authMethodParam === 'basic' || (!isBasicHidden && !oidcProviderParam);
 
     if (shouldShowBasic) {
       methods.push({

@@ -152,6 +152,13 @@ authentication:
 
 **Basic Auth Hiding**: Use `basic_auth_hidden: true` to hide the username/password form by default. Hidden basic auth can be shown by accessing `/login?auth_method=basic`.
 
+**Login URL Parameters**: The `/login` page accepts query parameters to control which authentication options render:
+
+- `/login` — default view. Renders basic auth (unless `basic_auth_hidden: true`) and all OIDC providers that are enabled and not hidden.
+- `/login?oidc_provider=<name>` — "dedicated provider" view. Shows only the named OIDC provider's sign-in button. Basic auth is hidden automatically regardless of `basic_auth_hidden`. Useful for embedding a deep link to a specific SSO flow.
+- `/login?auth_method=basic` — forces the basic auth form to render even when `basic_auth_hidden: true` is set. Can be combined with `oidc_provider` to show both on the same page.
+- `/login?return=<url>` — URL-encoded path to redirect to after successful authentication.
+
 **Note**: For RP-initiated logout support, the post-logout redirect URI is automatically built from your server configuration as `https://domain:port/login?logout=success`. You must configure this exact URI in your OIDC provider's "Post logout redirect URI(s)" field.
 
 ### SSL Configuration
