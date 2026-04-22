@@ -134,7 +134,7 @@ authentication:
 
 1. **Google Cloud Console**:
    - Create new project or select existing
-   - Enable Google+ API
+   - Configure the OAuth consent screen (set app info, scopes, and test users as needed)
    - Create OAuth 2.0 credentials
 
 2. **Configure Redirect URI**:
@@ -410,7 +410,8 @@ sudo journalctl -u armor -f
 **Google Login Failed**
 - Verify client ID and secret
 - Check redirect URI matches exactly
-- Ensure Google+ API is enabled
+- Ensure OAuth consent screen is configured and published
+- Verify OAuth 2.0 client credentials are correctly set up in Google Cloud Console
 - Test OIDC discovery: `curl https://accounts.google.com/.well-known/openid_configuration`
 
 **Permission Denied After OIDC Login**

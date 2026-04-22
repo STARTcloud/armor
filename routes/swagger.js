@@ -84,41 +84,39 @@ router.get('/user-api-keys', async (req, res) => {
 
         userPermissions = decoded.permissions || [];
 
-        if (decoded) {
-          const ApiKey = getApiKeyModel();
-          let whereClause = {};
+        const ApiKey = getApiKeyModel();
+        let whereClause = {};
 
-          if (decoded.userId) {
-            whereClause = { user_type: 'oidc', user_id: decoded.userId };
-          } else if (decoded.username) {
-            const localUsers = configLoader.getAuthUsers();
-            const localUser = localUsers.find(u => u.username === decoded.username);
-            if (localUser?.id) {
-              whereClause = { user_type: 'local', local_user_id: localUser.id };
-            }
+        if (decoded.userId) {
+          whereClause = { user_type: 'oidc', user_id: decoded.userId };
+        } else if (decoded.username) {
+          const localUsers = configLoader.getAuthUsers();
+          const localUser = localUsers.find(u => u.username === decoded.username);
+          if (localUser?.id) {
+            whereClause = { user_type: 'local', local_user_id: localUser.id };
+          }
+        }
+
+        if (Object.keys(whereClause).length > 0) {
+          // If full key retrieval is enabled, only show retrievable keys
+          if (swaggerConfig.allow_full_key_retrieval) {
+            whereClause.is_retrievable = true;
           }
 
-          if (Object.keys(whereClause).length > 0) {
-            // If full key retrieval is enabled, only show retrievable keys
-            if (swaggerConfig.allow_full_key_retrieval) {
-              whereClause.is_retrievable = true;
-            }
+          const apiKeys = await ApiKey.findAll({
+            where: whereClause,
+            attributes: [
+              'id',
+              'name',
+              'key_preview',
+              'permissions',
+              'expires_at',
+              'is_retrievable',
+            ],
+            order: [['created_at', 'DESC']],
+          });
 
-            const apiKeys = await ApiKey.findAll({
-              where: whereClause,
-              attributes: [
-                'id',
-                'name',
-                'key_preview',
-                'permissions',
-                'expires_at',
-                'is_retrievable',
-              ],
-              order: [['created_at', 'DESC']],
-            });
-
-            userApiKeys = apiKeys.map(key => key.toJSON());
-          }
+          userApiKeys = apiKeys.map(key => key.toJSON());
         }
       } catch (error) {
         logger.debug('Could not fetch user API keys', { error: error.message });
@@ -234,9 +232,13 @@ router.post('/user-api-keys/:id/full', async (req, res) => {
     }
 
     const authConfigForFull = configLoader.getAuthenticationConfig();
-    const decoded = jwt.verify(req.cookies.auth_token, authConfigForFull.jwt_secret);
-
-    if (!decoded) {
+    let decoded;
+    try {
+      decoded = jwt.verify(req.cookies.auth_token, authConfigForFull.jwt_secret);
+    } catch (jwtError) {
+      logger.debug('JWT verification failed for /user-api-keys/:id/full', {
+        error: jwtError.message,
+      });
       return res.status(401).json({
         success: false,
         message: 'Invalid authentication',
@@ -404,9 +406,13 @@ router.post('/user-api-keys/temp', (req, res) => {
     }
 
     const authConfigForTemp = configLoader.getAuthenticationConfig();
-    const decoded = jwt.verify(req.cookies.auth_token, authConfigForTemp.jwt_secret);
-
-    if (!decoded) {
+    let decoded;
+    try {
+      decoded = jwt.verify(req.cookies.auth_token, authConfigForTemp.jwt_secret);
+    } catch (jwtError) {
+      logger.debug('JWT verification failed for /user-api-keys/temp', {
+        error: jwtError.message,
+      });
       return res.status(401).json({
         success: false,
         message: 'Invalid authentication',
@@ -524,25 +530,11 @@ router.get('/swagger.json', (req, res) => {
  *                   description: Default language code used as fallback
  *                   example: 'en'
  *       500:
- *         description: Error retrieving language information (fallback response)
+ *         description: Server error retrieving language information
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 languages:
- *                   type: array
- *                   items:
- *                     type: string
- *                   description: Fallback language array
- *                   example: ['en']
- *                 defaultLanguage:
- *                   type: string
- *                   description: Fallback default language
- *                   example: 'en'
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get('/i18n/languages', (req, res) => {
   try {
@@ -554,11 +546,9 @@ router.get('/i18n/languages', (req, res) => {
     });
   } catch (error) {
     logger.error('Failed to get i18n languages', { error: error.message });
-    const fallback = getDefaultLocale() || 'en';
     res.status(500).json({
       success: false,
-      languages: [fallback],
-      defaultLanguage: fallback,
+      message: 'Failed to retrieve language information',
     });
   }
 });
