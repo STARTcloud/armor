@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.16.8](https://github.com/STARTcloud/armor/compare/v1.16.7...v1.16.8) (2026-04-22)
+
+
+### Bug Fixes
+
+* enable auto redirect on oidc provider ([04ea025](https://github.com/STARTcloud/armor/commit/04ea02583cfe98bfaeb0358b01299c81896c46ec))
+* prop types ([f5abc11](https://github.com/STARTcloud/armor/commit/f5abc11d88c92ee0a76bc7b463ff171be0a6553c))
+* updating package.jsons ([3d3de5f](https://github.com/STARTcloud/armor/commit/3d3de5fb6c45e5a9db9346939faf11554d82bb26))
+
 ## [1.16.7](https://github.com/STARTcloud/armor/compare/v1.16.6...v1.16.7) (2026-04-22)
 
 
