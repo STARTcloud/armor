@@ -3,8 +3,11 @@
   "moderate": true,
 
   // Allowlisted advisories — see .nsprc for rationale per ID.
-  // All three originate from the json-merger → jsonpath → underscore chain used
-  // only in config/configMigrator.js to merge a packaged template with the
-  // root-owned /etc/armor/config.yaml. No attacker-controllable input reaches it.
-  "allowlist": ["GHSA-qpx9-hpmf-5gmw", "GHSA-6c59-mwgh-r2x6", "GHSA-87r5-mp6g-5w5j"],
+  // Only the underscore DoS chain remains: jsonpath 1.3.0 resolved its own
+  // prototype-pollution (GHSA-6c59-mwgh-r2x6) and unsafe-eval
+  // (GHSA-87r5-mp6g-5w5j) advisories, but jsonpath still pins
+  // underscore 1.13.6 (vulnerable) transitively. Reachable only through
+  // json-merger in config/configMigrator.js, which consumes trusted local
+  // files — no attacker-controllable input.
+  "allowlist": ["GHSA-qpx9-hpmf-5gmw"],
 }

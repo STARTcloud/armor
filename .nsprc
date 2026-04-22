@@ -1,17 +1,7 @@
 {
   "GHSA-qpx9-hpmf-5gmw": {
     "active": true,
-    "notes": "underscore DoS via _.flatten/_.isEqual recursion. Only reachable through json-merger in config/configMigrator.js, which consumes packaged template + root-owned /etc/armor/config.yaml. No attacker-controllable input reaches this code path.",
-    "expiry": "2027-04-22"
-  },
-  "GHSA-6c59-mwgh-r2x6": {
-    "active": true,
-    "notes": "jsonpath prototype pollution via object key validation. Same reachability: json-merger processes trusted local files only. Admin-managed config at /etc/armor/config.yaml is not an attacker surface.",
-    "expiry": "2027-04-22"
-  },
-  "GHSA-87r5-mp6g-5w5j": {
-    "active": true,
-    "notes": "jsonpath arbitrary code injection via unsafe eval of JSONPath expressions. No JSONPath expressions in our templates are attacker-controllable; template is shipped in package, user config is root-owned.",
+    "notes": "underscore DoS via _.flatten/_.isEqual recursion. Reachable only via json-merger in config/configMigrator.js, which consumes the packaged template + root-owned /etc/armor/config.yaml (no attacker-controllable input). jsonpath 1.3.0 still pins underscore 1.13.6 internally; the two other jsonpath advisories (GHSA-6c59-mwgh-r2x6 prototype pollution and GHSA-87r5-mp6g-5w5j unsafe eval) were resolved in jsonpath 1.3.0 and have been removed from this allowlist.",
     "expiry": "2027-04-22"
   }
 }
