@@ -1,5 +1,11 @@
 import PropTypes from "prop-types";
-import { createContext, useContext, useState, useEffect } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { useTranslation } from "react-i18next";
 
 import api from "../../utils/api";
@@ -20,7 +26,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const checkAuthStatus = async () => {
+  const checkAuthStatus = useCallback(async () => {
     try {
       const response = await api.get("/auth/status");
       if (response.data.authenticated) {
@@ -34,11 +40,11 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     checkAuthStatus();
-  }, []);
+  }, [checkAuthStatus]);
 
   const login = async (credentials) => {
     try {
@@ -58,6 +64,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const handleLocalLogoutRedirect = () => {
+    setUser(null);
+    setIsAuthenticated(false);
+    window.location.href = "/login";
+  };
+
   const logout = async () => {
     try {
       const response = await api.post("/auth/logout");
@@ -67,16 +79,10 @@ export const AuthProvider = ({ children }) => {
       // provider with an end_session_endpoint — navigating there terminates
       // the IdP session (RP-initiated logout per OIDC spec). Otherwise fall
       // back to the local login page.
-      if (response.data?.redirect_url) {
-        window.location.href = response.data.redirect_url;
-      } else {
-        window.location.href = "/login";
-      }
+      window.location.href = response.data?.redirect_url || "/login";
     } catch (error) {
       console.error("Logout error:", error);
-      setUser(null);
-      setIsAuthenticated(false);
-      window.location.href = "/login";
+      handleLocalLogoutRedirect();
     }
   };
 
@@ -86,9 +92,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error("Local logout error:", error);
     } finally {
-      setUser(null);
-      setIsAuthenticated(false);
-      window.location.href = "/login";
+      handleLocalLogoutRedirect();
     }
   };
 
