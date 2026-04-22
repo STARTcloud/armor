@@ -10,7 +10,8 @@ const API_KEY_ENCRYPTION_KDF_SALT = 'armor-api-key-encryption';
 const API_KEY_LENGTH = 32;
 const API_KEY_PREVIEW_LENGTH = 8;
 const API_KEY_BCRYPT_SALT_ROUNDS = 12;
-const VALID_PERMISSIONS = ['downloads', 'uploads', 'delete'];
+// Canonical permission is "deletes"; keep legacy "delete" for backward compatibility.
+const VALID_PERMISSIONS = ['downloads', 'uploads', 'deletes', 'delete'];
 
 const isHex = value => /^[0-9a-fA-F]+$/.test(value) && value.length % 2 === 0;
 
