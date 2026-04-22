@@ -1,0 +1,14 @@
+{
+  // Fail CI on moderate+ vulnerabilities.
+  "moderate": true,
+
+  // Allowlisted advisories — see .nsprc for rationale per ID.
+  // All three originate from the json-merger → jsonpath → underscore chain used
+  // only in config/configMigrator.js to merge a packaged template with the
+  // root-owned /etc/armor/config.yaml. No attacker-controllable input reaches it.
+  "allowlist": [
+    "GHSA-qpx9-hpmf-5gmw",
+    "GHSA-6c59-mwgh-r2x6",
+    "GHSA-87r5-mp6g-5w5j"
+  ]
+}
