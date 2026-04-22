@@ -1,4 +1,5 @@
 import { Helmet } from "@dr.pogodin/react-helmet";
+import PropTypes from "prop-types";
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, useSearchParams } from "react-router-dom";
@@ -54,6 +55,14 @@ const OidcButton = ({ method, baseColor, onClick }) => {
       {method.name}
     </button>
   );
+};
+
+OidcButton.propTypes = {
+  method: PropTypes.shape({
+    name: PropTypes.string.isRequired,
+  }).isRequired,
+  baseColor: PropTypes.string.isRequired,
+  onClick: PropTypes.func.isRequired,
 };
 
 const LoginPage = () => {
