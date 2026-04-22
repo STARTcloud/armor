@@ -5,8 +5,12 @@ import bcrypt from 'bcrypt';
 // Must remain stable — changing this invalidates every stored encrypted_full_key.
 const API_KEY_ENCRYPTION_KDF_SALT = 'armor-api-key-encryption';
 
-const deriveEncryptionKey = jwtSecret =>
-  crypto.scryptSync(jwtSecret, API_KEY_ENCRYPTION_KDF_SALT, 32);
+const deriveEncryptionKey = jwtSecret => {
+  if (typeof jwtSecret !== 'string' || jwtSecret.trim().length === 0) {
+    throw new Error('Invalid jwt_secret: expected a non-empty string from config');
+  }
+  return crypto.scryptSync(jwtSecret, API_KEY_ENCRYPTION_KDF_SALT, 32);
+};
 
 // AES-256-CBC encrypt a plaintext API key for database storage.
 // Output format: "<iv-hex>:<ciphertext-hex>"
