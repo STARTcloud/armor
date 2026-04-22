@@ -21,8 +21,14 @@ const isHex = value => /^[0-9a-fA-F]+$/.test(value) && value.length % 2 === 0;
  * @throws {Error} If jwtSecret is not a non-empty string.
  */
 const deriveEncryptionKey = jwtSecret => {
-  if (typeof jwtSecret !== 'string' || jwtSecret.trim().length === 0) {
-    throw new Error('Invalid jwt_secret: expected a non-empty string from config');
+  if (typeof jwtSecret !== 'string') {
+    const receivedType = jwtSecret === null ? 'null' : typeof jwtSecret;
+    throw new Error(
+      `Invalid jwt_secret: expected a non-empty string from config, received type ${receivedType}`
+    );
+  }
+  if (jwtSecret.trim().length === 0) {
+    throw new Error('Invalid jwt_secret: expected a non-empty string from config, received empty');
   }
   return scryptAsync(jwtSecret, API_KEY_ENCRYPTION_KDF_SALT, 32);
 };
@@ -36,6 +42,9 @@ const deriveEncryptionKey = jwtSecret => {
  * @throws {Error} If encryption fails in the underlying crypto implementation.
  */
 export const encryptFullKey = async (plainKey, jwtSecret) => {
+  // NOTE: plainKey is the output of generateApiKey() in the sole caller
+  // (routes/apiKeys.js), which guarantees a 32-char alphanumeric string.
+  // Input-type validation is intentionally omitted — it would be dead code.
   const iv = crypto.randomBytes(16);
   const key = await deriveEncryptionKey(jwtSecret);
   const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
@@ -95,6 +104,11 @@ export const decryptFullKey = async (encryptedPayload, jwtSecret) => {
  * @returns {string} An API_KEY_LENGTH-character key containing only [a-zA-Z0-9].
  */
 export const generateApiKey = () => {
+  // NOTE: += string concat is fine here — V8 uses rope strings for repeated
+  // concatenation, and the loop typically runs once in practice (48 random
+  // bytes → ~48 alphanumeric chars after filter, well above the 32-char
+  // target). An Array+join() accumulator would add complexity without
+  // measurable benefit.
   let key = '';
   while (key.length < API_KEY_LENGTH) {
     key += crypto
@@ -110,6 +124,9 @@ export const generateApiKey = () => {
  * @param {string} key Plaintext API key.
  * @returns {Promise<string>} bcrypt hash. Callers must await and handle rejection.
  */
+// NOTE: `key` is the output of generateApiKey() in the sole caller
+// (routes/apiKeys.js). Input-type validation is intentionally omitted — it
+// would be dead code.
 export const hashApiKey = key => bcrypt.hash(key, API_KEY_BCRYPT_SALT_ROUNDS);
 
 /**
@@ -118,6 +135,13 @@ export const hashApiKey = key => bcrypt.hash(key, API_KEY_BCRYPT_SALT_ROUNDS);
  * @param {string} hash bcrypt hash from the database.
  * @returns {Promise<boolean>} true if the key matches. Callers must await and handle rejection.
  */
+// NOTE: Inputs are guaranteed by callers —
+//   - `key` is pre-guarded by middleware/auth.middleware.js (checkApiKeyAuth
+//     returns false before calling us when the Bearer token is missing or
+//     empty).
+//   - `hash` is read from the `key_hash` column which is NOT NULL in the
+//     API keys table (models/ApiKey.js).
+// Input-type validation here would be dead code.
 export const validateApiKey = (key, hash) => bcrypt.compare(key, hash);
 
 /**
