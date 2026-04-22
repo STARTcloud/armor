@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.16.9](https://github.com/STARTcloud/armor/compare/v1.16.8...v1.16.9) (2026-04-22)
+
+
+### Bug Fixes
+
+* async scrypt + VALID_PERMISSIONS constant in apiKeyUtils ([405a0aa](https://github.com/STARTcloud/armor/commit/405a0aa345a2afb41eb0c628750de8e503997bb6))
+* Auth Doc and Swagger Updates ([922cbdf](https://github.com/STARTcloud/armor/commit/922cbdf07bf948e8855ba260539734d62e699d40))
+* clone now for oneYearFromNow to avoid date-boundary drift ([0c791bd](https://github.com/STARTcloud/armor/commit/0c791bd1993777e314e0959d9d85220a41543f90))
+* derive API key encryption key via scrypt ([2b71267](https://github.com/STARTcloud/armor/commit/2b712678a292c23d729bc6af6ac71595c173ea8b))
+* documentation ([bf10031](https://github.com/STARTcloud/armor/commit/bf100317d0a92249f3ad6787808dc4cff7aa6567))
+* loop-based generateApiKey + JSDoc Promise return types ([c1d3725](https://github.com/STARTcloud/armor/commit/c1d3725c6310cd4afeb5a62e249cb2c2ba1b56d5))
+* mark hashApiKey and validateApiKey as async ([f1088e4](https://github.com/STARTcloud/armor/commit/f1088e4be11d2bd11def2c1dff1345ddb3a0cd15))
+* more minor spelling and swagger changes ([637e3b2](https://github.com/STARTcloud/armor/commit/637e3b26ad5710921ae5a2fa2b0ac1f670f4f06c))
+* repair broken temp API key auth + DRY encryption helpers ([ee82cb6](https://github.com/STARTcloud/armor/commit/ee82cb6d3ab88c7e49dea618ac7e92b50305bfc4))
+* validate decryptFullKey input shape + simplify generateApiKey ([69dcade](https://github.com/STARTcloud/armor/commit/69dcade6088f67f8d58f0c47b54ee582ae22fadc))
+* validate expiration dates against Invalid Date inputs ([8368b53](https://github.com/STARTcloud/armor/commit/8368b53bfa0fed1992805cff7cba1e80b1edb311))
+* validate jwt_secret in deriveEncryptionKey ([6655c22](https://github.com/STARTcloud/armor/commit/6655c228392d497afc747ca3a0c5cf8632d2c3ad))
+* various code quality reliability issues and swagger issues ([c7f3f65](https://github.com/STARTcloud/armor/commit/c7f3f65e0bcee982eee406c52321d61d8ec0e9b0))
+* vulnerability and AI quality assessments ([d9dbb72](https://github.com/STARTcloud/armor/commit/d9dbb72dfbcaf13e3526eda8f320f8228a4fa073))
+* wrap encryptFullKey and decryptFullKey crypto ops in try/catch ([41120b9](https://github.com/STARTcloud/armor/commit/41120b944dd0630ee50e96e2893772c071a4b31c))
+
+
+### Documentation
+
+* add JSDoc to validatePermissions, validateExpirationDate, isApiKeyExpired ([1991583](https://github.com/STARTcloud/armor/commit/1991583e0b95f8b635297abe52d6c175b60ddf18))
+* explain why apiKeyUtils skips some input validation ([9326a3a](https://github.com/STARTcloud/armor/commit/9326a3a4cce4932843b0fc99f59e3f6c204bf9ac))
+
 ## [1.16.8](https://github.com/STARTcloud/armor/compare/v1.16.7...v1.16.8) (2026-04-22)
 
 
