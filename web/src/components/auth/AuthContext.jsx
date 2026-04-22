@@ -60,10 +60,20 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await api.post("/auth/logout");
+      const response = await api.post("/auth/logout");
+      setUser(null);
+      setIsAuthenticated(false);
+      // Backend returns redirect_url when the user authenticated via an OIDC
+      // provider with an end_session_endpoint — navigating there terminates
+      // the IdP session (RP-initiated logout per OIDC spec). Otherwise fall
+      // back to the local login page.
+      if (response.data?.redirect_url) {
+        window.location.href = response.data.redirect_url;
+      } else {
+        window.location.href = "/login";
+      }
     } catch (error) {
       console.error("Logout error:", error);
-    } finally {
       setUser(null);
       setIsAuthenticated(false);
       window.location.href = "/login";
