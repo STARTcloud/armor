@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.16.11](https://github.com/STARTcloud/armor/compare/v1.16.10...v1.16.11) (2026-04-22)
+
+
+### Bug Fixes
+
+* honor redirect_url from /auth/logout for RP-initiated OIDC logout ([0ff3d32](https://github.com/STARTcloud/armor/commit/0ff3d32da2b0d908ade69b0a1774159ce549259a))
+* route all local-fallback logout paths through single helper ([6da4190](https://github.com/STARTcloud/armor/commit/6da4190dfca510adf7dbdf2671d2becec5c883b8))
+* useCallback for checkAuthStatus + extract logout redirect helper ([799d32d](https://github.com/STARTcloud/armor/commit/799d32d43bb05c7467b5f05f1628dac1c790c535))
+
 ## [1.16.10](https://github.com/STARTcloud/armor/compare/v1.16.9...v1.16.10) (2026-04-22)
 
 
