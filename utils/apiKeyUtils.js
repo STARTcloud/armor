@@ -1,5 +1,8 @@
 import crypto from 'crypto';
+import { promisify } from 'util';
 import bcrypt from 'bcrypt';
+
+const scryptAsync = promisify(crypto.scrypt);
 
 // Static KDF salt for deriving the API key encryption key from jwt_secret.
 // Must remain stable — changing this invalidates every stored encrypted_full_key.
@@ -8,28 +11,53 @@ const API_KEY_LENGTH = 32;
 const API_KEY_PREVIEW_LENGTH = 8;
 const API_KEY_BCRYPT_SALT_ROUNDS = 12;
 
+/**
+ * Derives the AES-256 encryption key from the JWT secret via scrypt.
+ * Async to avoid blocking the event loop on the ~50-100ms scrypt workload.
+ * @param {string} jwtSecret Non-empty jwt_secret from config.
+ * @returns {Promise<Buffer>} 32-byte derived key.
+ * @throws {Error} If jwtSecret is not a non-empty string.
+ */
 const deriveEncryptionKey = jwtSecret => {
   if (typeof jwtSecret !== 'string' || jwtSecret.trim().length === 0) {
     throw new Error('Invalid jwt_secret: expected a non-empty string from config');
   }
-  return crypto.scryptSync(jwtSecret, API_KEY_ENCRYPTION_KDF_SALT, 32);
+  return scryptAsync(jwtSecret, API_KEY_ENCRYPTION_KDF_SALT, 32);
 };
 
-// AES-256-CBC encrypt a plaintext API key for database storage.
-// Output format: "<iv-hex>:<ciphertext-hex>"
-export const encryptFullKey = (plainKey, jwtSecret) => {
+/**
+ * AES-256-CBC encrypt a plaintext API key for database storage.
+ * @param {string} plainKey Plaintext API key to encrypt.
+ * @param {string} jwtSecret Non-empty jwt_secret used to derive the encryption key.
+ * @returns {Promise<string>} Encrypted payload in the format "<iv-hex>:<ciphertext-hex>".
+ * @throws {Error} If jwtSecret is invalid (propagated from deriveEncryptionKey).
+ * @throws {Error} If encryption fails in the underlying crypto implementation.
+ */
+export const encryptFullKey = async (plainKey, jwtSecret) => {
   const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv('aes-256-cbc', deriveEncryptionKey(jwtSecret), iv);
+  const key = await deriveEncryptionKey(jwtSecret);
+  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
   let encrypted = cipher.update(plainKey, 'utf8', 'hex');
   encrypted += cipher.final('hex');
   return `${iv.toString('hex')}:${encrypted}`;
 };
 
-// Reverse of encryptFullKey. Throws on malformed input or wrong key.
-// Validates shape (string, "<iv-hex>:<ciphertext-hex>", valid hex, 16-byte IV)
-// before touching the crypto primitives so downstream errors are specific
-// rather than generic OpenSSL noise.
-export const decryptFullKey = (encryptedPayload, jwtSecret) => {
+/**
+ * Decrypt an encrypted API key payload produced by {@link encryptFullKey}.
+ * Validates shape (string, "<iv-hex>:<ciphertext-hex>", valid hex, 16-byte IV)
+ * before touching the crypto primitives so downstream errors are specific
+ * rather than generic OpenSSL noise.
+ * @param {string} encryptedPayload Value in the format "<iv-hex>:<ciphertext-hex>".
+ * @param {string} jwtSecret Non-empty jwt_secret used to derive the encryption key.
+ * @returns {Promise<string>} The decrypted plaintext API key.
+ * @throws {Error} If encryptedPayload is not a string.
+ * @throws {Error} If encryptedPayload is not in "<iv-hex>:<ciphertext-hex>" format.
+ * @throws {Error} If the IV or ciphertext segments contain non-hex content.
+ * @throws {Error} If the decoded IV is not exactly 16 bytes.
+ * @throws {Error} If jwtSecret is invalid (propagated from deriveEncryptionKey).
+ * @throws {Error} If decryption fails (wrong secret or tampered/corrupt ciphertext).
+ */
+export const decryptFullKey = async (encryptedPayload, jwtSecret) => {
   if (typeof encryptedPayload !== 'string') {
     throw new Error('Invalid encrypted payload: expected string');
   }
@@ -50,17 +78,22 @@ export const decryptFullKey = (encryptedPayload, jwtSecret) => {
     throw new Error('Invalid encrypted payload: IV must be 16 bytes');
   }
 
-  const decipher = crypto.createDecipheriv('aes-256-cbc', deriveEncryptionKey(jwtSecret), iv);
+  const key = await deriveEncryptionKey(jwtSecret);
+  const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
   let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
   return decrypted;
 };
 
+/**
+ * Generate a fixed-length alphanumeric API key using the CSPRNG.
+ * Strategy: draw 48 random bytes per iteration (~48 alphanumeric chars
+ * after base64-filter), loop until length ≥ API_KEY_LENGTH, truncate.
+ * The loop is effectively a one-shot in practice; the guard is there
+ * so we can never return a short key even if consecutive draws filter low.
+ * @returns {string} An API_KEY_LENGTH-character key containing only [a-zA-Z0-9].
+ */
 export const generateApiKey = () => {
-  // Draw 48 random bytes per iteration → ~48 alphanumeric chars after base64
-  // filter. The loop is effectively a one-shot in practice; the guard is
-  // there so we can never return a short key even if consecutive draws
-  // happen to filter low.
   let key = '';
   while (key.length < API_KEY_LENGTH) {
     key += crypto
@@ -86,6 +119,13 @@ export const hashApiKey = key => bcrypt.hash(key, API_KEY_BCRYPT_SALT_ROUNDS);
  */
 export const validateApiKey = (key, hash) => bcrypt.compare(key, hash);
 
+/**
+ * Return a short non-sensitive prefix of an API key for display.
+ * @param {string} key Plaintext API key.
+ * @returns {string} First API_KEY_PREVIEW_LENGTH characters of `key`.
+ *   Returns '' if `key` is not a string. If `key` is shorter than
+ *   API_KEY_PREVIEW_LENGTH, the full key is returned.
+ */
 export const getKeyPreview = key => {
   if (typeof key !== 'string') {
     return '';

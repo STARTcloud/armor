@@ -281,7 +281,10 @@ router.post('/user-api-keys/:id/full', async (req, res) => {
 
     // Decrypt the stored full key
     try {
-      const decrypted = decryptFullKey(apiKey.encrypted_full_key, authConfigForFull.jwt_secret);
+      const decrypted = await decryptFullKey(
+        apiKey.encrypted_full_key,
+        authConfigForFull.jwt_secret
+      );
 
       logger.info('Full API key retrieved for Swagger', {
         user: decoded.username || decoded.userId,

@@ -246,7 +246,7 @@ router.post('/', async (req, res) => {
     // If retrievable keys are enabled, store encrypted full key
     if (isRetrievable) {
       const authConfig = configLoader.getAuthenticationConfig();
-      newApiKeyData.encrypted_full_key = encryptFullKey(apiKey, authConfig.jwt_secret);
+      newApiKeyData.encrypted_full_key = await encryptFullKey(apiKey, authConfig.jwt_secret);
     }
 
     const newApiKey = await ApiKey.create(newApiKeyData);
