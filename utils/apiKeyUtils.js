@@ -176,6 +176,13 @@ export const getKeyPreview = key => {
   return key.substring(0, API_KEY_PREVIEW_LENGTH);
 };
 
+/**
+ * Validate that all requested API key permissions are allowed.
+ * @param {string[]} permissions Array of permission strings to validate.
+ * @returns {boolean} `true` only when `permissions` is an array and every
+ *   entry is one of `VALID_PERMISSIONS`; `false` otherwise (including for
+ *   non-array input).
+ */
 export const validatePermissions = permissions => {
   if (!Array.isArray(permissions)) {
     return false;
@@ -183,6 +190,17 @@ export const validatePermissions = permissions => {
   return permissions.every(permission => VALID_PERMISSIONS.includes(permission));
 };
 
+/**
+ * Validate an API key expiration date input.
+ * Rules:
+ * - Must be a valid/parseable date value.
+ * - Must be in the future.
+ * - Must be no more than 1 year from now.
+ * @param {string|number|Date} expiresAt Date input to validate.
+ * @returns {{ valid: true } | { valid: false, error: string }}
+ *   Validation result with `valid` boolean and, when invalid, an `error`
+ *   message describing the failed rule.
+ */
 export const validateExpirationDate = expiresAt => {
   const now = new Date();
   const expiration = new Date(expiresAt);
@@ -207,9 +225,17 @@ export const validateExpirationDate = expiresAt => {
   return { valid: true };
 };
 
-// Fail-secure: an invalid/unparseable stored date is treated as expired
-// rather than throwing, so a single bad DB row can't crash a list endpoint
-// or silently grant perpetual access through auth middleware.
+/**
+ * Determine whether an API key is expired.
+ *
+ * Fail-secure: an invalid/unparseable stored date is treated as expired
+ * rather than throwing, so a single bad DB row can't crash a list endpoint
+ * or silently grant perpetual access through auth middleware.
+ *
+ * @param {string|number|Date} expiresAt Stored expiration value.
+ * @returns {boolean} `true` if the key is expired OR if `expiresAt` is
+ *   invalid/unparseable (fail-secure).
+ */
 export const isApiKeyExpired = expiresAt => {
   const expiration = new Date(expiresAt);
   if (Number.isNaN(expiration.getTime())) {
