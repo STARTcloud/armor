@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.16.7](https://github.com/STARTcloud/armor/compare/v1.16.6...v1.16.7) (2026-04-22)
+
+
+### Bug Fixes
+
+* formatting ([92d89d8](https://github.com/STARTcloud/armor/commit/92d89d8015e785190769ae3c9e6dd9c278ff1d82))
+* linting ([4beef70](https://github.com/STARTcloud/armor/commit/4beef706441dd62f27c127141e5304f846b90885))
+* only show OIDC provider login button when using specific provider ([b6a28af](https://github.com/STARTcloud/armor/commit/b6a28af8e9bc92f248213d391d4bdcb3e82f149c))
+* package locks ([76d5e4f](https://github.com/STARTcloud/armor/commit/76d5e4fabcb4e3c400c8d97ff87fc92bfdd3a779))
+* packages ([e143c9b](https://github.com/STARTcloud/armor/commit/e143c9b58d79e29b54f38ae4fdd95d8d0def09e2))
+
 ## [1.16.6](https://github.com/STARTcloud/armor/compare/v1.16.5...v1.16.6) (2025-12-28)
 
 
