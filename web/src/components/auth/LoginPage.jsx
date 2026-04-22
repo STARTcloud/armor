@@ -7,8 +7,57 @@ import api from "../../utils/api";
 
 import { useAuth } from "./AuthContext";
 
+const darkenColor = (color, amount = 0.1) => {
+  const hex = color.replace("#", "");
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  const newR = Math.max(0, Math.floor(r * (1 - amount)));
+  const newG = Math.max(0, Math.floor(g * (1 - amount)));
+  const newB = Math.max(0, Math.floor(b * (1 - amount)));
+  return `#${((1 << 24) + (newR << 16) + (newG << 8) + newB)
+    .toString(16)
+    .slice(1)}`;
+};
+
+// Luminance-weighted contrast text — dark text on pale brands, white otherwise.
+const getContrastText = (color) => {
+  const hex = color.replace("#", "");
+  const r = parseInt(hex.substr(0, 2), 16) / 255;
+  const g = parseInt(hex.substr(2, 2), 16) / 255;
+  const b = parseInt(hex.substr(4, 2), 16) / 255;
+  const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+  return luminance > 0.6 ? "#212529" : "#ffffff";
+};
+
+const OidcButton = ({ method, baseColor, onClick }) => {
+  const [hover, setHover] = useState(false);
+  const textColor = getContrastText(baseColor);
+  const hoverBg = darkenColor(baseColor, 0.1);
+  return (
+    <button
+      type="button"
+      className="btn btn-oidc w-100 mb-2 d-flex align-items-center justify-content-center"
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onFocus={() => setHover(true)}
+      onBlur={() => setHover(false)}
+      style={{
+        backgroundColor: hover ? hoverBg : baseColor,
+        borderColor: baseColor,
+        color: textColor,
+        transition: "background-color 0.15s ease-in-out",
+      }}
+    >
+      <i className="bi bi-shield-lock me-2" />
+      {method.name}
+    </button>
+  );
+};
+
 const LoginPage = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [searchParams] = useSearchParams();
   const { t } = useTranslation(["auth", "common"]);
   const [authMethods, setAuthMethods] = useState(null);
@@ -55,6 +104,48 @@ const LoginPage = () => {
     }
   }, [searchParams, fetchAuthMethods, t]);
 
+  // Auto-initiate OIDC when arriving with ?oidc_provider=X and no local session.
+  // Guards: skip if already authed, still resolving, error/logout/session-expired
+  // param set, provider not enabled, or a redirect for this provider was attempted
+  // in the last 10s (IdP bounce-back loop brake).
+  useEffect(() => {
+    if (authLoading || isAuthenticated || !authMethods) {
+      return;
+    }
+
+    const providerParam = searchParams.get("oidc_provider");
+    if (!providerParam) {
+      return;
+    }
+
+    if (
+      searchParams.get("error") ||
+      searchParams.get("logout") ||
+      searchParams.get("session") === "expired"
+    ) {
+      return;
+    }
+
+    const providerMethod = authMethods.methods?.find(
+      (m) => m.id === `oidc-${providerParam}` && m.enabled
+    );
+    if (!providerMethod) {
+      return;
+    }
+
+    const guardKey = `armor_oidc_auto_${providerParam}`;
+    const lastAttempt = sessionStorage.getItem(guardKey);
+    if (lastAttempt && Date.now() - parseInt(lastAttempt, 10) < 10000) {
+      return;
+    }
+    sessionStorage.setItem(guardKey, Date.now().toString());
+
+    const returnQuery = searchParams.get("return")
+      ? `?return=${encodeURIComponent(searchParams.get("return"))}`
+      : "";
+    window.location.href = `/auth/oidc/${providerParam}${returnQuery}`;
+  }, [authMethods, authLoading, isAuthenticated, searchParams]);
+
   const handleBasicAuth = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -85,21 +176,6 @@ const LoginPage = () => {
       ? `?return=${encodeURIComponent(searchParams.get("return"))}`
       : "";
     window.location.href = `/auth/oidc/${provider}${returnParam}`;
-  };
-
-  const lightenColor = (color, amount = 0.3) => {
-    const hex = color.replace("#", "");
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
-
-    const newR = Math.min(255, Math.floor(r + (255 - r) * amount));
-    const newG = Math.min(255, Math.floor(g + (255 - g) * amount));
-    const newB = Math.min(255, Math.floor(b + (255 - b) * amount));
-
-    return `#${((1 << 24) + (newR << 16) + (newG << 8) + newB)
-      .toString(16)
-      .slice(1)}`;
   };
 
   if (isAuthenticated) {
@@ -160,23 +236,14 @@ const LoginPage = () => {
                   {oidcMethods.map((method) => {
                     const provider = method.id.replace("oidc-", "");
                     const baseColor = method.color || "#198754";
-                    const lightColor = lightenColor(baseColor);
 
                     return (
-                      <button
+                      <OidcButton
                         key={method.id}
-                        type="button"
-                        className="btn btn-oidc w-100 mb-2 d-flex align-items-center justify-content-center"
+                        method={method}
+                        baseColor={baseColor}
                         onClick={() => handleOIDCLogin(provider)}
-                        style={{
-                          backgroundColor: "transparent",
-                          borderColor: baseColor,
-                          color: lightColor,
-                        }}
-                      >
-                        <i className="bi bi-shield-lock me-2" />
-                        {method.name}
-                      </button>
+                      />
                     );
                   })}
                 </div>
