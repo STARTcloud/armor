@@ -553,7 +553,7 @@ router.get('/i18n/languages', (req, res) => {
     });
   } catch (error) {
     logger.error('Failed to get i18n languages', { error: error.message });
-    res.json({
+    res.status(500).json({
       success: false,
       languages: [],
       defaultLanguage: undefined,
