@@ -3,7 +3,6 @@ import multer from 'multer';
 import { promises as fs } from 'fs';
 import { join, basename, extname, resolve } from 'path';
 import { Op } from 'sequelize';
-import auth from 'basic-auth';
 import { SERVED_DIR, getSecurePath } from '../config/paths.js';
 import {
   authenticateDownloads,
@@ -55,7 +54,6 @@ const handleLandingPageResponse = (req, res) => {
 
 // Helper function to handle directory listing
 const handleDirectoryListing = async (req, res, fullPath) => {
-  const uploadCredentials = auth(req);
   const isAllowed = isAllowedDirectory(fullPath, SERVED_DIR);
 
   if (!isAllowed) {
@@ -102,7 +100,7 @@ const handleDirectoryListing = async (req, res, fullPath) => {
   }
 
   if (shouldShowLandingPage(isRoot, serverConfig, isAdmin, viewIndex, req.query)) {
-    return handleLandingPageResponse(req, res, uploadCredentials);
+    return handleLandingPageResponse(req, res);
   }
 
   // Serve React app for directory listing

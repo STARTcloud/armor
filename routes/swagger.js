@@ -423,7 +423,7 @@ router.post('/user-api-keys/temp', (req, res) => {
       const localUsers = configLoader.getAuthUsers();
       const localUser = localUsers.find(u => u.username === decoded.username);
       if (localUser) {
-        userPermissions = getUserPermissions(localUser) || ['downloads'];
+        userPermissions = getUserPermissions(localUser);
       }
     }
 

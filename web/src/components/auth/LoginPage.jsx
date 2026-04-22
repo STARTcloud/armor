@@ -10,9 +10,9 @@ import { useAuth } from "./AuthContext";
 
 const darkenColor = (color, amount = 0.1) => {
   const hex = color.replace("#", "");
-  const r = parseInt(hex.substr(0, 2), 16);
-  const g = parseInt(hex.substr(2, 2), 16);
-  const b = parseInt(hex.substr(4, 2), 16);
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
   const newR = Math.max(0, Math.floor(r * (1 - amount)));
   const newG = Math.max(0, Math.floor(g * (1 - amount)));
   const newB = Math.max(0, Math.floor(b * (1 - amount)));
@@ -24,9 +24,9 @@ const darkenColor = (color, amount = 0.1) => {
 // Luminance-weighted contrast text — dark text on pale brands, white otherwise.
 const getContrastText = (color) => {
   const hex = color.replace("#", "");
-  const r = parseInt(hex.substr(0, 2), 16) / 255;
-  const g = parseInt(hex.substr(2, 2), 16) / 255;
-  const b = parseInt(hex.substr(4, 2), 16) / 255;
+  const r = parseInt(hex.slice(0, 2), 16) / 255;
+  const g = parseInt(hex.slice(2, 4), 16) / 255;
+  const b = parseInt(hex.slice(4, 6), 16) / 255;
   const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
   return luminance > 0.6 ? "#212529" : "#ffffff";
 };

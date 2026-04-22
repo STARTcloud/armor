@@ -9,6 +9,7 @@ import {
   createWriteStream,
 } from 'fs';
 import { join, dirname } from 'path';
+import { pipeline } from 'node:stream/promises';
 import { createGzip } from 'zlib';
 import configLoader from './configLoader.js';
 
@@ -29,9 +30,7 @@ const compressFile = async filePath => {
     const writeStream = createWriteStream(compressedPath);
     const gzip = createGzip();
 
-    await new Promise((resolve, reject) => {
-      readStream.pipe(gzip).pipe(writeStream).on('finish', resolve).on('error', reject);
-    });
+    await pipeline(readStream, gzip, writeStream);
 
     await fs.unlink(filePath);
   } catch {

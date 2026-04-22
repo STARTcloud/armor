@@ -1,11 +1,8 @@
 import { DataTypes } from 'sequelize';
-import { getSequelize } from '../config/database.js';
 
 let RevokedToken;
 
-export const initializeRevokedTokenModel = () => {
-  const sequelize = getSequelize();
-
+export const initializeRevokedTokenModel = sequelize => {
   RevokedToken = sequelize.define(
     'RevokedToken',
     {
