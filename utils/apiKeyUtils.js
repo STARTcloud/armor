@@ -4,6 +4,9 @@ import bcrypt from 'bcrypt';
 // Static KDF salt for deriving the API key encryption key from jwt_secret.
 // Must remain stable — changing this invalidates every stored encrypted_full_key.
 const API_KEY_ENCRYPTION_KDF_SALT = 'armor-api-key-encryption';
+const API_KEY_LENGTH = 32;
+const API_KEY_PREVIEW_LENGTH = 8;
+const API_KEY_BCRYPT_SALT_ROUNDS = 12;
 
 const deriveEncryptionKey = jwtSecret => {
   if (typeof jwtSecret !== 'string' || jwtSecret.trim().length === 0) {
@@ -55,29 +58,37 @@ export const decryptFullKey = (encryptedPayload, jwtSecret) => {
 
 export const generateApiKey = () => {
   // Generate 48 random bytes → ~64 base64 chars → ~48 alphanumeric after filter,
-  // satisfying the 32-char target in one pass with overwhelming probability.
+  // satisfying the API_KEY_LENGTH target in one pass with overwhelming probability.
   let key = crypto
     .randomBytes(48)
     .toString('base64')
     .replace(/[^a-zA-Z0-9]/g, '');
   // Extremely unlikely fallback to guarantee length.
-  if (key.length < 32) {
+  if (key.length < API_KEY_LENGTH) {
     key += crypto
       .randomBytes(24)
       .toString('base64')
       .replace(/[^a-zA-Z0-9]/g, '');
   }
-  return key.substring(0, 32);
+  return key.substring(0, API_KEY_LENGTH);
 };
 
 export const hashApiKey = async key => {
-  const saltRounds = 12;
-  return bcrypt.hash(key, saltRounds);
+  const hash = await bcrypt.hash(key, API_KEY_BCRYPT_SALT_ROUNDS);
+  return hash;
 };
 
-export const validateApiKey = async (key, hash) => bcrypt.compare(key, hash);
+export const validateApiKey = async (key, hash) => {
+  const matches = await bcrypt.compare(key, hash);
+  return matches;
+};
 
-export const getKeyPreview = key => key.substring(0, 8);
+export const getKeyPreview = key => {
+  if (typeof key !== 'string') {
+    return '';
+  }
+  return key.substring(0, API_KEY_PREVIEW_LENGTH);
+};
 
 export const validatePermissions = permissions => {
   if (!Array.isArray(permissions)) {
