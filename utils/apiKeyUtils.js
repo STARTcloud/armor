@@ -10,6 +10,7 @@ const API_KEY_ENCRYPTION_KDF_SALT = 'armor-api-key-encryption';
 const API_KEY_LENGTH = 32;
 const API_KEY_PREVIEW_LENGTH = 8;
 const API_KEY_BCRYPT_SALT_ROUNDS = 12;
+const VALID_PERMISSIONS = ['downloads', 'uploads', 'delete'];
 
 const isHex = value => /^[0-9a-fA-F]+$/.test(value) && value.length % 2 === 0;
 
@@ -19,8 +20,9 @@ const isHex = value => /^[0-9a-fA-F]+$/.test(value) && value.length % 2 === 0;
  * @param {string} jwtSecret Non-empty jwt_secret from config.
  * @returns {Promise<Buffer>} 32-byte derived key.
  * @throws {Error} If jwtSecret is not a non-empty string.
+ * @throws {Error} If key derivation fails in the underlying crypto implementation.
  */
-const deriveEncryptionKey = jwtSecret => {
+const deriveEncryptionKey = async jwtSecret => {
   if (typeof jwtSecret !== 'string') {
     const receivedType = jwtSecret === null ? 'null' : typeof jwtSecret;
     throw new Error(
@@ -30,7 +32,13 @@ const deriveEncryptionKey = jwtSecret => {
   if (jwtSecret.trim().length === 0) {
     throw new Error('Invalid jwt_secret: expected a non-empty string from config, received empty');
   }
-  return scryptAsync(jwtSecret, API_KEY_ENCRYPTION_KDF_SALT, 32);
+  try {
+    const derivedKey = await scryptAsync(jwtSecret, API_KEY_ENCRYPTION_KDF_SALT, 32);
+    return derivedKey;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to derive API key encryption key from jwt_secret: ${message}`);
+  }
 };
 
 /**
@@ -162,8 +170,7 @@ export const validatePermissions = permissions => {
   if (!Array.isArray(permissions)) {
     return false;
   }
-  const validPermissions = ['downloads', 'uploads', 'delete'];
-  return permissions.every(permission => validPermissions.includes(permission));
+  return permissions.every(permission => VALID_PERMISSIONS.includes(permission));
 };
 
 export const validateExpirationDate = expiresAt => {
