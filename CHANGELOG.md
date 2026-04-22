@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.16.10](https://github.com/STARTcloud/armor/compare/v1.16.9...v1.16.10) (2026-04-22)
+
+
+### Bug Fixes
+
+* gitignore .claude/ and base .env ([4b0470c](https://github.com/STARTcloud/armor/commit/4b0470ce2b42d54bd440f2e42869bf839ada3f55))
+* packages ([218d6e9](https://github.com/STARTcloud/armor/commit/218d6e90b53aaf44fa5ac499e6b813f37941b390))
+
 ## [1.16.9](https://github.com/STARTcloud/armor/compare/v1.16.8...v1.16.9) (2026-04-22)
 
 
