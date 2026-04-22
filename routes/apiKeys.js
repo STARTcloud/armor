@@ -247,13 +247,10 @@ router.post('/', async (req, res) => {
       const crypto = await import('crypto');
       const authConfig = configLoader.getAuthenticationConfig();
 
-      // Use modern encryption with IV
+      // Use modern encryption with IV + scrypt-derived key
       const iv = crypto.randomBytes(16);
-      const cipher = crypto.createCipheriv(
-        'aes-256-cbc',
-        Buffer.from(authConfig.jwt_secret).subarray(0, 32),
-        iv
-      );
+      const derivedKey = crypto.scryptSync(authConfig.jwt_secret, 'armor-api-key-encryption', 32);
+      const cipher = crypto.createCipheriv('aes-256-cbc', derivedKey, iv);
       let encrypted = cipher.update(apiKey, 'utf8', 'hex');
       encrypted += cipher.final('hex');
 

@@ -284,11 +284,12 @@ router.post('/user-api-keys/:id/full', async (req, res) => {
       const [ivHex, encryptedData] = apiKey.encrypted_full_key.split(':');
       const iv = Buffer.from(ivHex, 'hex');
 
-      const decipher = crypto.createDecipheriv(
-        'aes-256-cbc',
-        Buffer.from(authConfigForFull.jwt_secret).subarray(0, 32),
-        iv
+      const derivedKey = crypto.scryptSync(
+        authConfigForFull.jwt_secret,
+        'armor-api-key-encryption',
+        32
       );
+      const decipher = crypto.createDecipheriv('aes-256-cbc', derivedKey, iv);
       let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
 
@@ -553,10 +554,11 @@ router.get('/i18n/languages', (req, res) => {
     });
   } catch (error) {
     logger.error('Failed to get i18n languages', { error: error.message });
+    const fallback = getDefaultLocale() || 'en';
     res.status(500).json({
       success: false,
-      languages: [],
-      defaultLanguage: undefined,
+      languages: [fallback],
+      defaultLanguage: fallback,
     });
   }
 });
