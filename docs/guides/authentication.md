@@ -77,11 +77,23 @@ The `/login` page accepts query parameters that control which authentication opt
 | Parameter | Effect |
 |-----------|--------|
 | *(none)* | Default view. Shows basic auth (unless `basic_auth_hidden: true`) and all enabled, non-hidden OIDC providers. |
-| `?oidc_provider=<name>` | Shows only the named OIDC provider's sign-in button. Basic auth is hidden automatically, regardless of `basic_auth_hidden`. The provider may be marked `hidden: true` in config — the parameter overrides that. |
-| `?auth_method=basic` | Forces basic auth to render even when `basic_auth_hidden: true`. Can be combined with `oidc_provider` to show both on the same page. |
-| `?return=<url>` | URL-encoded path to redirect to after successful login. |
+| `?oidc_provider=<name>` | Auto-initiates the OIDC flow for the named provider. If the user has an active session with that IdP, they land back in Armor authenticated without any clicks. If not, the IdP's own login page is shown. The provider may be marked `hidden: true` in config — the parameter overrides that and the provider's button would be shown only as a fallback if auto-redirect is suppressed (see guards below). |
+| `?auth_method=basic` | Forces basic auth to render even when `basic_auth_hidden: true`. Note: when combined with `?oidc_provider=<name>`, the OIDC auto-redirect fires first and the basic auth form only appears if the user is bounced back with an error. |
+| `?return=<url>` | URL-encoded path to redirect to after successful login. Preserved across the OIDC flow. |
 
-**Example:** `https://downloads.example.com/login?oidc_provider=prominic` renders a page with only the "Sign in with Prominic.NET" button — the basic auth form is suppressed.
+**Example:** `https://downloads.example.com/login?oidc_provider=prominic` immediately initiates the Prominic.NET OIDC flow. Users with an existing Prominic session land on the app with zero clicks.
+
+#### Auto-redirect guards
+
+The auto-initiation is suppressed when any of the following URL parameters are present, to avoid redirect loops after a failed or just-completed flow:
+
+- `?error=<code>` (set automatically by the OIDC callback on failure)
+- `?logout=success` (set after RP-initiated logout)
+- `?session=expired` (set after backchannel-logout revocation)
+
+A 10-second `sessionStorage` brake also prevents rapid re-redirects if an IdP bounces back without completing the flow. In these cases the provider's sign-in button is rendered instead, and the user can click to retry manually.
+
+**Escape hatch:** to bypass auto-redirect for any reason (e.g., to switch accounts at the IdP or use basic auth with an already-configured OIDC link), visit `/login` without the `oidc_provider` query parameter.
 
 ### HTTP Basic Authentication
 
