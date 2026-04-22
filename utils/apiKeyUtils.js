@@ -87,6 +87,10 @@ export const validateExpirationDate = expiresAt => {
   const now = new Date();
   const expiration = new Date(expiresAt);
 
+  if (Number.isNaN(expiration.getTime())) {
+    return { valid: false, error: 'Invalid expiration date' };
+  }
+
   // Must be in the future
   if (expiration <= now) {
     return { valid: false, error: 'Expiration date must be in the future' };
@@ -103,4 +107,13 @@ export const validateExpirationDate = expiresAt => {
   return { valid: true };
 };
 
-export const isApiKeyExpired = expiresAt => new Date() > new Date(expiresAt);
+// Fail-secure: an invalid/unparseable stored date is treated as expired
+// rather than throwing, so a single bad DB row can't crash a list endpoint
+// or silently grant perpetual access through auth middleware.
+export const isApiKeyExpired = expiresAt => {
+  const expiration = new Date(expiresAt);
+  if (Number.isNaN(expiration.getTime())) {
+    return true;
+  }
+  return new Date() > expiration;
+};
