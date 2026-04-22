@@ -8,6 +8,7 @@ import {
   validatePermissions,
   validateExpirationDate,
   isApiKeyExpired,
+  encryptFullKey,
 } from '../utils/apiKeyUtils.js';
 import { getUserPermissions } from '../utils/auth.js';
 import { logAccess, logger } from '../config/logger.js';
@@ -244,18 +245,8 @@ router.post('/', async (req, res) => {
 
     // If retrievable keys are enabled, store encrypted full key
     if (isRetrievable) {
-      const crypto = await import('crypto');
       const authConfig = configLoader.getAuthenticationConfig();
-
-      // Use modern encryption with IV + scrypt-derived key
-      const iv = crypto.randomBytes(16);
-      const derivedKey = crypto.scryptSync(authConfig.jwt_secret, 'armor-api-key-encryption', 32);
-      const cipher = crypto.createCipheriv('aes-256-cbc', derivedKey, iv);
-      let encrypted = cipher.update(apiKey, 'utf8', 'hex');
-      encrypted += cipher.final('hex');
-
-      // Store IV + encrypted data
-      newApiKeyData.encrypted_full_key = `${iv.toString('hex')}:${encrypted}`;
+      newApiKeyData.encrypted_full_key = encryptFullKey(apiKey, authConfig.jwt_secret);
     }
 
     const newApiKey = await ApiKey.create(newApiKeyData);

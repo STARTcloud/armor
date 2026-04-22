@@ -1,6 +1,33 @@
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 
+// Static KDF salt for deriving the API key encryption key from jwt_secret.
+// Must remain stable — changing this invalidates every stored encrypted_full_key.
+const API_KEY_ENCRYPTION_KDF_SALT = 'armor-api-key-encryption';
+
+const deriveEncryptionKey = jwtSecret =>
+  crypto.scryptSync(jwtSecret, API_KEY_ENCRYPTION_KDF_SALT, 32);
+
+// AES-256-CBC encrypt a plaintext API key for database storage.
+// Output format: "<iv-hex>:<ciphertext-hex>"
+export const encryptFullKey = (plainKey, jwtSecret) => {
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-cbc', deriveEncryptionKey(jwtSecret), iv);
+  let encrypted = cipher.update(plainKey, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return `${iv.toString('hex')}:${encrypted}`;
+};
+
+// Reverse of encryptFullKey. Throws on malformed input or wrong key.
+export const decryptFullKey = (encryptedPayload, jwtSecret) => {
+  const [ivHex, encryptedData] = encryptedPayload.split(':');
+  const iv = Buffer.from(ivHex, 'hex');
+  const decipher = crypto.createDecipheriv('aes-256-cbc', deriveEncryptionKey(jwtSecret), iv);
+  let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
+};
+
 export const generateApiKey = () => {
   // Generate a 32-character cryptographically secure API key
   let key = '';

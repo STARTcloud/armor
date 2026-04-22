@@ -1,11 +1,10 @@
 import express from 'express';
-import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import configLoader from '../config/configLoader.js';
 import { specs } from '../config/swagger.js';
 import { getApiKeyModel } from '../models/ApiKey.js';
 import { getUserPermissions } from '../utils/auth.js';
-import { generateApiKey } from '../utils/apiKeyUtils.js';
+import { decryptFullKey } from '../utils/apiKeyUtils.js';
 import { logger } from '../config/logger.js';
 import { getSupportedLocales, getDefaultLocale } from '../config/i18n.js';
 
@@ -282,18 +281,7 @@ router.post('/user-api-keys/:id/full', async (req, res) => {
 
     // Decrypt the stored full key
     try {
-      // Parse IV and encrypted data
-      const [ivHex, encryptedData] = apiKey.encrypted_full_key.split(':');
-      const iv = Buffer.from(ivHex, 'hex');
-
-      const derivedKey = crypto.scryptSync(
-        authConfigForFull.jwt_secret,
-        'armor-api-key-encryption',
-        32
-      );
-      const decipher = crypto.createDecipheriv('aes-256-cbc', derivedKey, iv);
-      let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
-      decrypted += decipher.final('utf8');
+      const decrypted = decryptFullKey(apiKey.encrypted_full_key, authConfigForFull.jwt_secret);
 
       logger.info('Full API key retrieved for Swagger', {
         user: decoded.username || decoded.userId,
@@ -432,15 +420,35 @@ router.post('/user-api-keys/temp', (req, res) => {
       }
     }
 
-    // Generate temporary key
-    const tempKey = `temp_${generateApiKey()}`;
+    // Generate temporary key as a signed JWT. Stateless — the auth middleware
+    // validates it via jwt.verify against the same jwt_secret, so no DB
+    // storage is needed. The 'type: temporary' claim distinguishes it from
+    // session JWTs.
     const expirationHours = swaggerConfig.temp_key_expiration_hours || 1;
     const expiresAt = new Date(Date.now() + expirationHours * 60 * 60 * 1000);
+    const jti = `temp-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
+    const tempKey = jwt.sign(
+      {
+        type: 'temporary',
+        permissions: userPermissions,
+        username: decoded.username,
+        userId: decoded.userId,
+        jti,
+      },
+      authConfigForTemp.jwt_secret,
+      {
+        expiresIn: `${expirationHours}h`,
+        issuer: 'file-server',
+        audience: 'file-server-users',
+      }
+    );
 
     logger.info('Temporary API key generated for Swagger', {
       user: decoded.username || decoded.userId,
       permissions: userPermissions,
       expires_at: expiresAt,
+      jti,
     });
     return res.json({
       success: true,

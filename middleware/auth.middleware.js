@@ -19,6 +19,47 @@ const checkApiKeyAuth = async (req, permission) => {
     return false;
   }
 
+  // Signed-JWT temp keys (issued by /api/user-api-keys/temp). Detected by JWT
+  // shape (three dot-separated base64url segments); verified against the same
+  // jwt_secret. Falls through to DB API key lookup on any verification error.
+  if (apiKey.split('.').length === 3) {
+    try {
+      const authConfig = configLoader.getAuthenticationConfig();
+      const decoded = jwt.verify(apiKey, authConfig.jwt_secret, {
+        issuer: 'file-server',
+        audience: 'file-server-users',
+      });
+
+      if (decoded.type === 'temporary') {
+        const permissions = decoded.permissions || [];
+        if (!permissions.includes(permission)) {
+          logger.info('Temp key lacks permission', {
+            permission,
+            keyPermissions: permissions,
+            jti: decoded.jti,
+          });
+          return false;
+        }
+
+        req.oidcUser = {
+          userId: decoded.userId,
+          username: decoded.username,
+          permissions,
+          authType: 'temp_key',
+          jti: decoded.jti,
+        };
+
+        logger.info('Temp key auth success', { permission, jti: decoded.jti });
+        return true;
+      }
+    } catch (jwtError) {
+      // Not a valid temp-key JWT — fall through to DB lookup for regular API keys.
+      logger.debug('Bearer token not a valid temp-key JWT, trying DB lookup', {
+        error: jwtError.message,
+      });
+    }
+  }
+
   try {
     const ApiKey = getApiKeyModel();
 
