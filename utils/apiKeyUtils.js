@@ -55,10 +55,15 @@ export const encryptFullKey = async (plainKey, jwtSecret) => {
   // Input-type validation is intentionally omitted — it would be dead code.
   const iv = crypto.randomBytes(16);
   const key = await deriveEncryptionKey(jwtSecret);
-  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-  let encrypted = cipher.update(plainKey, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  return `${iv.toString('hex')}:${encrypted}`;
+  try {
+    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+    let encrypted = cipher.update(plainKey, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    return `${iv.toString('hex')}:${encrypted}`;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to encrypt API key: ${message}`);
+  }
 };
 
 /**
@@ -97,10 +102,15 @@ export const decryptFullKey = async (encryptedPayload, jwtSecret) => {
   }
 
   const key = await deriveEncryptionKey(jwtSecret);
-  const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-  let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-  return decrypted;
+  try {
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+    let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to decrypt API key: ${message}`);
+  }
 };
 
 /**
