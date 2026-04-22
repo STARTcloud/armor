@@ -57,31 +57,34 @@ export const decryptFullKey = (encryptedPayload, jwtSecret) => {
 };
 
 export const generateApiKey = () => {
-  // Generate 48 random bytes → ~64 base64 chars → ~48 alphanumeric after filter,
-  // satisfying the API_KEY_LENGTH target in one pass with overwhelming probability.
-  let key = crypto
-    .randomBytes(48)
-    .toString('base64')
-    .replace(/[^a-zA-Z0-9]/g, '');
-  // Extremely unlikely fallback to guarantee length.
-  if (key.length < API_KEY_LENGTH) {
+  // Draw 48 random bytes per iteration → ~48 alphanumeric chars after base64
+  // filter. The loop is effectively a one-shot in practice; the guard is
+  // there so we can never return a short key even if consecutive draws
+  // happen to filter low.
+  let key = '';
+  while (key.length < API_KEY_LENGTH) {
     key += crypto
-      .randomBytes(24)
+      .randomBytes(48)
       .toString('base64')
       .replace(/[^a-zA-Z0-9]/g, '');
   }
   return key.substring(0, API_KEY_LENGTH);
 };
 
-export const hashApiKey = async key => {
-  const hash = await bcrypt.hash(key, API_KEY_BCRYPT_SALT_ROUNDS);
-  return hash;
-};
+/**
+ * Hash a plaintext API key with bcrypt for database storage.
+ * @param {string} key Plaintext API key.
+ * @returns {Promise<string>} bcrypt hash. Callers must await and handle rejection.
+ */
+export const hashApiKey = key => bcrypt.hash(key, API_KEY_BCRYPT_SALT_ROUNDS);
 
-export const validateApiKey = async (key, hash) => {
-  const matches = await bcrypt.compare(key, hash);
-  return matches;
-};
+/**
+ * Compare a plaintext API key to a bcrypt hash.
+ * @param {string} key Plaintext API key from a Bearer token.
+ * @param {string} hash bcrypt hash from the database.
+ * @returns {Promise<boolean>} true if the key matches. Callers must await and handle rejection.
+ */
+export const validateApiKey = (key, hash) => bcrypt.compare(key, hash);
 
 export const getKeyPreview = key => {
   if (typeof key !== 'string') {
