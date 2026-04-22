@@ -70,6 +70,19 @@ authentication:
 3. Enter username and password
 4. Access granted based on user role
 
+### Login Page URL Parameters
+
+The `/login` page accepts query parameters that control which authentication options are displayed. These are useful for deep-linking to a specific sign-in flow (for example, from a marketing page or partner portal):
+
+| Parameter | Effect |
+|-----------|--------|
+| *(none)* | Default view. Shows basic auth (unless `basic_auth_hidden: true`) and all enabled, non-hidden OIDC providers. |
+| `?oidc_provider=<name>` | Shows only the named OIDC provider's sign-in button. Basic auth is hidden automatically, regardless of `basic_auth_hidden`. The provider may be marked `hidden: true` in config — the parameter overrides that. |
+| `?auth_method=basic` | Forces basic auth to render even when `basic_auth_hidden: true`. Can be combined with `oidc_provider` to show both on the same page. |
+| `?return=<url>` | URL-encoded path to redirect to after successful login. |
+
+**Example:** `https://downloads.example.com/login?oidc_provider=prominic` renders a page with only the "Sign in with Prominic.NET" button — the basic auth form is suppressed.
+
 ### HTTP Basic Authentication
 
 For CLI tools and automation:

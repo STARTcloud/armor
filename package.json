@@ -1,6 +1,6 @@
 {
   "name": "armor",
-  "version": "1.16.6",
+  "version": "1.16.7",
   "description": "ARMOR Reliably Manages Online Resources",
   "license": "GPL-3.0",
   "type": "module",
@@ -35,11 +35,11 @@
     "test:watch": "vitest --watch",
     "test:frontend": "cd web && npm run test",
     "test:all": "npm run test:run && npm run test:frontend",
-    "security:audit": "npm audit --audit-level moderate",
-    "security:vulnerabilities": "npm audit && better-npm-audit audit",
+    "security:audit": "better-npm-audit audit",
+    "security:vulnerabilities": "better-npm-audit audit",
     "security:licenses": "license-checker-rseidelsohn --onlyAllow 'MIT;Apache-2.0;BSD;BSD-2-Clause;BSD-3-Clause;ISC;GPL-3.0;LGPL-2.1;LGPL-3.0;MPL-2.0;CC0-1.0;CC-BY-3.0;CC-BY-4.0;Unlicense;Python-2.0;Unicode-DFS-2016;Apache 2.0;BlueOak-1.0.0' --excludePrivatePackages",
     "security:licenses-report": "license-checker-rseidelsohn --out licenses.json --json",
-    "security:supply-chain": "audit-ci --moderate",
+    "security:supply-chain": "audit-ci --config ./audit-ci.jsonc",
     "security:backend": "npm run security:vulnerabilities && npm run security:licenses && npm run security:supply-chain",
     "security:frontend": "cd web && npm run security:all",
     "security:all": "npm run security:backend && npm run security:frontend"
@@ -72,7 +72,7 @@
     "passport-oauth2": "^1.8.0",
     "pg": "^8.16.3",
     "sequelize": "^6.37.7",
-    "sqlite3": "^5.1.7",
+    "sqlite3": "^6.0.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "winston": "^3.18.3"
