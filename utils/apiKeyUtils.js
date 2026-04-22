@@ -19,9 +19,30 @@ export const encryptFullKey = (plainKey, jwtSecret) => {
 };
 
 // Reverse of encryptFullKey. Throws on malformed input or wrong key.
+// Validates shape (string, "<iv-hex>:<ciphertext-hex>", valid hex, 16-byte IV)
+// before touching the crypto primitives so downstream errors are specific
+// rather than generic OpenSSL noise.
 export const decryptFullKey = (encryptedPayload, jwtSecret) => {
-  const [ivHex, encryptedData] = encryptedPayload.split(':');
+  if (typeof encryptedPayload !== 'string') {
+    throw new Error('Invalid encrypted payload: expected string');
+  }
+
+  const parts = encryptedPayload.split(':');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    throw new Error('Invalid encrypted payload: expected "<iv-hex>:<ciphertext-hex>"');
+  }
+
+  const [ivHex, encryptedData] = parts;
+  const isHex = value => /^[0-9a-fA-F]+$/.test(value) && value.length % 2 === 0;
+  if (!isHex(ivHex) || !isHex(encryptedData)) {
+    throw new Error('Invalid encrypted payload: non-hex content');
+  }
+
   const iv = Buffer.from(ivHex, 'hex');
+  if (iv.length !== 16) {
+    throw new Error('Invalid encrypted payload: IV must be 16 bytes');
+  }
+
   const decipher = crypto.createDecipheriv('aes-256-cbc', deriveEncryptionKey(jwtSecret), iv);
   let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
@@ -29,13 +50,18 @@ export const decryptFullKey = (encryptedPayload, jwtSecret) => {
 };
 
 export const generateApiKey = () => {
-  // Generate a 32-character cryptographically secure API key
-  let key = '';
-  while (key.length < 32) {
-    const randomBytes = crypto.randomBytes(24);
-    const base64 = randomBytes.toString('base64');
-    const alphanumeric = base64.replace(/[^a-zA-Z0-9]/g, '');
-    key += alphanumeric;
+  // Generate 48 random bytes → ~64 base64 chars → ~48 alphanumeric after filter,
+  // satisfying the 32-char target in one pass with overwhelming probability.
+  let key = crypto
+    .randomBytes(48)
+    .toString('base64')
+    .replace(/[^a-zA-Z0-9]/g, '');
+  // Extremely unlikely fallback to guarantee length.
+  if (key.length < 32) {
+    key += crypto
+      .randomBytes(24)
+      .toString('base64')
+      .replace(/[^a-zA-Z0-9]/g, '');
   }
   return key.substring(0, 32);
 };
