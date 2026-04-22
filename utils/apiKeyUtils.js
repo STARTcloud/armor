@@ -70,12 +70,12 @@ export const generateApiKey = () => {
   return key.substring(0, 32);
 };
 
-export const hashApiKey = key => {
+export const hashApiKey = async key => {
   const saltRounds = 12;
   return bcrypt.hash(key, saltRounds);
 };
 
-export const validateApiKey = (key, hash) => bcrypt.compare(key, hash);
+export const validateApiKey = async (key, hash) => bcrypt.compare(key, hash);
 
 export const getKeyPreview = key => key.substring(0, 8);
 
