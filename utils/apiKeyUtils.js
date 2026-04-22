@@ -215,7 +215,7 @@ export const validateExpirationDate = expiresAt => {
   }
 
   // Cannot be more than 1 year from now (prevent infinite-like keys)
-  const oneYearFromNow = new Date();
+  const oneYearFromNow = new Date(now);
   oneYearFromNow.setFullYear(now.getFullYear() + 1);
 
   if (expiration > oneYearFromNow) {
