@@ -11,6 +11,8 @@ const API_KEY_LENGTH = 32;
 const API_KEY_PREVIEW_LENGTH = 8;
 const API_KEY_BCRYPT_SALT_ROUNDS = 12;
 
+const isHex = value => /^[0-9a-fA-F]+$/.test(value) && value.length % 2 === 0;
+
 /**
  * Derives the AES-256 encryption key from the JWT secret via scrypt.
  * Async to avoid blocking the event loop on the ~50-100ms scrypt workload.
@@ -68,7 +70,6 @@ export const decryptFullKey = async (encryptedPayload, jwtSecret) => {
   }
 
   const [ivHex, encryptedData] = parts;
-  const isHex = value => /^[0-9a-fA-F]+$/.test(value) && value.length % 2 === 0;
   if (!isHex(ivHex) || !isHex(encryptedData)) {
     throw new Error('Invalid encrypted payload: non-hex content');
   }
