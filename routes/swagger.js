@@ -292,7 +292,11 @@ router.post('/user-api-keys/:id/full', async (req, res) => {
       let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
 
-      res.json({
+      logger.info('Full API key retrieved for Swagger', {
+        user: decoded.username || decoded.userId,
+        keyId,
+      });
+      return res.json({
         success: true,
         full_key: decrypted,
         name: apiKey.name,
@@ -305,12 +309,6 @@ router.post('/user-api-keys/:id/full', async (req, res) => {
         message: 'Failed to decrypt API key',
       });
     }
-
-    logger.info('Full API key retrieved for Swagger', {
-      user: decoded.username || decoded.userId,
-      keyId,
-    });
-    return undefined;
   } catch (error) {
     logger.error('Full API key retrieval error', { error: error.message });
     return res.status(500).json({
@@ -432,7 +430,12 @@ router.post('/user-api-keys/temp', (req, res) => {
     const expirationHours = swaggerConfig.temp_key_expiration_hours || 1;
     const expiresAt = new Date(Date.now() + expirationHours * 60 * 60 * 1000);
 
-    res.json({
+    logger.info('Temporary API key generated for Swagger', {
+      user: decoded.username || decoded.userId,
+      permissions: userPermissions,
+      expires_at: expiresAt,
+    });
+    return res.json({
       success: true,
       message: 'Temporary API key generated for Swagger testing',
       temp_key: {
@@ -442,13 +445,6 @@ router.post('/user-api-keys/temp', (req, res) => {
         type: 'temporary',
       },
     });
-
-    logger.info('Temporary API key generated for Swagger', {
-      user: decoded.username || decoded.userId,
-      permissions: userPermissions,
-      expires_at: expiresAt,
-    });
-    return undefined;
   } catch (error) {
     logger.error('Temporary API key generation error', { error: error.message });
     return res.status(500).json({

@@ -1,4 +1,4 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, Op } from 'sequelize';
 
 let RevokedToken;
 
@@ -81,7 +81,7 @@ export const cleanupExpiredTokens = async () => {
   const deleted = await RevokedTokenModel.destroy({
     where: {
       exp: {
-        [DataTypes.Op.lt]: now,
+        [Op.lt]: now,
       },
     },
   });
